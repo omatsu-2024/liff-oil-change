@@ -1,203 +1,294 @@
 <!DOCTYPE html>
 <html lang="ja">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>オイル交換予約</title>
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script
+      charset="utf-8"
+      src="https://static.line-scdn.net/liff/edge/2/sdk.js"
+    ></script>
     <style>
-      body {
-        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      * {
         margin: 0;
-        background: #f7f7fb;
+        padding: 0;
+        box-sizing: border-box;
       }
-      .wrap {
-        max-width: 520px;
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 500px;
         margin: 0 auto;
-        padding: 24px;
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
       }
-      .card {
-        background: #fff;
-        border-radius: 16px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
-        padding: 24px;
-      }
+
       h1 {
-        font-size: 20px;
-        margin: 0 0 8px;
+        color: #333;
+        margin-bottom: 10px;
+        font-size: 24px;
       }
-      .sub {
+
+      .subtitle {
         color: #666;
-        margin: 0 0 20px;
+        margin-bottom: 30px;
+        font-size: 14px;
       }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
       label {
         display: block;
+        margin-bottom: 8px;
+        color: #333;
         font-weight: 600;
-        margin: 14px 0 6px;
+        font-size: 14px;
       }
+
       input[type="text"],
       input[type="tel"],
       input[type="date"] {
         width: 100%;
         padding: 12px;
-        border: 1.8px solid #e5e7eb;
+        border: 2px solid #e0e0e0;
         border-radius: 8px;
+        font-size: 16px;
+        transition: border-color 0.3s;
       }
-      .radios {
-        display: grid;
-        gap: 10px;
+
+      input:focus {
+        outline: none;
+        border-color: #667eea;
       }
-      .radios label {
+
+      .radio-group {
         display: flex;
+        flex-direction: column;
         gap: 10px;
+      }
+
+      .radio-item {
+        display: flex;
         align-items: center;
-        border: 1.8px solid #e5e7eb;
-        border-radius: 10px;
         padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
       }
-      button {
+
+      .radio-item:hover {
+        border-color: #667eea;
+        background: #f8f9ff;
+      }
+
+      .radio-item input[type="radio"] {
+        margin-right: 10px;
+        width: 20px;
+        height: 20px;
+      }
+
+      .submit-btn {
         width: 100%;
-        border: 0;
-        border-radius: 12px;
-        padding: 14px;
-        font-weight: 700;
-        background: #10b981;
-        color: #fff;
-        margin-top: 18px;
+        padding: 16px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 18px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s;
+        margin-top: 30px;
       }
-      .muted {
-        font-size: 12px;
-        color: #888;
-        margin-top: 10px;
+
+      .submit-btn:hover {
+        transform: translateY(-2px);
       }
-      .err {
-        color: #e11d48;
-        margin-top: 8px;
+
+      .submit-btn:active {
+        transform: translateY(0);
+      }
+
+      .submit-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .loading {
         display: none;
+        text-align: center;
+        color: #667eea;
+        margin-top: 20px;
       }
-      .ok {
-        color: #16a34a;
-        margin-top: 8px;
+
+      .error-message {
+        color: #e74c3c;
+        font-size: 14px;
+        margin-top: 10px;
         display: none;
       }
     </style>
   </head>
   <body>
-    <div class="wrap">
-      <div class="card">
-        <h1>🚗 オイル交換予約</h1>
-        <p class="sub">必要事項をご入力ください</p>
+    <div class="container">
+      <h1>🚗 オイル交換予約</h1>
+      <p class="subtitle">必要事項を入力してください</p>
 
-        <label>お名前 *</label>
-        <input id="name" type="text" placeholder="山田太郎" required />
-
-        <label>電話番号 *</label>
-        <input id="phone" type="tel" placeholder="090-1234-5678" required />
-
-        <label>希望日 *</label>
-        <input id="date" type="date" required />
-
-        <label>希望時間 *</label>
-        <div class="radios">
-          <label
-            ><input
-              type="radio"
-              name="time"
-              value="10:00-12:00"
-            />10:00-12:00</label
-          >
-          <label
-            ><input
-              type="radio"
-              name="time"
-              value="13:00-15:00"
-            />13:00-15:00</label
-          >
-          <label
-            ><input
-              type="radio"
-              name="time"
-              value="15:00-17:00"
-            />15:00-17:00</label
-          >
+      <form id="reservationForm">
+        <div class="form-group">
+          <label for="name">お名前 *</label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            required
+            placeholder="山田太郎"
+          />
         </div>
 
-        <button id="submit">予約する</button>
-        <div class="muted">送信後、LINEトークに確認メッセージが届きます。</div>
-        <div id="err" class="err"></div>
-        <div id="ok" class="ok">送信しました。画面を閉じます。</div>
-      </div>
+        <div class="form-group">
+          <label for="phone">電話番号 *</label>
+          <input
+            type="tel"
+            id="phone"
+            name="phone"
+            required
+            placeholder="090-1234-5678"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="date">希望日 *</label>
+          <input type="date" id="date" name="date" required />
+        </div>
+
+        <div class="form-group">
+          <label>希望時間 *</label>
+          <div class="radio-group">
+            <label class="radio-item">
+              <input type="radio" name="time" value="10:00-12:00" required />
+              <span>10:00 - 12:00</span>
+            </label>
+            <label class="radio-item">
+              <input type="radio" name="time" value="13:00-15:00" />
+              <span>13:00 - 15:00</span>
+            </label>
+            <label class="radio-item">
+              <input type="radio" name="time" value="15:00-17:00" />
+              <span>15:00 - 17:00</span>
+            </label>
+          </div>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">
+          予約する
+        </button>
+
+        <div class="loading" id="loading">送信中...</div>
+        <div class="error-message" id="errorMessage"></div>
+      </form>
     </div>
 
     <script>
+      // ここに設定を記入
       const LIFF_ID = "2008228464-G4Z2gDq3";
       const GAS_URL =
         "https://script.google.com/macros/s/AKfycbwrDVHWagh1naCgIIC_EgOBfva71PWv786tI47AISJP5FugMxa2XMf4R8iLv1WCW1dd/exec";
 
       let userId = "";
 
-      (async () => {
-        try {
-          await liff.init({ liffId: LIFF_ID });
-          if (!liff.isLoggedIn()) {
-            liff.login();
-            return;
-          }
-          const ctx = await liff.getProfile();
-          userId = ctx.userId || "";
-        } catch (e) {
-          showErr("LINE接続に失敗しました。時間をおいて再度お試しください。");
-        }
-      })();
-
-      document.getElementById("submit").addEventListener("click", async () => {
-        const name = val("name"),
-          phone = val("phone"),
-          date = val("date");
-        const time = (() => {
-          const el = document.querySelector('input[name="time"]:checked');
-          return el ? el.value : "";
-        })();
-
-        if (!name || !phone || !date || !time) {
-          return showErr("未入力の項目があります");
-        }
-
-        try {
-          // GASへ保存
-          await fetch(GAS_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId, name, phone, date, time }),
+      // LIFF初期化
+      window.onload = function () {
+        liff
+          .init({
+            liffId: LIFF_ID,
+          })
+          .then(() => {
+            // ログイン確認
+            if (!liff.isLoggedIn()) {
+              liff.login();
+            } else {
+              // ユーザーIDを取得
+              liff.getProfile().then((profile) => {
+                userId = profile.userId;
+                console.log("ユーザーID取得成功:", userId);
+              });
+            }
+          })
+          .catch((err) => {
+            console.error("LIFF初期化エラー:", err);
+            showError("LINEとの接続に失敗しました");
           });
+      };
 
-          // 予約受付をLINEトークへ
-          await liff.sendMessages([
-            {
-              type: "text",
-              text: `オイル交換のご予約を受け付けました。\n\nお名前：${name}\n希望日：${date}\n時間帯：${time}\n\nスタッフより折り返しご連絡します。`,
-            },
-          ]);
+      // フォーム送信処理
+      document
+        .getElementById("reservationForm")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
 
-          ok("送信しました。まもなく画面を閉じます。");
-          setTimeout(() => liff.closeWindow(), 900);
-        } catch (e) {
-          showErr("送信エラーが発生しました。再度お試しください。");
-        }
-      });
+          const submitBtn = document.getElementById("submitBtn");
+          const loading = document.getElementById("loading");
+          const errorMessage = document.getElementById("errorMessage");
 
-      function val(id) {
-        return document.getElementById(id).value.trim();
-      }
-      function showErr(msg) {
-        const e = document.getElementById("err");
-        e.textContent = msg;
-        e.style.display = "block";
-      }
-      function ok(msg) {
-        const e = document.getElementById("ok");
-        e.textContent = msg;
-        e.style.display = "block";
+          // ボタン無効化・ローディング表示
+          submitBtn.disabled = true;
+          loading.style.display = "block";
+          errorMessage.style.display = "none";
+
+          // フォームデータ取得
+          const formData = {
+            userId: userId,
+            name: document.getElementById("name").value,
+            phone: document.getElementById("phone").value,
+            date: document.getElementById("date").value,
+            time: document.querySelector('input[name="time"]:checked').value,
+          };
+
+          try {
+            // Google Apps Scriptに送信
+            const response = await fetch(GAS_URL, {
+              method: "POST",
+              mode: "no-cors", // 重要: GASではこの設定が必要
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(formData),
+            });
+
+            // LINEにメッセージ送信
+            await liff.sendMessages([
+              {
+                type: "text",
+                text: `オイル交換予約を受け付けました✨\n\nお名前: ${formData.name}\n希望日: ${formData.date}\n希望時間: ${formData.time}\n\n後ほど店舗から確認のご連絡をいたします。`,
+              },
+            ]);
+
+            // LIFF画面を閉じる
+            liff.closeWindow();
+          } catch (error) {
+            console.error("送信エラー:", error);
+            showError("送信に失敗しました。もう一度お試しください。");
+            submitBtn.disabled = false;
+            loading.style.display = "none";
+          }
+        });
+
+      function showError(message) {
+        const errorMessage = document.getElementById("errorMessage");
+        errorMessage.textContent = message;
+        errorMessage.style.display = "block";
       }
     </script>
   </body>
