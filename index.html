@@ -126,6 +126,43 @@
         margin-top: 10px;
         display: none;
       }
+
+      /* --- モーダル --- */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+      .modal {
+        width: min(92vw, 420px);
+        background: #fff;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+        text-align: center;
+      }
+      .modal h2 {
+        font-size: 20px;
+        margin-bottom: 6px;
+      }
+      .modal p {
+        color: #555;
+        margin: 6px 0 18px;
+      }
+      .modal .btn {
+        display: inline-block;
+        padding: 12px 18px;
+        border: 0;
+        border-radius: 10px;
+        background: #10b981;
+        color: #fff;
+        font-weight: 700;
+        cursor: pointer;
+      }
     </style>
   </head>
   <body>
@@ -197,6 +234,15 @@
       </form>
     </div>
 
+    <!-- 送信完了モーダル -->
+    <div class="modal-overlay" id="doneModal">
+      <div class="modal">
+        <h2>送信が完了しました</h2>
+        <p>ご入力ありがとうございました。スタッフよりご連絡します。</p>
+        <button class="btn" id="closeBtn">LINEに戻る</button>
+      </div>
+    </div>
+
     <script>
       // === 設定値 ===
       const LIFF_ID = "2008228464-G4Z2gDq3";
@@ -214,10 +260,11 @@
             return;
           }
           const idToken = liff.getDecodedIDToken?.();
-          if (idToken?.sub) userId = idToken.sub;
-          else {
-            const profile = await liff.getProfile();
-            userId = profile.userId || "";
+          if (idToken?.sub) {
+            userId = idToken.sub;
+          } else {
+            const p = await liff.getProfile();
+            userId = p.userId || "";
           }
         } catch (err) {
           console.error("LIFF初期化エラー:", err);
@@ -252,7 +299,7 @@
           return showError("未入力の項目があります。");
         }
 
-        // 1) GASに保存（no-cors）
+        // 1) GASへ保存（no-cors）
         try {
           await fetch(GAS_URL, {
             method: "POST",
@@ -261,7 +308,7 @@
             body: JSON.stringify({ userId, ...formData }),
           });
         } catch (e) {
-          console.warn("GAS送信エラー（多くは無視可）:", e);
+          console.warn("GAS送信エラー:", e);
         }
 
         // 2) 可能ならトークへ確認メッセージ
@@ -286,18 +333,21 @@
           console.warn("sendMessages エラー:", e);
         }
 
-        // 3) ポップアップを表示 → OKテキスト表示 → 画面を閉じる
-        try {
-          alert("送信が完了しました。");
-        } catch (_) {}
-        showOk();
-        setTimeout(() => {
-          try {
-            liff.closeWindow();
-          } catch (_) {}
-        }, 900);
+        // 3) モーダルを表示（ユーザーが押すまで閉じない）
+        openDoneModal();
         toggleSubmitting(false);
       }
+
+      // --- モーダル制御 ---
+      function openDoneModal() {
+        document.getElementById("doneModal").style.display = "flex";
+        document.getElementById("okMessage").style.display = "block"; // 既存の完了テキストも表示
+      }
+      document.getElementById("closeBtn").addEventListener("click", () => {
+        try {
+          if (liff.isInClient()) liff.closeWindow();
+        } catch (_) {}
+      });
 
       // --- UI ヘルパ ---
       function toggleSubmitting(b) {
@@ -309,10 +359,6 @@
       function showError(msg) {
         const e = document.getElementById("errorMessage");
         e.textContent = msg;
-        e.style.display = "block";
-      }
-      function showOk() {
-        const e = document.getElementById("okMessage");
         e.style.display = "block";
       }
     </script>
