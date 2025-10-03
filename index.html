@@ -198,14 +198,14 @@
     </div>
 
     <script>
-      // === 設定値（そのまま利用可） ===
+      // === 設定値 ===
       const LIFF_ID = "2008228464-G4Z2gDq3";
       const GAS_URL =
         "https://script.google.com/macros/s/AKfycbwrDVHWagh1naCgIIC_EgOBfva71PWv786tI47AISJP5FugMxa2XMf4R8iLv1WCW1dd/exec";
 
       let userId = "";
 
-      // --- LIFF 初期化（IDトークン優先で userId を取得）---
+      // --- LIFF 初期化 ---
       (async function init() {
         try {
           await liff.init({ liffId: LIFF_ID });
@@ -213,11 +213,9 @@
             liff.login();
             return;
           }
-
           const idToken = liff.getDecodedIDToken?.();
-          if (idToken?.sub) {
-            userId = idToken.sub;
-          } else {
+          if (idToken?.sub) userId = idToken.sub;
+          else {
             const profile = await liff.getProfile();
             userId = profile.userId || "";
           }
@@ -254,7 +252,7 @@
           return showError("未入力の項目があります。");
         }
 
-        // 1) まず GAS に保存（no-cors のためレスポンスは見ない）
+        // 1) GASに保存（no-cors）
         try {
           await fetch(GAS_URL, {
             method: "POST",
@@ -266,7 +264,7 @@
           console.warn("GAS送信エラー（多くは無視可）:", e);
         }
 
-        // 2) 可能ならトークへ確認メッセージ（失敗しても予約は成立）
+        // 2) 可能ならトークへ確認メッセージ
         try {
           if (liff.isInClient()) {
             const fs = await liff.getFriendship();
@@ -282,18 +280,16 @@
                     `スタッフより折り返しご連絡します。`,
                 },
               ]);
-            } else {
-              console.info("友だち未追加のため sendMessages をスキップ");
             }
-          } else {
-            console.info("LINEアプリ外のため sendMessages をスキップ");
           }
         } catch (e) {
           console.warn("sendMessages エラー:", e);
-          // ここは致命的ではないので続行
         }
 
-        // 3) ユーザーに完了表示 → 画面を閉じる
+        // 3) ポップアップを表示 → OKテキスト表示 → 画面を閉じる
+        try {
+          alert("送信が完了しました。");
+        } catch (_) {}
         showOk();
         setTimeout(() => {
           try {
