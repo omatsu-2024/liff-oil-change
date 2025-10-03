@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>オイル交換予約</title>
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        input[type="text"],
+        input[type="tel"],
+        input[type="date"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .radio-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .radio-item:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        
+        .radio-item input[type="radio"] {
+            margin-right: 10px;
+            width: 20px;
+            height: 20px;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 30px;
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+        
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            margin-top: 20px;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚗 オイル交換予約</h1>
+        <p class="subtitle">必要事項を入力してください</p>
+        
+        <form id="reservationForm">
+            <div class="form-group">
+                <label for="name">お名前 *</label>
+                <input type="text" id="name" name="name" required placeholder="山田太郎">
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">電話番号 *</label>
+                <input type="tel" id="phone" name="phone" required placeholder="090-1234-5678">
+            </div>
+            
+            <div class="form-group">
+                <label for="date">希望日 *</label>
+                <input type="date" id="date" name="date" required>
+            </div>
+            
+            <div class="form-group">
+                <label>希望時間 *</label>
+                <div class="radio-group">
+                    <label class="radio-item">
+                        <input type="radio" name="time" value="10:00-12:00" required>
+                        <span>10:00 - 12:00</span>
+                    </label>
+                    <label class="radio-item">
+                        <input type="radio" name="time" value="13:00-15:00">
+                        <span>13:00 - 15:00</span>
+                    </label>
+                    <label class="radio-item">
+                        <input type="radio" name="time" value="15:00-17:00">
+                        <span>15:00 - 17:00</span>
+                    </label>
+                </div>
+            </div>
+            
+            <button type="submit" class="submit-btn" id="submitBtn">
+                予約する
+            </button>
+            
+            <div class="loading" id="loading">送信中...</div>
+            <div class="error-message" id="errorMessage"></div>
+        </form>
+    </div>
+
+    <script>
+        // ここに設定を記入
+        const LIFF_ID = '2008228464-G4Z2gDq3';
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbwrDVHWagh1naCgIIC_EgOBfva71PWv786tI47AISJP5FugMxa2XMf4R8iLv1WCW1dd/exec';
+        
+        let userId = '';
+
+        // LIFF初期化
+        window.onload = function() {
+            liff.init({
+                liffId: LIFF_ID
+            }).then(() => {
+                // ログイン確認
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                } else {
+                    // ユーザーIDを取得
+                    liff.getProfile().then(profile => {
+                        userId = profile.userId;
+                        console.log('ユーザーID取得成功:', userId);
+                    });
+                }
+            }).catch((err) => {
+                console.error('LIFF初期化エラー:', err);
+                showError('LINEとの接続に失敗しました');
+            });
+        };
+
+        // フォーム送信処理
+        document.getElementById('reservationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // ボタン無効化・ローディング表示
+            submitBtn.disabled = true;
+            loading.style.display = 'block';
+            errorMessage.style.display = 'none';
+            
+            // フォームデータ取得
+            const formData = {
+                userId: userId,
+                name: document.getElementById('name').value,
+                phone: document.getElementById('phone').value,
+                date: document.getElementById('date').value,
+                time: document.querySelector('input[name="time"]:checked').value
+            };
+            
+            try {
+                // Google Apps Scriptに送信
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // 重要: GASではこの設定が必要
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                // LINEにメッセージ送信
+                await liff.sendMessages([{
+                    type: 'text',
+                    text: `オイル交換予約を受け付けました✨\n\nお名前: ${formData.name}\n希望日: ${formData.date}\n希望時間: ${formData.time}\n\n後ほど店舗から確認のご連絡をいたします。`
+                }]);
+                
+                // LIFF画面を閉じる
+                liff.closeWindow();
+                
+            } catch (error) {
+                console.error('送信エラー:', error);
+                showError('送信に失敗しました。もう一度お試しください。');
+                submitBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+        
+        function showError(message) {
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
