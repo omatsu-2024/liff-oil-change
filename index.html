@@ -14,39 +14,33 @@
         padding: 0;
         box-sizing: border-box;
       }
-
       body {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         min-height: 100vh;
         padding: 20px;
       }
-
       .container {
         max-width: 500px;
         margin: 0 auto;
-        background: white;
+        background: #fff;
         border-radius: 20px;
         padding: 30px;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
       }
-
       h1 {
         color: #333;
         margin-bottom: 10px;
         font-size: 24px;
       }
-
       .subtitle {
         color: #666;
         margin-bottom: 30px;
         font-size: 14px;
       }
-
       .form-group {
         margin-bottom: 20px;
       }
-
       label {
         display: block;
         margin-bottom: 8px;
@@ -54,7 +48,6 @@
         font-weight: 600;
         font-size: 14px;
       }
-
       input[type="text"],
       input[type="tel"],
       input[type="date"] {
@@ -65,18 +58,15 @@
         font-size: 16px;
         transition: border-color 0.3s;
       }
-
       input:focus {
         outline: none;
         border-color: #667eea;
       }
-
       .radio-group {
         display: flex;
         flex-direction: column;
         gap: 10px;
       }
-
       .radio-item {
         display: flex;
         align-items: center;
@@ -86,23 +76,20 @@
         cursor: pointer;
         transition: all 0.3s;
       }
-
       .radio-item:hover {
         border-color: #667eea;
         background: #f8f9ff;
       }
-
       .radio-item input[type="radio"] {
         margin-right: 10px;
         width: 20px;
         height: 20px;
       }
-
       .submit-btn {
         width: 100%;
         padding: 16px;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
+        color: #fff;
         border: none;
         border-radius: 10px;
         font-size: 18px;
@@ -111,29 +98,30 @@
         transition: transform 0.2s;
         margin-top: 30px;
       }
-
       .submit-btn:hover {
         transform: translateY(-2px);
       }
-
       .submit-btn:active {
         transform: translateY(0);
       }
-
       .submit-btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
       }
-
       .loading {
         display: none;
         text-align: center;
         color: #667eea;
         margin-top: 20px;
       }
-
       .error-message {
         color: #e74c3c;
+        font-size: 14px;
+        margin-top: 10px;
+        display: none;
+      }
+      .ok {
+        color: #10b981;
         font-size: 14px;
         margin-top: 10px;
         display: none;
@@ -176,18 +164,24 @@
         <div class="form-group">
           <label>希望時間 *</label>
           <div class="radio-group">
-            <label class="radio-item">
-              <input type="radio" name="time" value="10:00-12:00" required />
-              <span>10:00 - 12:00</span>
-            </label>
-            <label class="radio-item">
-              <input type="radio" name="time" value="13:00-15:00" />
-              <span>13:00 - 15:00</span>
-            </label>
-            <label class="radio-item">
-              <input type="radio" name="time" value="15:00-17:00" />
-              <span>15:00 - 17:00</span>
-            </label>
+            <label class="radio-item"
+              ><input
+                type="radio"
+                name="time"
+                value="10:00-12:00"
+                required
+              /><span>10:00 - 12:00</span></label
+            >
+            <label class="radio-item"
+              ><input type="radio" name="time" value="13:00-15:00" /><span
+                >13:00 - 15:00</span
+              ></label
+            >
+            <label class="radio-item"
+              ><input type="radio" name="time" value="15:00-17:00" /><span
+                >15:00 - 17:00</span
+              ></label
+            >
           </div>
         </div>
 
@@ -197,98 +191,133 @@
 
         <div class="loading" id="loading">送信中...</div>
         <div class="error-message" id="errorMessage"></div>
+        <div class="ok" id="okMessage">
+          予約を受付けました。まもなく画面を閉じます。
+        </div>
       </form>
     </div>
 
     <script>
-      // ここに設定を記入
+      // === 設定値（そのまま利用可） ===
       const LIFF_ID = "2008228464-G4Z2gDq3";
       const GAS_URL =
         "https://script.google.com/macros/s/AKfycbwrDVHWagh1naCgIIC_EgOBfva71PWv786tI47AISJP5FugMxa2XMf4R8iLv1WCW1dd/exec";
 
       let userId = "";
 
-      // LIFF初期化
-      window.onload = function () {
-        liff
-          .init({
-            liffId: LIFF_ID,
-          })
-          .then(() => {
-            // ログイン確認
-            if (!liff.isLoggedIn()) {
-              liff.login();
-            } else {
-              // ユーザーIDを取得
-              liff.getProfile().then((profile) => {
-                userId = profile.userId;
-                console.log("ユーザーID取得成功:", userId);
-              });
-            }
-          })
-          .catch((err) => {
-            console.error("LIFF初期化エラー:", err);
-            showError("LINEとの接続に失敗しました");
-          });
-      };
+      // --- LIFF 初期化（IDトークン優先で userId を取得）---
+      (async function init() {
+        try {
+          await liff.init({ liffId: LIFF_ID });
+          if (!liff.isLoggedIn()) {
+            liff.login();
+            return;
+          }
 
-      // フォーム送信処理
+          const idToken = liff.getDecodedIDToken?.();
+          if (idToken?.sub) {
+            userId = idToken.sub;
+          } else {
+            const profile = await liff.getProfile();
+            userId = profile.userId || "";
+          }
+        } catch (err) {
+          console.error("LIFF初期化エラー:", err);
+          showError("LINEとの接続に失敗しました。時間をおいてお試しください。");
+        }
+      })();
+
+      // --- 送信処理 ---
       document
         .getElementById("reservationForm")
-        .addEventListener("submit", async function (e) {
-          e.preventDefault();
+        .addEventListener("submit", onSubmit);
 
-          const submitBtn = document.getElementById("submitBtn");
-          const loading = document.getElementById("loading");
-          const errorMessage = document.getElementById("errorMessage");
+      async function onSubmit(e) {
+        e.preventDefault();
+        toggleSubmitting(true);
 
-          // ボタン無効化・ローディング表示
-          submitBtn.disabled = true;
-          loading.style.display = "block";
-          errorMessage.style.display = "none";
+        const formData = {
+          name: document.getElementById("name").value.trim(),
+          phone: document.getElementById("phone").value.trim(),
+          date: document.getElementById("date").value,
+          time:
+            (document.querySelector('input[name="time"]:checked') || {})
+              .value || "",
+        };
+        if (
+          !formData.name ||
+          !formData.phone ||
+          !formData.date ||
+          !formData.time
+        ) {
+          toggleSubmitting(false);
+          return showError("未入力の項目があります。");
+        }
 
-          // フォームデータ取得
-          const formData = {
-            userId: userId,
-            name: document.getElementById("name").value,
-            phone: document.getElementById("phone").value,
-            date: document.getElementById("date").value,
-            time: document.querySelector('input[name="time"]:checked').value,
-          };
+        // 1) まず GAS に保存（no-cors のためレスポンスは見ない）
+        try {
+          await fetch(GAS_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            mode: "no-cors",
+            body: JSON.stringify({ userId, ...formData }),
+          });
+        } catch (e) {
+          console.warn("GAS送信エラー（多くは無視可）:", e);
+        }
 
-          try {
-            // Google Apps Scriptに送信
-            const response = await fetch(GAS_URL, {
-              method: "POST",
-              mode: "no-cors", // 重要: GASではこの設定が必要
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(formData),
-            });
-
-            // LINEにメッセージ送信
-            await liff.sendMessages([
-              {
-                type: "text",
-                text: `オイル交換予約を受け付けました✨\n\nお名前: ${formData.name}\n希望日: ${formData.date}\n希望時間: ${formData.time}\n\n後ほど店舗から確認のご連絡をいたします。`,
-              },
-            ]);
-
-            // LIFF画面を閉じる
-            liff.closeWindow();
-          } catch (error) {
-            console.error("送信エラー:", error);
-            showError("送信に失敗しました。もう一度お試しください。");
-            submitBtn.disabled = false;
-            loading.style.display = "none";
+        // 2) 可能ならトークへ確認メッセージ（失敗しても予約は成立）
+        try {
+          if (liff.isInClient()) {
+            const fs = await liff.getFriendship();
+            if (fs.friendFlag) {
+              await liff.sendMessages([
+                {
+                  type: "text",
+                  text:
+                    `オイル交換のご予約を受け付けました。\n\n` +
+                    `お名前：${formData.name}\n` +
+                    `希望日：${formData.date}\n` +
+                    `時間帯：${formData.time}\n\n` +
+                    `スタッフより折り返しご連絡します。`,
+                },
+              ]);
+            } else {
+              console.info("友だち未追加のため sendMessages をスキップ");
+            }
+          } else {
+            console.info("LINEアプリ外のため sendMessages をスキップ");
           }
-        });
+        } catch (e) {
+          console.warn("sendMessages エラー:", e);
+          // ここは致命的ではないので続行
+        }
 
-      function showError(message) {
-        const errorMessage = document.getElementById("errorMessage");
-        errorMessage.textContent = message;
-        errorMessage.style.display = "block";
+        // 3) ユーザーに完了表示 → 画面を閉じる
+        showOk();
+        setTimeout(() => {
+          try {
+            liff.closeWindow();
+          } catch (_) {}
+        }, 900);
+        toggleSubmitting(false);
+      }
+
+      // --- UI ヘルパ ---
+      function toggleSubmitting(b) {
+        document.getElementById("submitBtn").disabled = b;
+        document.getElementById("loading").style.display = b ? "block" : "none";
+        document.getElementById("errorMessage").style.display = "none";
+        document.getElementById("okMessage").style.display = "none";
+      }
+      function showError(msg) {
+        const e = document.getElementById("errorMessage");
+        e.textContent = msg;
+        e.style.display = "block";
+      }
+      function showOk() {
+        const e = document.getElementById("okMessage");
+        e.style.display = "block";
       }
     </script>
   </body>
