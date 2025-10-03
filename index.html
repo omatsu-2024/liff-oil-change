@@ -181,7 +181,6 @@
             placeholder="山田太郎"
           />
         </div>
-
         <div class="form-group">
           <label for="phone">電話番号 *</label>
           <input
@@ -192,12 +191,10 @@
             placeholder="090-1234-5678"
           />
         </div>
-
         <div class="form-group">
           <label for="date">希望日 *</label>
           <input type="date" id="date" name="date" required />
         </div>
-
         <div class="form-group">
           <label>希望時間 *</label>
           <div class="radio-group">
@@ -225,12 +222,9 @@
         <button type="submit" class="submit-btn" id="submitBtn">
           予約する
         </button>
-
         <div class="loading" id="loading">送信中...</div>
         <div class="error-message" id="errorMessage"></div>
-        <div class="ok" id="okMessage">
-          予約を受付けました。まもなく画面を閉じます。
-        </div>
+        <div class="ok" id="okMessage">予約を受付けました。</div>
       </form>
     </div>
 
@@ -244,7 +238,6 @@
     </div>
 
     <script>
-      // === 設定値 ===
       const LIFF_ID = "2008228464-G4Z2gDq3";
       const GAS_URL =
         "https://script.google.com/macros/s/AKfycbwrDVHWagh1naCgIIC_EgOBfva71PWv786tI47AISJP5FugMxa2XMf4R8iLv1WCW1dd/exec";
@@ -299,7 +292,6 @@
           return showError("未入力の項目があります。");
         }
 
-        // 1) GASへ保存（no-cors）
         try {
           await fetch(GAS_URL, {
             method: "POST",
@@ -311,7 +303,6 @@
           console.warn("GAS送信エラー:", e);
         }
 
-        // 2) 可能ならトークへ確認メッセージ
         try {
           if (liff.isInClient()) {
             const fs = await liff.getFriendship();
@@ -319,12 +310,7 @@
               await liff.sendMessages([
                 {
                   type: "text",
-                  text:
-                    `オイル交換のご予約を受け付けました。\n\n` +
-                    `お名前：${formData.name}\n` +
-                    `希望日：${formData.date}\n` +
-                    `時間帯：${formData.time}\n\n` +
-                    `スタッフより折り返しご連絡します。`,
+                  text: `オイル交換のご予約を受け付けました。\n\nお名前：${formData.name}\n希望日：${formData.date}\n時間帯：${formData.time}\n\nスタッフより折り返しご連絡します。`,
                 },
               ]);
             }
@@ -333,7 +319,7 @@
           console.warn("sendMessages エラー:", e);
         }
 
-        // 3) モーダルを表示（ユーザーが押すまで閉じない）
+        // モーダルを表示（自動クローズなし）
         openDoneModal();
         toggleSubmitting(false);
       }
@@ -341,7 +327,7 @@
       // --- モーダル制御 ---
       function openDoneModal() {
         document.getElementById("doneModal").style.display = "flex";
-        document.getElementById("okMessage").style.display = "block"; // 既存の完了テキストも表示
+        document.getElementById("okMessage").style.display = "block";
       }
       document.getElementById("closeBtn").addEventListener("click", () => {
         try {
