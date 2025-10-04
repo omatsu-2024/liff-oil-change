@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>車検 概算シミュレーター</title>
+    <script
+      charset="utf-8"
+      src="https://static.line-scdn.net/liff/edge/2/sdk.js"
+    ></script>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --card: #ffffff;
+        --muted: #64748b;
+        --accent: #4f46e5;
+        --ok: #10b981;
+        --danger: #ef4444;
+        --bd: #e5e7eb;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: linear-gradient(135deg, #4f46e5 0%, #0ea5e9 100%);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+          "Noto Sans JP", sans-serif;
+        color: #0f172a;
+      }
+      .wrap {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .grid {
+        display: grid;
+        gap: 16px;
+      }
+      .card {
+        background: var(--card);
+        border-radius: 18px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+        padding: 18px;
+      }
+      .title {
+        font-size: 22px;
+        font-weight: 800;
+        margin: 0 0 6px;
+      }
+      .sub {
+        color: var(--muted);
+        font-size: 13px;
+        margin: 0 0 12px;
+      }
+      .row {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: 1fr;
+      }
+      @media (min-width: 820px) {
+        .row {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      label small {
+        color: var(--muted);
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .field input[type="number"],
+      .field select {
+        border: 2px solid var(--bd);
+        border-radius: 10px;
+        padding: 12px 12px;
+        font-size: 16px;
+        outline: none;
+        transition: 0.15s;
+      }
+      .field input:focus,
+      .field select:focus {
+        border-color: var(--accent);
+      }
+      .box {
+        border: 2px dashed var(--bd);
+        border-radius: 12px;
+        padding: 12px;
+      }
+      .opt {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px dashed var(--bd);
+      }
+      .opt:last-child {
+        border-bottom: none;
+      }
+      .price {
+        font-variant-numeric: tabular-nums;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background: var(--accent);
+        color: #fff;
+        border: 0;
+        border-radius: 12px;
+        padding: 14px 16px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .btn.sec {
+        background: #0ea5e9;
+      }
+      .btn.ghost {
+        background: #fff;
+        color: #111;
+        border: 2px solid var(--bd);
+      }
+      .total {
+        font-size: 26px;
+        font-weight: 900;
+      }
+      .line {
+        height: 1px;
+        background: var(--bd);
+        margin: 8px 0;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .badge {
+        display: inline-block;
+        background: #eef2ff;
+        color: #3730a3;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+      }
+      .list {
+        margin: 0;
+        padding-left: 18px;
+      }
+      .warn {
+        color: var(--danger);
+      }
+      .ok {
+        color: var(--ok);
+      }
+      .footer {
+        color: #fff;
+        opacity: 0.9;
+        text-align: center;
+        margin-top: 14px;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1 class="title">車検 概算シミュレーター</h1>
+        <p class="sub">
+          ※概算の目安です。最新の法定費用・店舗価格に合わせて金額設定を調整してください。
+        </p>
+        <div class="grid row">
+          <div class="field">
+            <label
+              >車両区分 <small>（重量税・自賠責・印紙に反映）</small></label
+            >
+            <select id="carClass">
+              <option value="kei">軽自動車</option>
+              <option value="small">小型（〜1.0t）</option>
+              <option value="mid">中型（1.0t〜1.5t）</option>
+              <option value="large">大型（1.5t〜2.0t）</option>
+              <option value="xl">特大（2.0t〜2.5t）</option>
+            </select>
+          </div>
+          <div class="field">
+            <label
+              >初度登録からの経過年数 <small>（重量税に影響）</small></label
+            >
+            <select id="ageYears">
+              <option value="0-13">〜13年</option>
+              <option value="13-18">13〜18年</option>
+              <option value="18+">18年以上</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>店舗 基本点検整備料（任意）</label>
+            <input
+              type="number"
+              id="baseFee"
+              inputmode="numeric"
+              placeholder="例: 19800"
+              value="19800"
+            />
+          </div>
+          <div class="field">
+            <label>割引（任意）<small> キャンペーン等</small></label>
+            <input
+              type="number"
+              id="discount"
+              inputmode="numeric"
+              placeholder="例: 1000"
+              value="0"
+            />
+          </div>
+        </div>
+
+        <div class="box" style="margin-top: 12px">
+          <div class="opt">
+            <strong>オプション整備（任意）</strong
+            ><span class="muted">チェックで追加</span>
+          </div>
+          <div class="opt">
+            <label
+              ><input
+                type="checkbox"
+                class="optChk"
+                data-label="エンジンオイル交換"
+                data-price="3500"
+              />
+              エンジンオイル交換</label
+            ><span class="price">¥3,500</span>
+          </div>
+          <div class="opt">
+            <label
+              ><input
+                type="checkbox"
+                class="optChk"
+                data-label="オイルエレメント交換"
+                data-price="1500"
+              />
+              オイルエレメント交換</label
+            ><span class="price">¥1,500</span>
+          </div>
+          <div class="opt">
+            <label
+              ><input
+                type="checkbox"
+                class="optChk"
+                data-label="ブレーキフルード交換"
+                data-price="4500"
+              />
+              ブレーキフルード交換</label
+            ><span class="price">¥4,500</span>
+          </div>
+          <div class="opt">
+            <label
+              ><input
+                type="checkbox"
+                class="optChk"
+                data-label="冷却水（LLC）交換"
+                data-price="6000"
+              />
+              冷却水（LLC）交換</label
+            ><span class="price">¥6,000</span>
+          </div>
+          <div class="opt">
+            <label
+              ><input
+                type="checkbox"
+                class="optChk"
+                data-label="ワイパーゴム交換"
+                data-price="1200"
+              />
+              ワイパーゴム交換</label
+            ><span class="price">¥1,200</span>
+          </div>
+          <div class="opt">
+            <label
+              ><input
+                type="checkbox"
+                class="optChk"
+                data-label="エアコンフィルター交換"
+                data-price="3500"
+              />
+              エアコンフィルター交換</label
+            ><span class="price">¥3,500</span>
+          </div>
+        </div>
+
+        <div class="grid row" style="margin-top: 14px">
+          <div class="card" style="padding: 14px">
+            <div class="badge">法定費用（概算）</div>
+            <div id="legalBreakdown" class="grid" style="margin-top: 8px"></div>
+            <div class="line"></div>
+            <div class="grid" id="shopBreakdown"></div>
+            <div class="line"></div>
+            <div class="total price">合計：<span id="grandTotal">¥0</span></div>
+            <div class="muted" id="note"></div>
+          </div>
+          <div class="card" style="padding: 14px">
+            <div class="badge">見積りメモ</div>
+            <div
+              id="summaryText"
+              class="muted"
+              style="white-space: pre-wrap; margin-top: 8px"
+            ></div>
+            <div
+              class="grid"
+              style="
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+                margin-top: 10px;
+              "
+            >
+              <button class="btn ghost" id="copyBtn">テキストをコピー</button>
+              <button class="btn sec" id="sendBtn">LINEに送る</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="box" style="margin-top: 14px">
+          <strong>設定エリア（編集可・店舗用）</strong>
+          <p class="muted" style="margin: 6px 0 10px">
+            最新の費用に合わせて数値を調整してください。デモ用の概算テーブルです。
+          </p>
+          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px">
+            <div class="field">
+              <label>自賠責（24か月）</label>
+              <select id="insTable">
+                <option value="std">デモ標準（例）</option>
+              </select>
+              <div class="muted" style="font-size: 12px">
+                軽: ¥17,000 / 乗用: ¥17,800（例）
+              </div>
+            </div>
+            <div class="field">
+              <label>印紙代</label>
+              <select id="stampTable">
+                <option value="std">デモ標準（例）</option>
+              </select>
+              <div class="muted" style="font-size: 12px">
+                軽: ¥1,800 / 乗用: ¥1,600（例）
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="line" style="margin: 16px 0"></div>
+        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px">
+          <button class="btn" id="calcBtn">概算を計算する</button>
+          <button class="btn ghost" id="resetBtn">入力をリセット</button>
+        </div>
+      </div>
+
+      <p class="footer">
+        ※本ツールは概算の目安です。実際の費用は車両状態・改定等で変動します。店舗の提示価格を優先してください。
+      </p>
+    </div>
+
+    <script>
+      /* =========================
+   設定テーブル（デモ用）
+   実運用前に店舗価格・最新の法定費用へ更新してください。
+   ========================= */
+      const TABLES = {
+        // 重量税（24か月・概算デモ）
+        weightTax: {
+          // 年数帯ごとに区分
+          "0-13": {
+            kei: 6600,
+            small: 16400,
+            mid: 24600,
+            large: 32800,
+            xl: 41000,
+          },
+          "13-18": {
+            kei: 7600,
+            small: 18900,
+            mid: 28300,
+            large: 37800,
+            xl: 47200,
+          },
+          "18+": {
+            kei: 8800,
+            small: 25200,
+            mid: 37800,
+            large: 50400,
+            xl: 63000,
+          },
+        },
+        // 自賠責（24か月・概算デモ）
+        jibaiseki: {
+          std: { kei: 17000, passenger: 17800 },
+        },
+        // 印紙代（概算デモ）
+        stamp: {
+          std: { kei: 1800, passenger: 1600 },
+        },
+      };
+
+      /* =========================
+   ユーティリティ
+   ========================= */
+      const fmt = (n) => "¥" + Math.round(n).toLocaleString("ja-JP");
+      const el = (sel) => document.querySelector(sel);
+      const els = (sel) => [...document.querySelectorAll(sel)];
+
+      /* =========================
+   計算ロジック
+   ========================= */
+      function calc() {
+        const carClass = el("#carClass").value; // 車両区分
+        const ageBand = el("#ageYears").value; // 経過年数帯
+        const baseFee = +el("#baseFee").value || 0; // 店舗 基本料
+        const discount = +el("#discount").value || 0; // 割引
+
+        // 法定費用
+        const wt = TABLES.weightTax[ageBand][carClass]; // 重量税
+        const jbTable = TABLES.jibaiseki["std"];
+        const spTable = TABLES.stamp["std"];
+        const jb = carClass === "kei" ? jbTable.kei : jbTable.passenger; // 自賠責
+        const sp = carClass === "kei" ? spTable.kei : spTable.passenger; // 印紙
+
+        // オプション
+        const options = els(".optChk")
+          .filter((c) => c.checked)
+          .map((c) => ({ label: c.dataset.label, price: +c.dataset.price }));
+
+        const optTotal = options.reduce((a, b) => a + b.price, 0);
+
+        const legalTotal = wt + jb + sp;
+        const shopTotal = Math.max(0, baseFee - discount) + optTotal;
+        const grand = legalTotal + shopTotal;
+
+        renderBreakdown({
+          wt,
+          jb,
+          sp,
+          baseFee,
+          discount,
+          optTotal,
+          options,
+          legalTotal,
+          shopTotal,
+          grand,
+          carClass,
+          ageBand,
+        });
+      }
+
+      function renderBreakdown(d) {
+        const legal = `
+    <div class="grid" style="grid-template-columns:1fr auto">
+      <div>自賠責（24か月）</div><div class="price">${fmt(d.jb)}</div>
+      <div>重量税（概算）</div><div class="price">${fmt(d.wt)}</div>
+      <div>印紙代（概算）</div><div class="price">${fmt(d.sp)}</div>
+    </div>`;
+        el("#legalBreakdown").innerHTML = legal;
+
+        const optsHtml = d.options.length
+          ? d.options
+              .map(
+                (o) =>
+                  `<div class="grid" style="grid-template-columns:1fr auto"><div>・${
+                    o.label
+                  }</div><div class="price">${fmt(o.price)}</div></div>`
+              )
+              .join("")
+          : `<div class="muted">オプション整備なし</div>`;
+
+        const shop = `
+    <div class="grid" style="grid-template-columns:1fr auto">
+      <div>基本点検整備料</div><div class="price">${fmt(
+        +el("#baseFee").value || 0
+      )}</div>
+      <div>割引</div><div class="price">- ${fmt(
+        +el("#discount").value || 0
+      )}</div>
+    </div>
+    <div class="line"></div>
+    ${optsHtml}
+  `;
+        el("#shopBreakdown").innerHTML = shop;
+
+        el("#grandTotal").textContent = fmt(d.grand);
+
+        const classLabel = {
+          kei: "軽",
+          small: "小型(〜1.0t)",
+          mid: "中型(1.0〜1.5t)",
+          large: "大型(1.5〜2.0t)",
+          xl: "特大(2.0〜2.5t)",
+        }[el("#carClass").value];
+        el(
+          "#note"
+        ).innerHTML = `<span class="muted">区分:</span> ${classLabel}　<span class="muted">年式帯:</span> ${
+          el("#ageYears").value
+        }`;
+
+        // サマリーテキスト
+        const summary = `【車検 概算見積（目安）】
+車両区分：${classLabel}
+年式帯　：${el("#ageYears").value}
+
+＜法定費用 概算＞
+・自賠責（24か月）：${fmt(d.jb)}
+・重量税（概算）　：${fmt(d.wt)}
+・印紙代（概算）　：${fmt(d.sp)}
+
+＜店舗費用＞
+・基本点検整備料　：${fmt(+el("#baseFee").value || 0)}
+・割引　　　　　　：- ${fmt(+el("#discount").value || 0)}
+${d.options.length ? "・オプション：" : ""}${d.options
+          .map((o) => `\n  - ${o.label}：${fmt(o.price)}`)
+          .join("")}
+
+――――――――――
+合計：${fmt(d.grand)}
+※実車確認・法改定により増減する場合があります。`;
+        el("#summaryText").textContent = summary;
+      }
+
+      /* =========================
+   イベント
+   ========================= */
+      ["#carClass", "#ageYears", "#baseFee", "#discount"].forEach((sel) => {
+        el(sel).addEventListener("change", calc);
+        el(sel).addEventListener("input", calc);
+      });
+      els(".optChk").forEach((c) => c.addEventListener("change", calc));
+      el("#calcBtn").addEventListener("click", calc);
+      el("#resetBtn").addEventListener("click", () => {
+        el("#carClass").value = "kei";
+        el("#ageYears").value = "0-13";
+        el("#baseFee").value = 19800;
+        el("#discount").value = 0;
+        els(".optChk").forEach((c) => (c.checked = false));
+        calc();
+      });
+      el("#copyBtn").addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(
+            el("#summaryText").textContent.trim()
+          );
+          toast("見積りテキストをコピーしました", true);
+        } catch (e) {
+          toast("コピーに失敗しました", false);
+        }
+      });
+      el("#sendBtn").addEventListener("click", async () => {
+        const text = el("#summaryText").textContent.trim();
+        try {
+          if (window.liff && liff.isInClient()) {
+            const fs = await liff.getFriendship();
+            if (fs.friendFlag) {
+              await liff.sendMessages([{ type: "text", text }]);
+              toast("LINEに送信しました", true);
+            } else {
+              toast("公式アカウントを友だち追加してください", false);
+            }
+          } else {
+            toast("LINEアプリ内からご利用ください", false);
+          }
+        } catch (e) {
+          console.warn(e);
+          toast("送信に失敗しました", false);
+        }
+      });
+
+      /* =========================
+   LIFF 初期化（任意）
+   - LIFF未接続でも動くようにフォールバック
+   ========================= */
+      (async function initLiff() {
+        try {
+          // LIFF_ID を設定していない場合でも動作するように try で包む
+          await liff.init({
+            liffId: window.LIFF_ID_OVERRIDE || "" || "YOUR_LIFF_ID",
+          });
+        } catch (_) {}
+      })();
+
+      /* =========================
+   トースト表示（簡易）
+   ========================= */
+      function toast(msg, ok = true) {
+        const n = document.createElement("div");
+        n.textContent = msg;
+        n.style.position = "fixed";
+        n.style.left = "50%";
+        n.style.top = "16px";
+        n.style.transform = "translateX(-50%)";
+        n.style.background = ok
+          ? "rgba(16,185,129,.95)"
+          : "rgba(239,68,68,.95)";
+        n.style.color = "#fff";
+        n.style.padding = "10px 14px";
+        n.style.borderRadius = "999px";
+        n.style.fontWeight = "700";
+        n.style.zIndex = "9999";
+        n.style.boxShadow = "0 8px 24px rgba(0,0,0,.2)";
+        document.body.appendChild(n);
+        setTimeout(() => n.remove(), 1600);
+      }
+
+      /* 初期描画 */
+      calc();
+    </script>
+  </body>
+</html>
