@@ -399,6 +399,27 @@
         stamp: { std: { kei: 1800, passenger: 1600 } },
       };
 
+      /* ========================= 画面上デバッグログ ========================= */
+      let debugLog = [];
+      function addDebugLog(msg) {
+        console.log(msg);
+        debugLog.push(`[${new Date().toLocaleTimeString()}] ${msg}`);
+        updateDebugDisplay();
+      }
+
+      function updateDebugDisplay() {
+        let debugBox = document.getElementById("debugBox");
+        if (!debugBox) {
+          debugBox = document.createElement("div");
+          debugBox.id = "debugBox";
+          debugBox.style.cssText =
+            "position:fixed;left:10px;right:10px;bottom:10px;background:#000;color:#0f0;padding:10px;border-radius:8px;font-size:11px;max-height:200px;overflow-y:auto;z-index:99999;font-family:monospace;";
+          document.body.appendChild(debugBox);
+        }
+        debugBox.innerHTML =
+          "<b>🔍 デバッグログ</b><br>" + debugLog.slice(-15).join("<br>");
+      }
+
       /* ========================= ユーティリティ ========================= */
       const fmt = (n) => "¥" + Math.round(n).toLocaleString("ja-JP");
       const el = (s) => document.querySelector(s);
@@ -537,15 +558,35 @@ ${d.options.length ? "・オプション：" : ""}${d.options
         liffInitTried = false;
 
       async function ensureLiffReady() {
-        if (liffReady) return true;
-        if (liffInitTried) return false;
+        addDebugLog("=== ensureLiffReady 開始 ===");
+        addDebugLog(
+          "liffReady:" + liffReady + " liffInitTried:" + liffInitTried
+        );
+
+        if (liffReady) {
+          addDebugLog("既に初期化済み");
+          return true;
+        }
+        if (liffInitTried) {
+          addDebugLog("初期化試行済み（失敗）");
+          return false;
+        }
         liffInitTried = true;
 
         try {
+          addDebugLog("LIFF初期化開始...");
+          addDebugLog("LIFF ID:" + window.LIFF_ID_OVERRIDE);
+
           await liff.init({ liffId: window.LIFF_ID_OVERRIDE });
+          addDebugLog("✅ LIFF初期化成功");
+
+          const inClient = liff.isInClient();
+          const isLoggedIn = liff.isLoggedIn();
+          addDebugLog("inClient:" + inClient + " isLoggedIn:" + isLoggedIn);
 
           if (!isDiagMode) {
-            if (!liff.isInClient() && !liff.isLoggedIn()) {
+            if (!inClient && !isLoggedIn) {
+              addDebugLog("外部ブラウザ＆未ログイン → ログイン画面へ");
               liff.login({});
               return false;
             }
@@ -553,12 +594,23 @@ ${d.options.length ? "・オプション：" : ""}${d.options
 
           liffReady = true;
           el("#sendBtn").disabled = false;
-          el("#liffHint").textContent = liff.isInClient()
+
+          const hint = inClient
             ? "LINEアプリ内で開いています。友だち追加済みであれば送信できます。"
             : "外部ブラウザで開いています。必要に応じてログインが求められます。";
+
+          el("#liffHint").textContent = hint;
+          addDebugLog("✅ LIFF準備完了");
+
           return true;
         } catch (e) {
-          console.error("LIFF init error:", e);
+          addDebugLog("❌ LIFF init error: " + (e.message || e));
+          console.error("=== LIFF init error ===");
+          console.error("Error:", e);
+          console.error("Error message:", e.message);
+          console.error("Error code:", e.code);
+          console.error("Error stack:", e.stack);
+
           el("#liffHint").textContent = "LIFF初期化に失敗: " + (e.message || e);
           return false;
         }
@@ -607,30 +659,55 @@ ${d.options.length ? "・オプション：" : ""}${d.options
       });
 
       el("#sendBtn").addEventListener("click", async () => {
+        addDebugLog("=== 送信ボタンクリック ===");
+
+        toast("処理開始...", true);
+
         const ok = await ensureLiffReady();
+        addDebugLog("LIFF Ready: " + ok);
+
         if (!ok) {
+          addDebugLog("❌ LIFF初期化失敗");
           toast("LIFF初期化が完了していません", false);
           return;
         }
 
         const text = el("#summaryText").textContent.trim();
+        addDebugLog("送信テキスト長: " + text.length + "文字");
+
         try {
-          if (!liff.isInClient()) {
+          const inClient = liff.isInClient();
+          addDebugLog("isInClient: " + inClient);
+
+          if (!inClient) {
+            addDebugLog("❌ LINEアプリ外");
             toast("LINEアプリ内からご利用ください", false);
             return;
           }
 
+          addDebugLog("友だち状態確認中...");
+          toast("友だち確認中...", true);
+
           const fs = await liff.getFriendship();
+          addDebugLog("Friendship: " + JSON.stringify(fs));
+
           if (!fs.friendFlag) {
+            addDebugLog("❌ 友だち未追加");
             toast("公式アカウントを友だち追加してください", false);
             return;
           }
 
+          addDebugLog("メッセージ送信中...");
+          toast("送信中...", true);
+
           await liff.sendMessages([{ type: "text", text }]);
+          addDebugLog("✅ 送信成功");
           toast("LINEに送信しました", true);
         } catch (e) {
+          addDebugLog("❌ エラー: " + (e.message || JSON.stringify(e)));
           console.error("Send error:", e);
-          toast("送信に失敗: " + (e.message || e), false);
+          console.error("Error details:", JSON.stringify(e, null, 2));
+          toast("送信失敗: " + (e.message || JSON.stringify(e)), false);
         }
       });
 
@@ -720,10 +797,19 @@ ${d.options.length ? "・オプション：" : ""}${d.options
       }
 
       /* ========================= 初期化 ========================= */
-      window.addEventListener("DOMContentLoaded", () => {
+      function initApp() {
+        addDebugLog("🚀 アプリ初期化開始");
         calc();
         ensureLiffReady();
-      });
+        addDebugLog("✅ アプリ初期化完了");
+      }
+
+      // ページ読み込み完了時に初期化
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initApp);
+      } else {
+        initApp();
+      }
     </script>
   </body>
 </html>
