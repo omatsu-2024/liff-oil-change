@@ -649,9 +649,101 @@ ${d.options.length ? "・オプション：" : ""}${d.options
       }
     </script>
     <script>
-      // =========================
-      // 診断ユーティリティ
-      // =========================
+      /* ========================= 設定テーブル・計算ロジックなどはそのまま ========================= */
+      // …（中略：あなたの既存コードそのまま）…
+
+      /* ========================= LIFF初期化（共通関数） ========================= */
+      let liffReady = false,
+        liffInitTried = false;
+
+      // URLパラメータ取得（LIFF経由の場合は liff.state にクエリが入る）
+      function getQueryParam(name) {
+        const urlQs = new URLSearchParams(location.search);
+        // 1) まず通常の ?xxx=yyy を見る
+        if (urlQs.has(name)) return urlQs.get(name);
+
+        // 2) LIFF URL (https://liff.line.me/...) から来た場合、エンドポイント側のURLは
+        //    ?liff.state=/path?diag=1 のように「元のクエリ」を liff.state に格納している
+        const state = urlQs.get("liff.state");
+        if (state) {
+          const qIndex = state.indexOf("?");
+          if (qIndex >= 0) {
+            const innerQs = new URLSearchParams(state.slice(qIndex + 1));
+            if (innerQs.has(name)) return innerQs.get(name);
+          }
+        }
+        return null;
+      }
+
+      const isDiagMode = getQueryParam("diag") === "1";
+
+      async function ensureLiffReady() {
+        if (liffReady) return true;
+        if (liffInitTried) return false;
+        liffInitTried = true;
+        try {
+          await liff.init({ liffId: window.LIFF_ID_OVERRIDE });
+
+          // ★診断モードのときはログインでのリダイレクトを行わず、まず診断UIを出す
+          if (!isDiagMode) {
+            // 外部ブラウザ時は必要に応じてログイン
+            if (!liff.isInClient() && !liff.isLoggedIn()) {
+              liff.login({}); // ここで一旦リダイレクト
+              return false;
+            }
+          }
+
+          liffReady = true;
+          const hint = liff.isInClient()
+            ? "LINEアプリ内で開いています。友だち追加済みであれば送信できます。"
+            : "外部ブラウザで開いています。必要に応じてログインが求められます。";
+          const hintEl = document.getElementById("liffHint");
+          if (hintEl) hintEl.textContent = hint;
+
+          const sendBtn = document.getElementById("sendBtn");
+          if (sendBtn) sendBtn.disabled = false;
+
+          return true;
+        } catch (e) {
+          console.warn("LIFF init error:", e);
+          const hintEl = document.getElementById("liffHint");
+          if (hintEl)
+            hintEl.textContent =
+              "LIFF初期化に失敗しました。ページを再読み込みしてください。";
+          return false;
+        }
+      }
+
+      // 起動時に初期化を試みる（診断モードでもOK。ログインはスキップ）
+      ensureLiffReady();
+
+      /* ========================= トースト ========================= */
+      function toast(msg, ok = true) {
+        const n = document.createElement("div");
+        n.textContent = msg;
+        n.style.position = "fixed";
+        n.style.left = "50%";
+        n.style.top = "16px";
+        n.style.transform = "translateX(-50%)";
+        n.style.background = ok
+          ? "rgba(16,185,129,.95)"
+          : "rgba(239,68,68,.95)";
+        n.style.color = "#fff";
+        n.style.padding = "10px 14px";
+        n.style.borderRadius = "999px";
+        n.style.fontWeight = "700";
+        n.style.zIndex = "9999";
+        n.style.boxShadow = "0 8px 24px rgba(0,0,0,.2)";
+        document.body.appendChild(n);
+        setTimeout(() => n.remove(), 1600);
+      }
+
+      /* 初期描画 */
+      calc();
+    </script>
+
+    <!-- 診断ユーティリティ（diag() 本体は1つだけ定義） -->
+    <script>
       async function diag() {
         const box = document.createElement("div");
         box.style.cssText =
@@ -660,14 +752,16 @@ ${d.options.length ? "・オプション：" : ""}${d.options
         document.body.appendChild(box);
 
         try {
-          // LIFF初期化（まだなら再実行）
+          // すでに ensureLiffReady 済み。未済なら明示的に初期化
           if (!window.liff || typeof liff.init !== "function") {
             document.getElementById("dg").innerHTML =
               "LIFF SDKがまだ読み込まれていません";
             return;
           }
+          if (!liffReady) {
+            await liff.init({ liffId: window.LIFF_ID_OVERRIDE });
+          }
 
-          await liff.init({ liffId: window.LIFF_ID_OVERRIDE });
           const inClient = liff.isInClient();
           const os = liff.getOS();
           let friend = "(未取得)";
@@ -687,18 +781,30 @@ ${d.options.length ? "・オプション：" : ""}${d.options
         }
       }
 
-      // =========================
-      // ?diag=1 が付いている場合、自動で診断を実行
-      // =========================
-      (function waitForSDK() {
-        const params = new URLSearchParams(location.search);
-        if (params.get("diag") !== "1") return;
+      // ?diag=1 が付いている場合、自動で診断を実行（LIFF経由でも直接URLでも動く）
+      (function autodiag() {
+        const want = (() => {
+          const urlQs = new URLSearchParams(location.search);
+          if (urlQs.get("diag") === "1") return true;
+          const st = urlQs.get("liff.state");
+          if (st) {
+            const qIndex = st.indexOf("?");
+            if (qIndex >= 0) {
+              const inner = new URLSearchParams(st.slice(qIndex + 1));
+              if (inner.get("diag") === "1") return true;
+            }
+          }
+          return false;
+        })();
 
+        if (!want) return;
+
+        // SDKの読み込み待ち → 診断実行
         const tryRun = () => {
           if (window.liff && typeof liff.init === "function") {
             diag();
           } else {
-            setTimeout(tryRun, 500); // SDKロード完了を待って再試行
+            setTimeout(tryRun, 300);
           }
         };
         tryRun();
