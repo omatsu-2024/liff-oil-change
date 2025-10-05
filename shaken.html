@@ -8,6 +8,10 @@
       charset="utf-8"
       src="https://static.line-scdn.net/liff/edge/2/sdk.js"
     ></script>
+    <script>
+      // ★LIFF ID を設定（必須）
+      window.LIFF_ID = "2008228464-kZBg7yrq";
+    </script>
     <style>
       :root {
         --bg: #0f172a;
@@ -146,16 +150,6 @@
         padding: 3px 8px;
         border-radius: 999px;
         font-size: 12px;
-      }
-      .list {
-        margin: 0;
-        padding-left: 18px;
-      }
-      .warn {
-        color: var(--danger);
-      }
-      .ok {
-        color: var(--ok);
       }
       .footer {
         color: #fff;
@@ -362,14 +356,9 @@
     </div>
 
     <script>
-      /* =========================
-   設定テーブル（デモ用）
-   実運用前に店舗価格・最新の法定費用へ更新してください。
-   ========================= */
+      /* ========================= 設定テーブル ========================= */
       const TABLES = {
-        // 重量税（24か月・概算デモ）
         weightTax: {
-          // 年数帯ごとに区分
           "0-13": {
             kei: 6600,
             small: 16400,
@@ -392,44 +381,35 @@
             xl: 63000,
           },
         },
-        // 自賠責（24か月・概算デモ）
-        jibaiseki: {
-          std: { kei: 17000, passenger: 17800 },
-        },
-        // 印紙代（概算デモ）
-        stamp: {
-          std: { kei: 1800, passenger: 1600 },
-        },
+        jibaiseki: { std: { kei: 17000, passenger: 17800 } },
+        stamp: { std: { kei: 1800, passenger: 1600 } },
       };
 
-      /* =========================
-   ユーティリティ
-   ========================= */
+      /* ========================= ユーティリティ ========================= */
       const fmt = (n) => "¥" + Math.round(n).toLocaleString("ja-JP");
       const el = (sel) => document.querySelector(sel);
       const els = (sel) => [...document.querySelectorAll(sel)];
 
-      /* =========================
-   計算ロジック
-   ========================= */
+      /* ========================= 計算ロジック ========================= */
       function calc() {
-        const carClass = el("#carClass").value; // 車両区分
-        const ageBand = el("#ageYears").value; // 経過年数帯
-        const baseFee = +el("#baseFee").value || 0; // 店舗 基本料
-        const discount = +el("#discount").value || 0; // 割引
+        const carClass = el("#carClass").value;
+        const ageBand = el("#ageYears").value;
+        const baseFee = +el("#baseFee").value || 0;
+        const discount = +el("#discount").value || 0;
 
-        // 法定費用
-        const wt = TABLES.weightTax[ageBand][carClass]; // 重量税
-        const jbTable = TABLES.jibaiseki["std"];
-        const spTable = TABLES.stamp["std"];
-        const jb = carClass === "kei" ? jbTable.kei : jbTable.passenger; // 自賠責
-        const sp = carClass === "kei" ? spTable.kei : spTable.passenger; // 印紙
+        const wt = TABLES.weightTax[ageBand][carClass];
+        const jb =
+          carClass === "kei"
+            ? TABLES.jibaiseki.std.kei
+            : TABLES.jibaiseki.std.passenger;
+        const sp =
+          carClass === "kei"
+            ? TABLES.stamp.std.kei
+            : TABLES.stamp.std.passenger;
 
-        // オプション
         const options = els(".optChk")
           .filter((c) => c.checked)
           .map((c) => ({ label: c.dataset.label, price: +c.dataset.price }));
-
         const optTotal = options.reduce((a, b) => a + b.price, 0);
 
         const legalTotal = wt + jb + sp;
@@ -447,19 +427,16 @@
           legalTotal,
           shopTotal,
           grand,
-          carClass,
-          ageBand,
         });
       }
 
       function renderBreakdown(d) {
-        const legal = `
+        el("#legalBreakdown").innerHTML = `
     <div class="grid" style="grid-template-columns:1fr auto">
       <div>自賠責（24か月）</div><div class="price">${fmt(d.jb)}</div>
       <div>重量税（概算）</div><div class="price">${fmt(d.wt)}</div>
       <div>印紙代（概算）</div><div class="price">${fmt(d.sp)}</div>
     </div>`;
-        el("#legalBreakdown").innerHTML = legal;
 
         const optsHtml = d.options.length
           ? d.options
@@ -472,7 +449,7 @@
               .join("")
           : `<div class="muted">オプション整備なし</div>`;
 
-        const shop = `
+        el("#shopBreakdown").innerHTML = `
     <div class="grid" style="grid-template-columns:1fr auto">
       <div>基本点検整備料</div><div class="price">${fmt(
         +el("#baseFee").value || 0
@@ -482,9 +459,7 @@
       )}</div>
     </div>
     <div class="line"></div>
-    ${optsHtml}
-  `;
-        el("#shopBreakdown").innerHTML = shop;
+    ${optsHtml}`;
 
         el("#grandTotal").textContent = fmt(d.grand);
 
@@ -501,7 +476,6 @@
           el("#ageYears").value
         }`;
 
-        // サマリーテキスト
         const summary = `【車検 概算見積（目安）】
 車両区分：${classLabel}
 年式帯　：${el("#ageYears").value}
@@ -524,15 +498,31 @@ ${d.options.length ? "・オプション：" : ""}${d.options
         el("#summaryText").textContent = summary;
       }
 
-      /* =========================
-   イベント
-   ========================= */
+      /* ========================= LIFF初期化 ========================= */
+      let liffReady = false;
+
+      async function initLiff() {
+        if (!window.LIFF_ID) {
+          console.error("LIFF_ID が設定されていません");
+          return;
+        }
+        try {
+          await liff.init({ liffId: window.LIFF_ID });
+          liffReady = true;
+        } catch (e) {
+          console.error("LIFF初期化エラー:", e);
+        }
+      }
+
+      /* ========================= イベント ========================= */
       ["#carClass", "#ageYears", "#baseFee", "#discount"].forEach((sel) => {
         el(sel).addEventListener("change", calc);
         el(sel).addEventListener("input", calc);
       });
       els(".optChk").forEach((c) => c.addEventListener("change", calc));
+
       el("#calcBtn").addEventListener("click", calc);
+
       el("#resetBtn").addEventListener("click", () => {
         el("#carClass").value = "kei";
         el("#ageYears").value = "0-13";
@@ -541,6 +531,7 @@ ${d.options.length ? "・オプション：" : ""}${d.options
         els(".optChk").forEach((c) => (c.checked = false));
         calc();
       });
+
       el("#copyBtn").addEventListener("click", async () => {
         try {
           await navigator.clipboard.writeText(
@@ -551,64 +542,58 @@ ${d.options.length ? "・オプション：" : ""}${d.options
           toast("コピーに失敗しました", false);
         }
       });
+
       el("#sendBtn").addEventListener("click", async () => {
-        const text = el("#summaryText").textContent.trim();
-        try {
-          if (window.liff && liff.isInClient()) {
-            const fs = await liff.getFriendship();
-            if (fs.friendFlag) {
-              await liff.sendMessages([{ type: "text", text }]);
-              toast("LINEに送信しました", true);
-            } else {
-              toast("公式アカウントを友だち追加してください", false);
-            }
-          } else {
-            toast("LINEアプリ内からご利用ください", false);
+        // LIFF初期化待機
+        if (!liffReady) {
+          await initLiff();
+          if (!liffReady) {
+            toast("LIFF初期化に失敗しました", false);
+            return;
           }
+        }
+
+        const text = el("#summaryText").textContent.trim();
+
+        try {
+          if (!liff.isInClient()) {
+            toast("スマホのLINEアプリから開いてください", false);
+            return;
+          }
+
+          const fs = await liff.getFriendship();
+          if (!fs.friendFlag) {
+            toast("公式アカウントを友だち追加してください", false);
+            return;
+          }
+
+          await liff.sendMessages([{ type: "text", text }]);
+          toast("LINEに送信しました", true);
         } catch (e) {
-          console.warn(e);
-          toast("送信に失敗しました", false);
+          console.error("送信エラー:", e);
+          let msg = "送信に失敗しました";
+          if (e.message && e.message.includes("invalid receiver")) {
+            msg = "グループからは送信できません\n1対1トークから開いてください";
+          }
+          toast(msg, false);
         }
       });
 
-      /* =========================
-   LIFF 初期化（任意）
-   - LIFF未接続でも動くようにフォールバック
-   ========================= */
-      (async function initLiff() {
-        try {
-          // LIFF_ID を設定していない場合でも動作するように try で包む
-          await liff.init({
-            liffId: window.LIFF_ID_OVERRIDE || "" || "YOUR_LIFF_ID",
-          });
-        } catch (_) {}
-      })();
-
-      /* =========================
-   トースト表示（簡易）
-   ========================= */
+      /* ========================= トースト ========================= */
       function toast(msg, ok = true) {
         const n = document.createElement("div");
         n.textContent = msg;
-        n.style.position = "fixed";
-        n.style.left = "50%";
-        n.style.top = "16px";
-        n.style.transform = "translateX(-50%)";
-        n.style.background = ok
-          ? "rgba(16,185,129,.95)"
-          : "rgba(239,68,68,.95)";
-        n.style.color = "#fff";
-        n.style.padding = "10px 14px";
-        n.style.borderRadius = "999px";
-        n.style.fontWeight = "700";
-        n.style.zIndex = "9999";
-        n.style.boxShadow = "0 8px 24px rgba(0,0,0,.2)";
+        n.style.cssText = `position:fixed;left:50%;top:16px;transform:translateX(-50%);
+    background:${ok ? "rgba(16,185,129,.95)" : "rgba(239,68,68,.95)"};
+    color:#fff;padding:10px 14px;border-radius:999px;font-weight:700;
+    z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);white-space:pre-line`;
         document.body.appendChild(n);
-        setTimeout(() => n.remove(), 1600);
+        setTimeout(() => n.remove(), 2000);
       }
 
-      /* 初期描画 */
+      /* ========================= 初期化 ========================= */
       calc();
+      initLiff();
     </script>
   </body>
 </html>
