@@ -649,13 +649,60 @@ ${d.options.length ? "・オプション：" : ""}${d.options
       }
     </script>
     <script>
-      if (new URLSearchParams(location.search).get("diag") === "1") {
-        setTimeout(() => {
+      // =========================
+      // 診断ユーティリティ
+      // =========================
+      async function diag() {
+        const box = document.createElement("div");
+        box.style.cssText =
+          "position:fixed;left:12px;right:12px;bottom:12px;background:#111;color:#fff;padding:12px;border-radius:10px;font-size:12px;z-index:99999;opacity:.95;";
+        box.innerHTML = '<b>LIFF診断</b><div id="dg">チェック中...</div>';
+        document.body.appendChild(box);
+
+        try {
+          // LIFF初期化（まだなら再実行）
+          if (!window.liff || typeof liff.init !== "function") {
+            document.getElementById("dg").innerHTML =
+              "LIFF SDKがまだ読み込まれていません";
+            return;
+          }
+
+          await liff.init({ liffId: window.LIFF_ID_OVERRIDE });
+          const inClient = liff.isInClient();
+          const os = liff.getOS();
+          let friend = "(未取得)";
           try {
-            diag();
-          } catch (e) {}
-        }, 300);
+            const fs = await liff.getFriendship();
+            friend = fs.friendFlag ? "友だち=YES" : "友だち=NO";
+          } catch {
+            friend = "取得失敗";
+          }
+
+          document.getElementById("dg").innerHTML =
+            `inClient: ${inClient} / OS: ${os} / ${friend}<br>` +
+            `ヒント: inClient=true & 友だち=YES で sendMessages 可`;
+        } catch (e) {
+          document.getElementById("dg").innerHTML =
+            "init失敗: " + (e?.message || e);
+        }
       }
+
+      // =========================
+      // ?diag=1 が付いている場合、自動で診断を実行
+      // =========================
+      (function waitForSDK() {
+        const params = new URLSearchParams(location.search);
+        if (params.get("diag") !== "1") return;
+
+        const tryRun = () => {
+          if (window.liff && typeof liff.init === "function") {
+            diag();
+          } else {
+            setTimeout(tryRun, 500); // SDKロード完了を待って再試行
+          }
+        };
+        tryRun();
+      })();
     </script>
   </body>
 </html>
