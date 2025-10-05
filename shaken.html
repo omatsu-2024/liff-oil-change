@@ -579,7 +579,7 @@ ${d.options.length ? "・オプション：" : ""}${d.options
         try {
           // LIFF_ID を設定していない場合でも動作するように try で包む
           await liff.init({
-            liffId: window.LIFF_ID_OVERRIDE || "" || "YOUR_LIFF_ID",
+            liffId: window.LIFF_ID_OVERRIDE || "" || "2008228464-kZBg7yrq",
           });
         } catch (_) {}
       })();
@@ -609,6 +609,55 @@ ${d.options.length ? "・オプション：" : ""}${d.options
 
       /* 初期描画 */
       calc();
+    </script>
+    <script>
+      async function diag() {
+        const box = document.createElement("div");
+        box.style.cssText =
+          "position:fixed;left:12px;right:12px;bottom:12px;background:#111;color:#fff;padding:12px;border-radius:10px;font-size:12px;z-index:99999;opacity:.95;";
+        box.innerHTML = '<b>LIFF診断</b><div id="dg">チェック中...</div>';
+        document.body.appendChild(box);
+
+        try {
+          await liff.init({ liffId: liff._initData?.liffId || "YOUR_LIFF_ID" });
+          const inClient = liff.isInClient();
+          const plat = liff.getOS();
+          let friend = "(未取得)";
+          try {
+            const fs = await liff.getFriendship();
+            friend = fs.friendFlag ? "友だち=YES" : "友だち=NO";
+          } catch (e) {
+            friend = "取得失敗";
+          }
+
+          document.getElementById("dg").innerHTML =
+            `inClient: ${inClient} / OS: ${plat} / ${friend}<br>` +
+            `ヒント: inClient=true & 友だち=YES で sendMessages 可`;
+        } catch (e) {
+          document.getElementById("dg").innerHTML =
+            "init失敗: " + (e && e.message ? e.message : e);
+        }
+      }
+
+      // 送信部の try-catch も強化
+      async function sendToLine(text) {
+        try {
+          if (!liff.isInClient()) {
+            alert("LINEアプリ内で開いてください");
+            return;
+          }
+          const fs = await liff.getFriendship();
+          if (!fs.friendFlag) {
+            alert("公式アカウントを友だち追加してください");
+            return;
+          }
+          await liff.sendMessages([{ type: "text", text }]);
+          alert("送信しました！");
+        } catch (e) {
+          console.log("sendMessages error:", e);
+          alert("送信に失敗しました\n" + (e && e.message ? e.message : ""));
+        }
+      }
     </script>
   </body>
 </html>
