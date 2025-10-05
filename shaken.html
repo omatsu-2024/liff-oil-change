@@ -11,8 +11,7 @@
       src="https://static.line-scdn.net/liff/edge/2/sdk.js"
     ></script>
     <script>
-      // ★ここに “車検シミュレーター” 用の実LIFF IDを入れて固定します
-      //   （LINE Developers の LIFF 一覧に出ている ID）
+      // ★LIFF IDを設定
       window.LIFF_ID_OVERRIDE = "2008228464-kZBg7yrq";
     </script>
 
@@ -520,150 +519,15 @@ ${d.options.length ? "・オプション：" : ""}${d.options
         el("#summaryText").textContent = summary;
       }
 
-      /* ========================= イベント ========================= */
-      ["#carClass", "#ageYears", "#baseFee", "#discount"].forEach((s) => {
-        el(s).addEventListener("change", calc);
-        el(s).addEventListener("input", calc);
-      });
-      els(".optChk").forEach((c) => c.addEventListener("change", calc));
-      el("#calcBtn").addEventListener("click", calc);
-      el("#resetBtn").addEventListener("click", () => {
-        el("#carClass").value = "kei";
-        el("#ageYears").value = "0-13";
-        el("#baseFee").value = 19800;
-        el("#discount").value = 0;
-        els(".optChk").forEach((c) => (c.checked = false));
-        calc();
-      });
-      el("#copyBtn").addEventListener("click", async () => {
-        try {
-          await navigator.clipboard.writeText(
-            el("#summaryText").textContent.trim()
-          );
-          toast("見積りテキストをコピーしました", true);
-        } catch (_) {
-          toast("コピーに失敗しました", false);
-        }
-      });
+      /* ========================= LIFF初期化 ========================= */
+      let liffReady = false;
+      let liffInitTried = false;
 
-      // 送信（初期化→チェック→送信）
-      el("#sendBtn").addEventListener("click", async () => {
-        const ok = await ensureLiffReady();
-        if (!ok) return;
-        const text = el("#summaryText").textContent.trim();
-        try {
-          if (!liff.isInClient())
-            return toast("LINEアプリ内からご利用ください", false);
-          const fs = await liff.getFriendship();
-          if (!fs.friendFlag)
-            return toast("公式アカウントを友だち追加してください", false);
-          await liff.sendMessages([{ type: "text", text }]);
-          toast("LINEに送信しました", true);
-        } catch (e) {
-          console.warn(e);
-          toast("送信に失敗しました", false);
-        }
-      });
-
-      /* ========================= LIFF初期化（共通関数） ========================= */
-      let liffReady = false,
-        liffInitTried = false;
-      async function ensureLiffReady() {
-        if (liffReady) return true;
-        if (liffInitTried) return false;
-        liffInitTried = true;
-        try {
-          await liff.init({ liffId: window.LIFF_ID_OVERRIDE });
-          // 外部ブラウザ時はログインしてIDトークンを得る（必要な場合のみ）
-          if (!liff.isInClient() && !liff.isLoggedIn()) {
-            liff.login({});
-            return false; // ここでリダイレクト
-          }
-          liffReady = true;
-          el("#sendBtn").disabled = false;
-          el("#liffHint").textContent = liff.isInClient()
-            ? "LINEアプリ内で開いています。友だち追加済みであれば送信できます。"
-            : "外部ブラウザで開いています。必要に応じてログインが求められます。";
-          return true;
-        } catch (e) {
-          console.warn("LIFF init error:", e);
-          el("#liffHint").textContent =
-            "LIFF初期化に失敗しました。ページを再読み込みしてください。";
-          return false;
-        }
-      }
-      // 起動時に初期化を試みる
-      ensureLiffReady();
-
-      /* ========================= トースト ========================= */
-      function toast(msg, ok = true) {
-        const n = document.createElement("div");
-        n.textContent = msg;
-        n.style.position = "fixed";
-        n.style.left = "50%";
-        n.style.top = "16px";
-        n.style.transform = "translateX(-50%)";
-        n.style.background = ok
-          ? "rgba(16,185,129,.95)"
-          : "rgba(239,68,68,.95)";
-        n.style.color = "#fff";
-        n.style.padding = "10px 14px";
-        n.style.borderRadius = "999px";
-        n.style.fontWeight = "700";
-        n.style.zIndex = "9999";
-        n.style.boxShadow = "0 8px 24px rgba(0,0,0,.2)";
-        document.body.appendChild(n);
-        setTimeout(() => n.remove(), 1600);
-      }
-
-      /* 初期描画 */
-      calc();
-    </script>
-
-    <!-- 診断ユーティリティ（必要時に DevTools から diag() を呼び出し） -->
-    <script>
-      async function diag() {
-        const box = document.createElement("div");
-        box.style.cssText =
-          "position:fixed;left:12px;right:12px;bottom:12px;background:#111;color:#fff;padding:12px;border-radius:10px;font-size:12px;z-index:99999;opacity:.95;";
-        box.innerHTML = '<b>LIFF診断</b><div id="dg">チェック中...</div>';
-        document.body.appendChild(box);
-        try {
-          await liff.init({ liffId: window.LIFF_ID_OVERRIDE });
-          const inClient = liff.isInClient();
-          const os = liff.getOS();
-          let friend = "(未取得)";
-          try {
-            const fs = await liff.getFriendship();
-            friend = fs.friendFlag ? "友だち=YES" : "友だち=NO";
-          } catch {
-            friend = "取得失敗";
-          }
-          document.getElementById(
-            "dg"
-          ).innerHTML = `inClient: ${inClient} / OS: ${os} / ${friend}<br>ヒント: inClient=true & 友だち=YES で sendMessages 可`;
-        } catch (e) {
-          document.getElementById("dg").innerHTML =
-            "init失敗: " + (e?.message || e);
-        }
-      }
-    </script>
-    <script>
-      /* ========================= 設定テーブル・計算ロジックなどはそのまま ========================= */
-      // …（中略：あなたの既存コードそのまま）…
-
-      /* ========================= LIFF初期化（共通関数） ========================= */
-      let liffReady = false,
-        liffInitTried = false;
-
-      // URLパラメータ取得（LIFF経由の場合は liff.state にクエリが入る）
+      // URLパラメータ取得
       function getQueryParam(name) {
         const urlQs = new URLSearchParams(location.search);
-        // 1) まず通常の ?xxx=yyy を見る
         if (urlQs.has(name)) return urlQs.get(name);
 
-        // 2) LIFF URL (https://liff.line.me/...) から来た場合、エンドポイント側のURLは
-        //    ?liff.state=/path?diag=1 のように「元のクエリ」を liff.state に格納している
         const state = urlQs.get("liff.state");
         if (state) {
           const qIndex = state.indexOf("?");
@@ -680,44 +544,181 @@ ${d.options.length ? "・オプション：" : ""}${d.options
       async function ensureLiffReady() {
         if (liffReady) return true;
         if (liffInitTried) return false;
+
         liffInitTried = true;
+
         try {
+          // LIFF SDKの読み込み確認
+          if (!window.liff) {
+            console.error("LIFF SDK not loaded");
+            el("#liffHint").textContent = "LIFF SDKが読み込まれていません";
+            return false;
+          }
+
+          console.log("Initializing LIFF with ID:", window.LIFF_ID_OVERRIDE);
           await liff.init({ liffId: window.LIFF_ID_OVERRIDE });
 
-          // ★診断モードのときはログインでのリダイレクトを行わず、まず診断UIを出す
-          if (!isDiagMode) {
-            // 外部ブラウザ時は必要に応じてログイン
-            if (!liff.isInClient() && !liff.isLoggedIn()) {
-              liff.login({}); // ここで一旦リダイレクト
-              return false;
-            }
+          // 診断モード以外では必要に応じてログイン
+          if (!isDiagMode && !liff.isInClient() && !liff.isLoggedIn()) {
+            console.log("Redirecting to login...");
+            liff.login({});
+            return false;
           }
 
           liffReady = true;
+
+          // UI更新
+          const sendBtn = el("#sendBtn");
+          if (sendBtn) sendBtn.disabled = false;
+
           const hint = liff.isInClient()
             ? "LINEアプリ内で開いています。友だち追加済みであれば送信できます。"
             : "外部ブラウザで開いています。必要に応じてログインが求められます。";
-          const hintEl = document.getElementById("liffHint");
+
+          const hintEl = el("#liffHint");
           if (hintEl) hintEl.textContent = hint;
 
-          const sendBtn = document.getElementById("sendBtn");
-          if (sendBtn) sendBtn.disabled = false;
-
+          console.log("LIFF initialization successful");
           return true;
         } catch (e) {
-          console.warn("LIFF init error:", e);
-          const hintEl = document.getElementById("liffHint");
-          if (hintEl)
-            hintEl.textContent =
-              "LIFF初期化に失敗しました。ページを再読み込みしてください。";
+          console.error("LIFF init error:", e);
+          const hintEl = el("#liffHint");
+          if (hintEl) {
+            hintEl.textContent = `LIFF初期化に失敗: ${e.message || e}`;
+          }
           return false;
         }
       }
 
-      // 起動時に初期化を試みる（診断モードでもOK。ログインはスキップ）
-      ensureLiffReady();
+      /* ========================= イベントリスナー ========================= */
+      function setupEventListeners() {
+        // 計算関連
+        ["#carClass", "#ageYears", "#baseFee", "#discount"].forEach((s) => {
+          const elem = el(s);
+          if (elem) {
+            elem.addEventListener("change", calc);
+            elem.addEventListener("input", calc);
+          }
+        });
 
-      /* ========================= トースト ========================= */
+        els(".optChk").forEach((c) => c.addEventListener("change", calc));
+
+        const calcBtn = el("#calcBtn");
+        if (calcBtn) calcBtn.addEventListener("click", calc);
+
+        const resetBtn = el("#resetBtn");
+        if (resetBtn) {
+          resetBtn.addEventListener("click", () => {
+            el("#carClass").value = "kei";
+            el("#ageYears").value = "0-13";
+            el("#baseFee").value = 19800;
+            el("#discount").value = 0;
+            els(".optChk").forEach((c) => (c.checked = false));
+            calc();
+          });
+        }
+
+        // コピー機能
+        const copyBtn = el("#copyBtn");
+        if (copyBtn) {
+          copyBtn.addEventListener("click", async () => {
+            try {
+              await navigator.clipboard.writeText(
+                el("#summaryText").textContent.trim()
+              );
+              toast("見積りテキストをコピーしました", true);
+            } catch (_) {
+              toast("コピーに失敗しました", false);
+            }
+          });
+        }
+
+        // LINE送信機能
+        const sendBtn = el("#sendBtn");
+        if (sendBtn) {
+          sendBtn.addEventListener("click", async () => {
+            console.log("Send button clicked");
+
+            const ok = await ensureLiffReady();
+            if (!ok) {
+              toast("LIFF初期化に失敗しました", false);
+              return;
+            }
+
+            const text = el("#summaryText").textContent.trim();
+
+            try {
+              if (!liff.isInClient()) {
+                toast("LINEアプリ内からご利用ください", false);
+                return;
+              }
+
+              const fs = await liff.getFriendship();
+              if (!fs.friendFlag) {
+                toast("公式アカウントを友だち追加してください", false);
+                return;
+              }
+
+              await liff.sendMessages([{ type: "text", text }]);
+              toast("LINEに送信しました", true);
+            } catch (e) {
+              console.error("Send message error:", e);
+              toast(`送信に失敗しました: ${e.message || e}`, false);
+            }
+          });
+        }
+      }
+
+      /* ========================= 診断機能 ========================= */
+      async function diag() {
+        console.log("Starting diagnosis...");
+
+        const box = document.createElement("div");
+        box.style.cssText =
+          "position:fixed;left:12px;right:12px;bottom:12px;background:#111;color:#fff;padding:12px;border-radius:10px;font-size:12px;z-index:99999;opacity:.95;";
+        box.innerHTML = '<b>LIFF診断</b><div id="dg">チェック中...</div>';
+        document.body.appendChild(box);
+
+        try {
+          if (!window.liff) {
+            document.getElementById("dg").innerHTML =
+              "LIFF SDKが読み込まれていません";
+            return;
+          }
+
+          if (!liffReady) {
+            console.log("Initializing LIFF for diagnosis...");
+            await liff.init({ liffId: window.LIFF_ID_OVERRIDE });
+          }
+
+          const inClient = liff.isInClient();
+          const os = liff.getOS();
+          const isLoggedIn = liff.isLoggedIn();
+
+          let friend = "(未取得)";
+          try {
+            const fs = await liff.getFriendship();
+            friend = fs.friendFlag ? "友だち=YES" : "友だち=NO";
+          } catch (e) {
+            friend = `取得失敗: ${e.message}`;
+          }
+
+          document.getElementById("dg").innerHTML =
+            `inClient: ${inClient}<br>` +
+            `OS: ${os}<br>` +
+            `Logged in: ${isLoggedIn}<br>` +
+            `${friend}<br>` +
+            `LIFF ID: ${window.LIFF_ID_OVERRIDE}<br>` +
+            `ヒント: inClient=true & 友だち=YES で sendMessages 可`;
+        } catch (e) {
+          console.error("Diagnosis error:", e);
+          document.getElementById("dg").innerHTML = `init失敗: ${
+            e.message || e
+          }`;
+        }
+      }
+
+      /* ========================= トースト機能 ========================= */
       function toast(msg, ok = true) {
         const n = document.createElement("div");
         n.textContent = msg;
@@ -738,77 +739,28 @@ ${d.options.length ? "・オプション：" : ""}${d.options
         setTimeout(() => n.remove(), 1600);
       }
 
-      /* 初期描画 */
-      calc();
-    </script>
+      /* ========================= 初期化 ========================= */
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log("DOM loaded, setting up...");
 
-    <!-- 診断ユーティリティ（diag() 本体は1つだけ定義） -->
-    <script>
-      async function diag() {
-        const box = document.createElement("div");
-        box.style.cssText =
-          "position:fixed;left:12px;right:12px;bottom:12px;background:#111;color:#fff;padding:12px;border-radius:10px;font-size:12px;z-index:99999;opacity:.95;";
-        box.innerHTML = '<b>LIFF診断</b><div id="dg">チェック中...</div>';
-        document.body.appendChild(box);
+        // イベントリスナー設定
+        setupEventListeners();
 
-        try {
-          // すでに ensureLiffReady 済み。未済なら明示的に初期化
-          if (!window.liff || typeof liff.init !== "function") {
-            document.getElementById("dg").innerHTML =
-              "LIFF SDKがまだ読み込まれていません";
-            return;
-          }
-          if (!liffReady) {
-            await liff.init({ liffId: window.LIFF_ID_OVERRIDE });
-          }
+        // 初期計算
+        calc();
 
-          const inClient = liff.isInClient();
-          const os = liff.getOS();
-          let friend = "(未取得)";
-          try {
-            const fs = await liff.getFriendship();
-            friend = fs.friendFlag ? "友だち=YES" : "友だち=NO";
-          } catch {
-            friend = "取得失敗";
-          }
+        // LIFF初期化
+        ensureLiffReady();
 
-          document.getElementById("dg").innerHTML =
-            `inClient: ${inClient} / OS: ${os} / ${friend}<br>` +
-            `ヒント: inClient=true & 友だち=YES で sendMessages 可`;
-        } catch (e) {
-          document.getElementById("dg").innerHTML =
-            "init失敗: " + (e?.message || e);
+        // 診断モードの場合は自動実行
+        if (isDiagMode) {
+          console.log("Diagnosis mode detected, running diag...");
+          setTimeout(diag, 1000); // 1秒後に実行
         }
-      }
+      });
 
-      // ?diag=1 が付いている場合、自動で診断を実行（LIFF経由でも直接URLでも動く）
-      (function autodiag() {
-        const want = (() => {
-          const urlQs = new URLSearchParams(location.search);
-          if (urlQs.get("diag") === "1") return true;
-          const st = urlQs.get("liff.state");
-          if (st) {
-            const qIndex = st.indexOf("?");
-            if (qIndex >= 0) {
-              const inner = new URLSearchParams(st.slice(qIndex + 1));
-              if (inner.get("diag") === "1") return true;
-            }
-          }
-          return false;
-        })();
-
-        if (!want) return;
-
-        // SDKの読み込み待ち → 診断実行
-        const tryRun = () => {
-          if (window.liff && typeof liff.init === "function") {
-            diag();
-          } else {
-            setTimeout(tryRun, 300);
-          }
-        };
-        tryRun();
-      })();
+      // グローバルに diag 関数を公開（DevTools用）
+      window.diag = diag;
     </script>
   </body>
 </html>
