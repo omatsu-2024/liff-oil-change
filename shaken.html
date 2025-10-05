@@ -648,5 +648,14 @@ ${d.options.length ? "・オプション：" : ""}${d.options
         }
       }
     </script>
+    <script>
+      if (new URLSearchParams(location.search).get("diag") === "1") {
+        setTimeout(() => {
+          try {
+            diag();
+          } catch (e) {}
+        }, 300);
+      }
+    </script>
   </body>
 </html>
