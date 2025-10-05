@@ -680,8 +680,22 @@ ${d.options.length ? "・オプション：" : ""}${d.options
           addDebugLog("isInClient: " + inClient);
 
           if (!inClient) {
-            addDebugLog("❌ LINEアプリ外");
-            toast("LINEアプリ内からご利用ください", false);
+            addDebugLog("❌ PC版/外部ブラウザではsendMessagesは使えません");
+            toast("スマホのLINEアプリから開いてください", false);
+            // 代替案を提示
+            if (
+              confirm(
+                "PC版ではメッセージ送信できません。\n代わりにテキストをコピーしますか？"
+              )
+            ) {
+              try {
+                await navigator.clipboard.writeText(text);
+                toast("テキストをコピーしました", true);
+                addDebugLog("✅ テキストコピー成功");
+              } catch (e) {
+                addDebugLog("❌ コピー失敗: " + e.message);
+              }
+            }
             return;
           }
 
@@ -707,7 +721,19 @@ ${d.options.length ? "・オプション：" : ""}${d.options
           addDebugLog("❌ エラー: " + (e.message || JSON.stringify(e)));
           console.error("Send error:", e);
           console.error("Error details:", JSON.stringify(e, null, 2));
-          toast("送信失敗: " + (e.message || JSON.stringify(e)), false);
+
+          // エラーの種類に応じた分かりやすいメッセージ
+          let errorMsg = "送信に失敗しました";
+          if (e.message && e.message.includes("invalid receiver")) {
+            errorMsg =
+              "グループや複数人トークからは送信できません。\n公式アカウントとの1対1トークから開いてください。";
+          } else if (e.message && e.message.includes("permission")) {
+            errorMsg = "送信権限がありません。\nLIFF設定を確認してください。";
+          } else if (e.message) {
+            errorMsg = "送信失敗: " + e.message;
+          }
+
+          toast(errorMsg, false);
         }
       });
 
