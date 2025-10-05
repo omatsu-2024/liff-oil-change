@@ -4,10 +4,18 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>車検 概算シミュレーター</title>
+
+    <!-- LIFF SDK -->
     <script
       charset="utf-8"
       src="https://static.line-scdn.net/liff/edge/2/sdk.js"
     ></script>
+    <script>
+      // ★ここに “車検シミュレーター” 用の実LIFF IDを入れて固定します
+      //   （LINE Developers の LIFF 一覧に出ている ID）
+      window.LIFF_ID_OVERRIDE = "2008228464-kZBg7yrq";
+    </script>
+
     <style>
       :root {
         --bg: #0f172a;
@@ -75,7 +83,7 @@
       .field select {
         border: 2px solid var(--bd);
         border-radius: 10px;
-        padding: 12px 12px;
+        padding: 12px;
         font-size: 16px;
         outline: none;
         transition: 0.15s;
@@ -173,6 +181,7 @@
         <p class="sub">
           ※概算の目安です。最新の法定費用・店舗価格に合わせて金額設定を調整してください。
         </p>
+
         <div class="grid row">
           <div class="field">
             <label
@@ -317,8 +326,13 @@
               "
             >
               <button class="btn ghost" id="copyBtn">テキストをコピー</button>
-              <button class="btn sec" id="sendBtn">LINEに送る</button>
+              <button class="btn sec" id="sendBtn" disabled>LINEに送る</button>
             </div>
+            <div
+              class="muted"
+              style="font-size: 12px; margin-top: 6px"
+              id="liffHint"
+            ></div>
           </div>
         </div>
 
@@ -362,14 +376,9 @@
     </div>
 
     <script>
-      /* =========================
-   設定テーブル（デモ用）
-   実運用前に店舗価格・最新の法定費用へ更新してください。
-   ========================= */
+      /* ========================= 設定テーブル（デモ用） ========================= */
       const TABLES = {
-        // 重量税（24か月・概算デモ）
         weightTax: {
-          // 年数帯ごとに区分
           "0-13": {
             kei: 6600,
             small: 16400,
@@ -392,44 +401,35 @@
             xl: 63000,
           },
         },
-        // 自賠責（24か月・概算デモ）
-        jibaiseki: {
-          std: { kei: 17000, passenger: 17800 },
-        },
-        // 印紙代（概算デモ）
-        stamp: {
-          std: { kei: 1800, passenger: 1600 },
-        },
+        jibaiseki: { std: { kei: 17000, passenger: 17800 } },
+        stamp: { std: { kei: 1800, passenger: 1600 } },
       };
 
-      /* =========================
-   ユーティリティ
-   ========================= */
+      /* ========================= ユーティリティ ========================= */
       const fmt = (n) => "¥" + Math.round(n).toLocaleString("ja-JP");
-      const el = (sel) => document.querySelector(sel);
-      const els = (sel) => [...document.querySelectorAll(sel)];
+      const el = (s) => document.querySelector(s);
+      const els = (s) => [...document.querySelectorAll(s)];
 
-      /* =========================
-   計算ロジック
-   ========================= */
+      /* ========================= 計算ロジック ========================= */
       function calc() {
-        const carClass = el("#carClass").value; // 車両区分
-        const ageBand = el("#ageYears").value; // 経過年数帯
-        const baseFee = +el("#baseFee").value || 0; // 店舗 基本料
-        const discount = +el("#discount").value || 0; // 割引
+        const carClass = el("#carClass").value;
+        const ageBand = el("#ageYears").value;
+        const baseFee = +el("#baseFee").value || 0;
+        const discount = +el("#discount").value || 0;
 
-        // 法定費用
-        const wt = TABLES.weightTax[ageBand][carClass]; // 重量税
-        const jbTable = TABLES.jibaiseki["std"];
-        const spTable = TABLES.stamp["std"];
-        const jb = carClass === "kei" ? jbTable.kei : jbTable.passenger; // 自賠責
-        const sp = carClass === "kei" ? spTable.kei : spTable.passenger; // 印紙
+        const wt = TABLES.weightTax[ageBand][carClass];
+        const jb =
+          carClass === "kei"
+            ? TABLES.jibaiseki.std.kei
+            : TABLES.jibaiseki.std.passenger;
+        const sp =
+          carClass === "kei"
+            ? TABLES.stamp.std.kei
+            : TABLES.stamp.std.passenger;
 
-        // オプション
         const options = els(".optChk")
           .filter((c) => c.checked)
           .map((c) => ({ label: c.dataset.label, price: +c.dataset.price }));
-
         const optTotal = options.reduce((a, b) => a + b.price, 0);
 
         const legalTotal = wt + jb + sp;
@@ -447,19 +447,17 @@
           legalTotal,
           shopTotal,
           grand,
-          carClass,
-          ageBand,
         });
       }
 
       function renderBreakdown(d) {
-        const legal = `
-    <div class="grid" style="grid-template-columns:1fr auto">
-      <div>自賠責（24か月）</div><div class="price">${fmt(d.jb)}</div>
-      <div>重量税（概算）</div><div class="price">${fmt(d.wt)}</div>
-      <div>印紙代（概算）</div><div class="price">${fmt(d.sp)}</div>
-    </div>`;
-        el("#legalBreakdown").innerHTML = legal;
+        el(
+          "#legalBreakdown"
+        ).innerHTML = `<div class="grid" style="grid-template-columns:1fr auto">
+            <div>自賠責（24か月）</div><div class="price">${fmt(d.jb)}</div>
+            <div>重量税（概算）</div><div class="price">${fmt(d.wt)}</div>
+            <div>印紙代（概算）</div><div class="price">${fmt(d.sp)}</div>
+          </div>`;
 
         const optsHtml = d.options.length
           ? d.options
@@ -472,19 +470,18 @@
               .join("")
           : `<div class="muted">オプション整備なし</div>`;
 
-        const shop = `
-    <div class="grid" style="grid-template-columns:1fr auto">
-      <div>基本点検整備料</div><div class="price">${fmt(
-        +el("#baseFee").value || 0
-      )}</div>
-      <div>割引</div><div class="price">- ${fmt(
-        +el("#discount").value || 0
-      )}</div>
-    </div>
-    <div class="line"></div>
-    ${optsHtml}
-  `;
-        el("#shopBreakdown").innerHTML = shop;
+        el(
+          "#shopBreakdown"
+        ).innerHTML = `<div class="grid" style="grid-template-columns:1fr auto">
+             <div>基本点検整備料</div><div class="price">${fmt(
+               +el("#baseFee").value || 0
+             )}</div>
+             <div>割引</div><div class="price">- ${fmt(
+               +el("#discount").value || 0
+             )}</div>
+           </div>
+           <div class="line"></div>
+           ${optsHtml}`;
 
         el("#grandTotal").textContent = fmt(d.grand);
 
@@ -501,7 +498,6 @@
           el("#ageYears").value
         }`;
 
-        // サマリーテキスト
         const summary = `【車検 概算見積（目安）】
 車両区分：${classLabel}
 年式帯　：${el("#ageYears").value}
@@ -524,12 +520,10 @@ ${d.options.length ? "・オプション：" : ""}${d.options
         el("#summaryText").textContent = summary;
       }
 
-      /* =========================
-   イベント
-   ========================= */
-      ["#carClass", "#ageYears", "#baseFee", "#discount"].forEach((sel) => {
-        el(sel).addEventListener("change", calc);
-        el(sel).addEventListener("input", calc);
+      /* ========================= イベント ========================= */
+      ["#carClass", "#ageYears", "#baseFee", "#discount"].forEach((s) => {
+        el(s).addEventListener("change", calc);
+        el(s).addEventListener("input", calc);
       });
       els(".optChk").forEach((c) => c.addEventListener("change", calc));
       el("#calcBtn").addEventListener("click", calc);
@@ -547,46 +541,61 @@ ${d.options.length ? "・オプション：" : ""}${d.options
             el("#summaryText").textContent.trim()
           );
           toast("見積りテキストをコピーしました", true);
-        } catch (e) {
+        } catch (_) {
           toast("コピーに失敗しました", false);
         }
       });
+
+      // 送信（初期化→チェック→送信）
       el("#sendBtn").addEventListener("click", async () => {
+        const ok = await ensureLiffReady();
+        if (!ok) return;
         const text = el("#summaryText").textContent.trim();
         try {
-          if (window.liff && liff.isInClient()) {
-            const fs = await liff.getFriendship();
-            if (fs.friendFlag) {
-              await liff.sendMessages([{ type: "text", text }]);
-              toast("LINEに送信しました", true);
-            } else {
-              toast("公式アカウントを友だち追加してください", false);
-            }
-          } else {
-            toast("LINEアプリ内からご利用ください", false);
-          }
+          if (!liff.isInClient())
+            return toast("LINEアプリ内からご利用ください", false);
+          const fs = await liff.getFriendship();
+          if (!fs.friendFlag)
+            return toast("公式アカウントを友だち追加してください", false);
+          await liff.sendMessages([{ type: "text", text }]);
+          toast("LINEに送信しました", true);
         } catch (e) {
           console.warn(e);
           toast("送信に失敗しました", false);
         }
       });
 
-      /* =========================
-   LIFF 初期化（任意）
-   - LIFF未接続でも動くようにフォールバック
-   ========================= */
-      (async function initLiff() {
+      /* ========================= LIFF初期化（共通関数） ========================= */
+      let liffReady = false,
+        liffInitTried = false;
+      async function ensureLiffReady() {
+        if (liffReady) return true;
+        if (liffInitTried) return false;
+        liffInitTried = true;
         try {
-          // LIFF_ID を設定していない場合でも動作するように try で包む
-          await liff.init({
-            liffId: window.LIFF_ID_OVERRIDE || "" || "2008228464-kZBg7yrq",
-          });
-        } catch (_) {}
-      })();
+          await liff.init({ liffId: window.LIFF_ID_OVERRIDE });
+          // 外部ブラウザ時はログインしてIDトークンを得る（必要な場合のみ）
+          if (!liff.isInClient() && !liff.isLoggedIn()) {
+            liff.login({});
+            return false; // ここでリダイレクト
+          }
+          liffReady = true;
+          el("#sendBtn").disabled = false;
+          el("#liffHint").textContent = liff.isInClient()
+            ? "LINEアプリ内で開いています。友だち追加済みであれば送信できます。"
+            : "外部ブラウザで開いています。必要に応じてログインが求められます。";
+          return true;
+        } catch (e) {
+          console.warn("LIFF init error:", e);
+          el("#liffHint").textContent =
+            "LIFF初期化に失敗しました。ページを再読み込みしてください。";
+          return false;
+        }
+      }
+      // 起動時に初期化を試みる
+      ensureLiffReady();
 
-      /* =========================
-   トースト表示（簡易）
-   ========================= */
+      /* ========================= トースト ========================= */
       function toast(msg, ok = true) {
         const n = document.createElement("div");
         n.textContent = msg;
@@ -610,6 +619,8 @@ ${d.options.length ? "・オプション：" : ""}${d.options
       /* 初期描画 */
       calc();
     </script>
+
+    <!-- 診断ユーティリティ（必要時に DevTools から diag() を呼び出し） -->
     <script>
       async function diag() {
         const box = document.createElement("div");
@@ -617,45 +628,23 @@ ${d.options.length ? "・オプション：" : ""}${d.options
           "position:fixed;left:12px;right:12px;bottom:12px;background:#111;color:#fff;padding:12px;border-radius:10px;font-size:12px;z-index:99999;opacity:.95;";
         box.innerHTML = '<b>LIFF診断</b><div id="dg">チェック中...</div>';
         document.body.appendChild(box);
-
         try {
-          await liff.init({ liffId: liff._initData?.liffId || "YOUR_LIFF_ID" });
+          await liff.init({ liffId: window.LIFF_ID_OVERRIDE });
           const inClient = liff.isInClient();
-          const plat = liff.getOS();
+          const os = liff.getOS();
           let friend = "(未取得)";
           try {
             const fs = await liff.getFriendship();
             friend = fs.friendFlag ? "友だち=YES" : "友だち=NO";
-          } catch (e) {
+          } catch {
             friend = "取得失敗";
           }
-
-          document.getElementById("dg").innerHTML =
-            `inClient: ${inClient} / OS: ${plat} / ${friend}<br>` +
-            `ヒント: inClient=true & 友だち=YES で sendMessages 可`;
+          document.getElementById(
+            "dg"
+          ).innerHTML = `inClient: ${inClient} / OS: ${os} / ${friend}<br>ヒント: inClient=true & 友だち=YES で sendMessages 可`;
         } catch (e) {
           document.getElementById("dg").innerHTML =
-            "init失敗: " + (e && e.message ? e.message : e);
-        }
-      }
-
-      // 送信部の try-catch も強化
-      async function sendToLine(text) {
-        try {
-          if (!liff.isInClient()) {
-            alert("LINEアプリ内で開いてください");
-            return;
-          }
-          const fs = await liff.getFriendship();
-          if (!fs.friendFlag) {
-            alert("公式アカウントを友だち追加してください");
-            return;
-          }
-          await liff.sendMessages([{ type: "text", text }]);
-          alert("送信しました！");
-        } catch (e) {
-          console.log("sendMessages error:", e);
-          alert("送信に失敗しました\n" + (e && e.message ? e.message : ""));
+            "init失敗: " + (e?.message || e);
         }
       }
     </script>
