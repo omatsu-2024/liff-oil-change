@@ -11,7 +11,6 @@
       src="https://static.line-scdn.net/liff/edge/2/sdk.js"
     ></script>
     <script>
-      // ★LIFF IDを設定
       window.LIFF_ID_OVERRIDE = "2008228464-kZBg7yrq";
     </script>
 
@@ -154,16 +153,6 @@
         border-radius: 999px;
         font-size: 12px;
       }
-      .list {
-        margin: 0;
-        padding-left: 18px;
-      }
-      .warn {
-        color: var(--danger);
-      }
-      .ok {
-        color: var(--ok);
-      }
       .footer {
         color: #fff;
         opacity: 0.9;
@@ -228,74 +217,80 @@
 
         <div class="box" style="margin-top: 12px">
           <div class="opt">
-            <strong>オプション整備（任意）</strong
-            ><span class="muted">チェックで追加</span>
+            <strong>オプション整備（任意）</strong>
+            <span class="muted">チェックで追加</span>
           </div>
           <div class="opt">
-            <label
-              ><input
+            <label>
+              <input
                 type="checkbox"
                 class="optChk"
                 data-label="エンジンオイル交換"
                 data-price="3500"
               />
-              エンジンオイル交換</label
-            ><span class="price">¥3,500</span>
+              エンジンオイル交換
+            </label>
+            <span class="price">¥3,500</span>
           </div>
           <div class="opt">
-            <label
-              ><input
+            <label>
+              <input
                 type="checkbox"
                 class="optChk"
                 data-label="オイルエレメント交換"
                 data-price="1500"
               />
-              オイルエレメント交換</label
-            ><span class="price">¥1,500</span>
+              オイルエレメント交換
+            </label>
+            <span class="price">¥1,500</span>
           </div>
           <div class="opt">
-            <label
-              ><input
+            <label>
+              <input
                 type="checkbox"
                 class="optChk"
                 data-label="ブレーキフルード交換"
                 data-price="4500"
               />
-              ブレーキフルード交換</label
-            ><span class="price">¥4,500</span>
+              ブレーキフルード交換
+            </label>
+            <span class="price">¥4,500</span>
           </div>
           <div class="opt">
-            <label
-              ><input
+            <label>
+              <input
                 type="checkbox"
                 class="optChk"
                 data-label="冷却水（LLC）交換"
                 data-price="6000"
               />
-              冷却水（LLC）交換</label
-            ><span class="price">¥6,000</span>
+              冷却水（LLC）交換
+            </label>
+            <span class="price">¥6,000</span>
           </div>
           <div class="opt">
-            <label
-              ><input
+            <label>
+              <input
                 type="checkbox"
                 class="optChk"
                 data-label="ワイパーゴム交換"
                 data-price="1200"
               />
-              ワイパーゴム交換</label
-            ><span class="price">¥1,200</span>
+              ワイパーゴム交換
+            </label>
+            <span class="price">¥1,200</span>
           </div>
           <div class="opt">
-            <label
-              ><input
+            <label>
+              <input
                 type="checkbox"
                 class="optChk"
                 data-label="エアコンフィルター交換"
                 data-price="3500"
               />
-              エアコンフィルター交換</label
-            ><span class="price">¥3,500</span>
+              エアコンフィルター交換
+            </label>
+            <span class="price">¥3,500</span>
           </div>
         </div>
 
@@ -375,7 +370,7 @@
     </div>
 
     <script>
-      /* ========================= 設定テーブル（デモ用） ========================= */
+      /* ========================= 設定テーブル ========================= */
       const TABLES = {
         weightTax: {
           "0-13": {
@@ -408,6 +403,23 @@
       const fmt = (n) => "¥" + Math.round(n).toLocaleString("ja-JP");
       const el = (s) => document.querySelector(s);
       const els = (s) => [...document.querySelectorAll(s)];
+
+      /* ========================= URLパラメータ取得 ========================= */
+      function getQueryParam(name) {
+        const urlQs = new URLSearchParams(location.search);
+        if (urlQs.has(name)) return urlQs.get(name);
+        const state = urlQs.get("liff.state");
+        if (state) {
+          const qIndex = state.indexOf("?");
+          if (qIndex >= 0) {
+            const innerQs = new URLSearchParams(state.slice(qIndex + 1));
+            if (innerQs.has(name)) return innerQs.get(name);
+          }
+        }
+        return null;
+      }
+
+      const isDiagMode = getQueryParam("diag") === "1";
 
       /* ========================= 計算ロジック ========================= */
       function calc() {
@@ -491,6 +503,7 @@
           large: "大型(1.5〜2.0t)",
           xl: "特大(2.0〜2.5t)",
         }[el("#carClass").value];
+
         el(
           "#note"
         ).innerHTML = `<span class="muted">区分:</span> ${classLabel}　<span class="muted">年式帯:</span> ${
@@ -520,247 +533,197 @@ ${d.options.length ? "・オプション：" : ""}${d.options
       }
 
       /* ========================= LIFF初期化 ========================= */
-      let liffReady = false;
-      let liffInitTried = false;
-
-      // URLパラメータ取得
-      function getQueryParam(name) {
-        const urlQs = new URLSearchParams(location.search);
-        if (urlQs.has(name)) return urlQs.get(name);
-
-        const state = urlQs.get("liff.state");
-        if (state) {
-          const qIndex = state.indexOf("?");
-          if (qIndex >= 0) {
-            const innerQs = new URLSearchParams(state.slice(qIndex + 1));
-            if (innerQs.has(name)) return innerQs.get(name);
-          }
-        }
-        return null;
-      }
-
-      const isDiagMode = getQueryParam("diag") === "1";
+      let liffReady = false,
+        liffInitTried = false;
 
       async function ensureLiffReady() {
         if (liffReady) return true;
         if (liffInitTried) return false;
-
         liffInitTried = true;
 
         try {
-          // LIFF SDKの読み込み確認
-          if (!window.liff) {
-            console.error("LIFF SDK not loaded");
-            el("#liffHint").textContent = "LIFF SDKが読み込まれていません";
-            return false;
-          }
-
-          console.log("Initializing LIFF with ID:", window.LIFF_ID_OVERRIDE);
           await liff.init({ liffId: window.LIFF_ID_OVERRIDE });
 
-          // 診断モード以外では必要に応じてログイン
-          if (!isDiagMode && !liff.isInClient() && !liff.isLoggedIn()) {
-            console.log("Redirecting to login...");
-            liff.login({});
-            return false;
+          if (!isDiagMode) {
+            if (!liff.isInClient() && !liff.isLoggedIn()) {
+              liff.login({});
+              return false;
+            }
           }
 
           liffReady = true;
-
-          // UI更新
-          const sendBtn = el("#sendBtn");
-          if (sendBtn) sendBtn.disabled = false;
-
-          const hint = liff.isInClient()
+          el("#sendBtn").disabled = false;
+          el("#liffHint").textContent = liff.isInClient()
             ? "LINEアプリ内で開いています。友だち追加済みであれば送信できます。"
             : "外部ブラウザで開いています。必要に応じてログインが求められます。";
-
-          const hintEl = el("#liffHint");
-          if (hintEl) hintEl.textContent = hint;
-
-          console.log("LIFF initialization successful");
           return true;
         } catch (e) {
           console.error("LIFF init error:", e);
-          const hintEl = el("#liffHint");
-          if (hintEl) {
-            hintEl.textContent = `LIFF初期化に失敗: ${e.message || e}`;
-          }
+          el("#liffHint").textContent = "LIFF初期化に失敗: " + (e.message || e);
           return false;
         }
       }
 
-      /* ========================= イベントリスナー ========================= */
-      function setupEventListeners() {
-        // 計算関連
-        ["#carClass", "#ageYears", "#baseFee", "#discount"].forEach((s) => {
-          const elem = el(s);
-          if (elem) {
-            elem.addEventListener("change", calc);
-            elem.addEventListener("input", calc);
-          }
-        });
-
-        els(".optChk").forEach((c) => c.addEventListener("change", calc));
-
-        const calcBtn = el("#calcBtn");
-        if (calcBtn) calcBtn.addEventListener("click", calc);
-
-        const resetBtn = el("#resetBtn");
-        if (resetBtn) {
-          resetBtn.addEventListener("click", () => {
-            el("#carClass").value = "kei";
-            el("#ageYears").value = "0-13";
-            el("#baseFee").value = 19800;
-            el("#discount").value = 0;
-            els(".optChk").forEach((c) => (c.checked = false));
-            calc();
-          });
-        }
-
-        // コピー機能
-        const copyBtn = el("#copyBtn");
-        if (copyBtn) {
-          copyBtn.addEventListener("click", async () => {
-            try {
-              await navigator.clipboard.writeText(
-                el("#summaryText").textContent.trim()
-              );
-              toast("見積りテキストをコピーしました", true);
-            } catch (_) {
-              toast("コピーに失敗しました", false);
-            }
-          });
-        }
-
-        // LINE送信機能
-        const sendBtn = el("#sendBtn");
-        if (sendBtn) {
-          sendBtn.addEventListener("click", async () => {
-            console.log("Send button clicked");
-
-            const ok = await ensureLiffReady();
-            if (!ok) {
-              toast("LIFF初期化に失敗しました", false);
-              return;
-            }
-
-            const text = el("#summaryText").textContent.trim();
-
-            try {
-              if (!liff.isInClient()) {
-                toast("LINEアプリ内からご利用ください", false);
-                return;
-              }
-
-              const fs = await liff.getFriendship();
-              if (!fs.friendFlag) {
-                toast("公式アカウントを友だち追加してください", false);
-                return;
-              }
-
-              await liff.sendMessages([{ type: "text", text }]);
-              toast("LINEに送信しました", true);
-            } catch (e) {
-              console.error("Send message error:", e);
-              toast(`送信に失敗しました: ${e.message || e}`, false);
-            }
-          });
-        }
+      /* ========================= トースト ========================= */
+      function toast(msg, ok = true) {
+        const n = document.createElement("div");
+        n.textContent = msg;
+        n.style.cssText = `position:fixed;left:50%;top:16px;transform:translateX(-50%);
+          background:${ok ? "rgba(16,185,129,.95)" : "rgba(239,68,68,.95)"};
+          color:#fff;padding:10px 14px;border-radius:999px;font-weight:700;
+          z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2)`;
+        document.body.appendChild(n);
+        setTimeout(() => n.remove(), 1600);
       }
 
-      /* ========================= 診断機能 ========================= */
-      async function diag() {
-        console.log("Starting diagnosis...");
+      /* ========================= イベントリスナー ========================= */
+      ["#carClass", "#ageYears", "#baseFee", "#discount"].forEach((s) => {
+        el(s).addEventListener("change", calc);
+        el(s).addEventListener("input", calc);
+      });
+      els(".optChk").forEach((c) => c.addEventListener("change", calc));
 
+      el("#calcBtn").addEventListener("click", calc);
+
+      el("#resetBtn").addEventListener("click", () => {
+        el("#carClass").value = "kei";
+        el("#ageYears").value = "0-13";
+        el("#baseFee").value = 19800;
+        el("#discount").value = 0;
+        els(".optChk").forEach((c) => (c.checked = false));
+        calc();
+      });
+
+      el("#copyBtn").addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(
+            el("#summaryText").textContent.trim()
+          );
+          toast("見積りテキストをコピーしました", true);
+        } catch (e) {
+          console.error("Copy error:", e);
+          toast("コピーに失敗しました", false);
+        }
+      });
+
+      el("#sendBtn").addEventListener("click", async () => {
+        const ok = await ensureLiffReady();
+        if (!ok) {
+          toast("LIFF初期化が完了していません", false);
+          return;
+        }
+
+        const text = el("#summaryText").textContent.trim();
+        try {
+          if (!liff.isInClient()) {
+            toast("LINEアプリ内からご利用ください", false);
+            return;
+          }
+
+          const fs = await liff.getFriendship();
+          if (!fs.friendFlag) {
+            toast("公式アカウントを友だち追加してください", false);
+            return;
+          }
+
+          await liff.sendMessages([{ type: "text", text }]);
+          toast("LINEに送信しました", true);
+        } catch (e) {
+          console.error("Send error:", e);
+          toast("送信に失敗: " + (e.message || e), false);
+        }
+      });
+
+      /* ========================= 診断ユーティリティ ========================= */
+      async function diag() {
         const box = document.createElement("div");
         box.style.cssText =
-          "position:fixed;left:12px;right:12px;bottom:12px;background:#111;color:#fff;padding:12px;border-radius:10px;font-size:12px;z-index:99999;opacity:.95;";
-        box.innerHTML = '<b>LIFF診断</b><div id="dg">チェック中...</div>';
+          "position:fixed;left:12px;right:12px;bottom:12px;background:#111;color:#fff;padding:12px;border-radius:10px;font-size:12px;z-index:99999;opacity:.95;max-height:300px;overflow-y:auto;";
+        box.innerHTML = '<b>🔍 LIFF診断</b><div id="dg">チェック中...</div>';
         document.body.appendChild(box);
 
         try {
-          if (!window.liff) {
+          if (!window.liff || typeof liff.init !== "function") {
             document.getElementById("dg").innerHTML =
-              "LIFF SDKが読み込まれていません";
+              "❌ LIFF SDKが読み込まれていません";
             return;
           }
 
           if (!liffReady) {
-            console.log("Initializing LIFF for diagnosis...");
             await liff.init({ liffId: window.LIFF_ID_OVERRIDE });
+            liffReady = true;
           }
 
           const inClient = liff.isInClient();
           const os = liff.getOS();
           const isLoggedIn = liff.isLoggedIn();
+          const liffId = liff.id || window.LIFF_ID_OVERRIDE;
 
           let friend = "(未取得)";
+          let friendError = "";
           try {
             const fs = await liff.getFriendship();
-            friend = fs.friendFlag ? "友だち=YES" : "友だち=NO";
+            friend = fs.friendFlag ? "✅ YES" : "❌ NO";
           } catch (e) {
-            friend = `取得失敗: ${e.message}`;
+            friendError = e.message || e;
+            friend = "❌ 取得失敗";
           }
 
-          document.getElementById("dg").innerHTML =
-            `inClient: ${inClient}<br>` +
-            `OS: ${os}<br>` +
-            `Logged in: ${isLoggedIn}<br>` +
-            `${friend}<br>` +
-            `LIFF ID: ${window.LIFF_ID_OVERRIDE}<br>` +
-            `ヒント: inClient=true & 友だち=YES で sendMessages 可`;
+          let profile = "(未取得)";
+          try {
+            const p = await liff.getProfile();
+            profile = `${p.displayName} (${p.userId})`;
+          } catch (e) {
+            profile = "取得失敗: " + (e.message || e);
+          }
+
+          document.getElementById("dg").innerHTML = `
+            <div style="margin:4px 0"><b>LIFF ID:</b> ${liffId}</div>
+            <div style="margin:4px 0"><b>inClient:</b> ${
+              inClient ? "✅ YES (LINEアプリ内)" : "❌ NO (外部ブラウザ)"
+            }</div>
+            <div style="margin:4px 0"><b>OS:</b> ${os}</div>
+            <div style="margin:4px 0"><b>isLoggedIn:</b> ${
+              isLoggedIn ? "✅ YES" : "❌ NO"
+            }</div>
+            <div style="margin:4px 0"><b>友だち追加:</b> ${friend}</div>
+            ${
+              friendError
+                ? `<div style="margin:4px 0;color:#ff6b6b"><b>友だち確認エラー:</b> ${friendError}</div>`
+                : ""
+            }
+            <div style="margin:4px 0"><b>プロフィール:</b> ${profile}</div>
+            <hr style="margin:8px 0;border:none;border-top:1px solid #444">
+            <div style="color:#4fc3f7;font-size:11px">
+              <b>💡 送信可能条件:</b><br>
+              ✅ inClient = YES<br>
+              ✅ 友だち追加 = YES<br>
+              両方満たせば sendMessages() が動作します
+            </div>
+          `;
         } catch (e) {
-          console.error("Diagnosis error:", e);
-          document.getElementById("dg").innerHTML = `init失敗: ${
-            e.message || e
-          }`;
+          document.getElementById("dg").innerHTML =
+            "❌ init失敗: " + (e.message || e);
         }
       }
 
-      /* ========================= トースト機能 ========================= */
-      function toast(msg, ok = true) {
-        const n = document.createElement("div");
-        n.textContent = msg;
-        n.style.position = "fixed";
-        n.style.left = "50%";
-        n.style.top = "16px";
-        n.style.transform = "translateX(-50%)";
-        n.style.background = ok
-          ? "rgba(16,185,129,.95)"
-          : "rgba(239,68,68,.95)";
-        n.style.color = "#fff";
-        n.style.padding = "10px 14px";
-        n.style.borderRadius = "999px";
-        n.style.fontWeight = "700";
-        n.style.zIndex = "9999";
-        n.style.boxShadow = "0 8px 24px rgba(0,0,0,.2)";
-        document.body.appendChild(n);
-        setTimeout(() => n.remove(), 1600);
+      /* ========================= 自動診断 ========================= */
+      if (isDiagMode) {
+        const tryRun = () => {
+          if (window.liff && typeof liff.init === "function") {
+            setTimeout(() => diag(), 500);
+          } else {
+            setTimeout(tryRun, 300);
+          }
+        };
+        tryRun();
       }
 
       /* ========================= 初期化 ========================= */
-      document.addEventListener("DOMContentLoaded", function () {
-        console.log("DOM loaded, setting up...");
-
-        // イベントリスナー設定
-        setupEventListeners();
-
-        // 初期計算
+      window.addEventListener("DOMContentLoaded", () => {
         calc();
-
-        // LIFF初期化
         ensureLiffReady();
-
-        // 診断モードの場合は自動実行
-        if (isDiagMode) {
-          console.log("Diagnosis mode detected, running diag...");
-          setTimeout(diag, 1000); // 1秒後に実行
-        }
       });
-
-      // グローバルに diag 関数を公開（DevTools用）
-      window.diag = diag;
     </script>
   </body>
 </html>
