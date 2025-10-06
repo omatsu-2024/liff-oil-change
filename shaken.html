@@ -76,7 +76,6 @@
         flex-direction: column;
         gap: 6px;
       }
-
       .field input[type="number"],
       .field input[type="month"],
       .field input[type="date"],
@@ -137,6 +136,9 @@
       }
       .btn.success {
         background: var(--ok);
+      }
+      .btn.warn {
+        background: #f59e0b;
       }
       .total {
         font-size: 26px;
@@ -228,11 +230,48 @@
         margin-top: 8px;
         font-size: 14px;
       }
+
+      /* ===== セクションの区切り（見出し付きの飾り線） ===== */
+      .section-divider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 22px 0;
+        color: #334155;
+      }
+      .section-divider::before,
+      .section-divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(0, 0, 0, 0.2),
+          transparent
+        );
+      }
+      .section-divider .label {
+        background: #ffffffaa;
+        backdrop-filter: saturate(140%) blur(2px);
+        border: 1px solid #e5e7eb;
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .card-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        margin-top: 12px;
+      }
     </style>
   </head>
   <body>
     <div class="wrap">
-      <!-- 車検満期日計算セクション -->
+      <!-- 車検満期日：カード -->
       <div class="card">
         <h1 class="title">🗓️ 車検満期日 登録</h1>
         <p class="sub">
@@ -339,9 +378,19 @@
             </div>
           </div>
         </div>
+
+        <!-- 満期日セクション：閉じるボタン -->
+        <div class="card-actions">
+          <button class="btn ghost" id="closeExpiryBtn">アプリを閉じる</button>
+        </div>
       </div>
 
-      <!-- 車検費用シミュレーター -->
+      <!-- セクション区切り -->
+      <div class="section-divider">
+        <span class="label">車検費用シミュレーター</span>
+      </div>
+
+      <!-- 車検費用シミュレーター：カード -->
       <div class="card">
         <h1 class="title">車検 概算シミュレーター</h1>
         <p class="sub">
@@ -502,6 +551,11 @@
           <button class="btn" id="calcBtn">概算を計算する</button>
           <button class="btn ghost" id="resetBtn">入力をリセット</button>
         </div>
+
+        <!-- シミュレーター：閉じるボタン -->
+        <div class="card-actions">
+          <button class="btn ghost" id="closeSimBtn">アプリを閉じる</button>
+        </div>
       </div>
 
       <p class="footer">
@@ -541,8 +595,8 @@
 
       /* ========================= ユーティリティ ========================= */
       const fmt = (n) => "¥" + Math.round(n).toLocaleString("ja-JP");
-      const el = (sel) => document.querySelector(sel);
-      const els = (sel) => [...document.querySelectorAll(sel)];
+      const el = (s) => document.querySelector(s);
+      const els = (s) => [...document.querySelectorAll(s)];
       function toast(msg, ok = true) {
         const n = document.createElement("div");
         n.textContent = msg;
@@ -577,23 +631,19 @@
         el("#expiryResult").style.display = "none";
       }
 
-      // 初度登録（YYYY-MM）から「次の満期日」を算出（新車:初回+36ヶ月→以後+24ヶ月。中古/継続:常に+24ヶ月）
       function nextShakenFromFirstReg(ymStr, isNewCar) {
         if (!ymStr) return null;
         const [y, m] = ymStr.split("-").map(Number);
         if (!y || !m) return null;
-
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        // 第1回：新車は+36ヶ月、その他は+24ヶ月。月末日に揃える（翌月0日=当月末）
+
         let candidate = new Date(y, m - 1, 1);
         candidate = new Date(
           candidate.getFullYear(),
           candidate.getMonth() + (isNewCar ? 36 : 24),
           0
         );
-
-        // 今日を超えるまで+24ヶ月ずつ進める
         while (candidate <= today) {
           candidate = new Date(
             candidate.getFullYear(),
@@ -645,8 +695,6 @@
           pv.textContent = `次回満期日（計算結果）：${fmtDateJP(d)}`;
           hint.textContent = `満期日：${fmtDateJP(d)}（自動計算）`;
         }
-
-        // 結果カード更新
         showExpiryResult(calculatedExpiryDate);
       }
 
@@ -657,7 +705,6 @@
         const diffDays = Math.ceil(
           (expiryDate - today) / (1000 * 60 * 60 * 24)
         );
-        const lastDay = expiryDate.getDate();
         el("#expiryDate").textContent = fmtDateJP(expiryDate);
 
         if (diffDays < 0) {
@@ -717,9 +764,7 @@
 
           await liff.sendMessages([{ type: "text", text: message }]);
           toast("車検満期日を登録しました！", true);
-          setTimeout(() => {
-            liff.closeWindow();
-          }, 2000);
+          // ★自動で閉じません（任意のタイミングで下の「アプリを閉じる」を押してください）
         } catch (e) {
           console.error("登録エラー:", e);
           let msg = "登録に失敗しました";
@@ -842,7 +887,7 @@ ${d.options.length ? "・オプション：" : ""}${d.options
         el("#summaryText").textContent = summary;
       }
 
-      /* ========================= LIFF初期化 ========================= */
+      /* ========================= LIFF初期化・クローズ ========================= */
       let liffReady = false;
       async function initLiff() {
         if (!window.LIFF_ID) {
@@ -856,6 +901,21 @@ ${d.options.length ? "・オプション：" : ""}${d.options
           console.error("LIFF初期化エラー:", e);
         }
       }
+      async function closeApp() {
+        try {
+          if (!liffReady) await initLiff();
+          if (window.liff && liff.isInClient()) {
+            liff.closeWindow();
+          } else {
+            toast(
+              "外部ブラウザのため閉じられません。左上の戻るでお戻りください。",
+              false
+            );
+          }
+        } catch (_) {
+          toast("アプリを閉じられませんでした。", false);
+        }
+      }
 
       /* ========================= イベント登録 ========================= */
       // 満期日：モード切替
@@ -867,11 +927,14 @@ ${d.options.length ? "・オプション：" : ""}${d.options
         e.preventDefault();
         previewExpiry();
       });
-      // 登録
+      // 満期日登録（送信のみ／自動クローズしない）
       el("#registerExpiryBtn").addEventListener("click", async (e) => {
         e.preventDefault();
         await registerExpiryDate();
       });
+      // 閉じるボタン（各カード）
+      el("#closeExpiryBtn").addEventListener("click", closeApp);
+      el("#closeSimBtn").addEventListener("click", closeApp);
 
       // シミュレーター
       ["#carClass", "#ageYears", "#baseFee", "#discount"].forEach((sel) => {
@@ -888,8 +951,6 @@ ${d.options.length ? "・オプション：" : ""}${d.options
         els(".optChk").forEach((c) => (c.checked = false));
         calc();
       });
-
-      // コピー
       el("#copyBtn").addEventListener("click", async () => {
         try {
           await navigator.clipboard.writeText(
@@ -900,8 +961,6 @@ ${d.options.length ? "・オプション：" : ""}${d.options
           toast("コピーに失敗しました", false);
         }
       });
-
-      // 送信
       el("#sendBtn").addEventListener("click", async () => {
         if (!liffReady) {
           await initLiff();
@@ -923,6 +982,7 @@ ${d.options.length ? "・オプション：" : ""}${d.options
           }
           await liff.sendMessages([{ type: "text", text }]);
           toast("LINEに送信しました", true);
+          // ★ここでも自動で閉じません（必要なら「アプリを閉じる」を押してください）
         } catch (e) {
           console.error("送信エラー:", e);
           let msg = "送信に失敗しました";
