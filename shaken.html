@@ -9,7 +9,6 @@
       src="https://static.line-scdn.net/liff/edge/2/sdk.js"
     ></script>
     <script>
-      // ★LIFF ID を設定（必須）
       window.LIFF_ID = "2008228464-kZBg7yrq";
     </script>
     <style>
@@ -21,6 +20,7 @@
         --ok: #10b981;
         --danger: #ef4444;
         --bd: #e5e7eb;
+        --warning: #f59e0b;
       }
       * {
         box-sizing: border-box;
@@ -76,6 +76,7 @@
         gap: 6px;
       }
       .field input[type="number"],
+      .field input[type="month"],
       .field select {
         border: 2px solid var(--bd);
         border-radius: 10px;
@@ -131,6 +132,9 @@
         color: #111;
         border: 2px solid var(--bd);
       }
+      .btn.success {
+        background: var(--ok);
+      }
       .total {
         font-size: 26px;
         font-weight: 900;
@@ -151,6 +155,18 @@
         border-radius: 999px;
         font-size: 12px;
       }
+      .badge.warning {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .badge.danger {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      .badge.success {
+        background: #d1fae5;
+        color: #065f46;
+      }
       .footer {
         color: #fff;
         opacity: 0.9;
@@ -158,15 +174,144 @@
         margin-top: 14px;
         font-size: 12px;
       }
+      .highlight-box {
+        background: #fef3c7;
+        border: 2px solid #fbbf24;
+        border-radius: 12px;
+        padding: 16px;
+        margin-top: 12px;
+      }
+      .big-number {
+        font-size: 32px;
+        font-weight: 900;
+        color: var(--accent);
+        margin: 8px 0;
+      }
+      .alert {
+        background: #fee2e2;
+        border: 2px solid #ef4444;
+        border-radius: 12px;
+        padding: 12px;
+        margin-top: 12px;
+        color: #991b1b;
+      }
+      .radio-group {
+        display: flex;
+        gap: 12px;
+        margin-top: 8px;
+      }
+      .radio-item {
+        flex: 1;
+        border: 2px solid var(--bd);
+        border-radius: 10px;
+        padding: 12px;
+        cursor: pointer;
+        transition: 0.2s;
+        text-align: center;
+      }
+      .radio-item:hover {
+        border-color: var(--accent);
+        background: #f8f9ff;
+      }
+      .radio-item input {
+        margin-right: 6px;
+      }
+      .info-box {
+        background: #e0e7ff;
+        border-radius: 10px;
+        padding: 12px;
+        margin-top: 8px;
+        font-size: 14px;
+      }
     </style>
   </head>
   <body>
     <div class="wrap">
+      <!-- 車検満期日計算セクション -->
+      <div class="card">
+        <h1 class="title">🗓️ 車検満期日 計算</h1>
+        <p class="sub">
+          初度登録年月日を入力すると、次回車検満期日を自動計算します
+        </p>
+
+        <div class="grid row">
+          <div class="field">
+            <label>初度登録年月 <small>（車検証記載の日付）</small></label>
+            <input
+              type="month"
+              id="registrationDate"
+              placeholder="例: 2021-04"
+            />
+          </div>
+          <div class="field">
+            <label>車両タイプ</label>
+            <div class="radio-group">
+              <label class="radio-item">
+                <input type="radio" name="carType" value="new" checked />
+                新車
+              </label>
+              <label class="radio-item">
+                <input type="radio" name="carType" value="used" />
+                中古車
+              </label>
+            </div>
+            <div class="info-box">
+              <small
+                >新車：初回は3年、以降2年ごと<br />中古車：初回から2年ごと</small
+              >
+            </div>
+          </div>
+        </div>
+
+        <button
+          class="btn"
+          id="calcExpiryBtn"
+          style="width: 100%; margin-top: 12px"
+        >
+          車検満期日を計算する
+        </button>
+
+        <div id="expiryResult" style="display: none; margin-top: 16px">
+          <div class="highlight-box">
+            <div style="text-align: center">
+              <div
+                class="badge warning"
+                style="font-size: 14px; margin-bottom: 8px"
+              >
+                次回車検満期日
+              </div>
+              <div class="big-number" id="expiryDate">2024年10月15日</div>
+              <div
+                id="daysRemaining"
+                class="muted"
+                style="font-size: 16px; margin-top: 4px"
+              >
+                あと123日
+              </div>
+            </div>
+          </div>
+
+          <div id="alertBox" style="display: none" class="alert">
+            ⚠️ 車検満期まで30日を切っています！お早めにご予約ください。
+          </div>
+
+          <button
+            class="btn success"
+            id="registerExpiryBtn"
+            style="width: 100%; margin-top: 12px"
+          >
+            📅 車検日を登録してリマインドを受け取る
+          </button>
+        </div>
+      </div>
+
+      <!-- 車検費用シミュレーター（既存） -->
       <div class="card">
         <h1 class="title">車検 概算シミュレーター</h1>
         <p class="sub">
           ※概算の目安です。最新の法定費用・店舗価格に合わせて金額設定を調整してください。
         </p>
+
         <div class="grid row">
           <div class="field">
             <label
@@ -316,33 +461,6 @@
           </div>
         </div>
 
-        <div class="box" style="margin-top: 14px">
-          <strong>設定エリア（編集可・店舗用）</strong>
-          <p class="muted" style="margin: 6px 0 10px">
-            最新の費用に合わせて数値を調整してください。デモ用の概算テーブルです。
-          </p>
-          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px">
-            <div class="field">
-              <label>自賠責（24か月）</label>
-              <select id="insTable">
-                <option value="std">デモ標準（例）</option>
-              </select>
-              <div class="muted" style="font-size: 12px">
-                軽: ¥17,000 / 乗用: ¥17,800（例）
-              </div>
-            </div>
-            <div class="field">
-              <label>印紙代</label>
-              <select id="stampTable">
-                <option value="std">デモ標準（例）</option>
-              </select>
-              <div class="muted" style="font-size: 12px">
-                軽: ¥1,800 / 乗用: ¥1,600（例）
-              </div>
-            </div>
-          </div>
-        </div>
-
         <div class="line" style="margin: 16px 0"></div>
         <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px">
           <button class="btn" id="calcBtn">概算を計算する</button>
@@ -390,7 +508,136 @@
       const el = (sel) => document.querySelector(sel);
       const els = (sel) => [...document.querySelectorAll(sel)];
 
-      /* ========================= 計算ロジック ========================= */
+      /* ========================= 車検満期日計算 ========================= */
+      let calculatedExpiryDate = null;
+
+      function calculateExpiryDate() {
+        const registrationInput = el("#registrationDate").value;
+        if (!registrationInput) {
+          toast("初度登録年月を入力してください", false);
+          return;
+        }
+
+        const carType = document.querySelector(
+          'input[name="carType"]:checked'
+        ).value;
+        const [year, month] = registrationInput.split("-").map(Number);
+
+        // 車検満期日の計算
+        let expiryYear, expiryMonth;
+        if (carType === "new") {
+          // 新車：初回は3年後
+          expiryYear = year + 3;
+          expiryMonth = month;
+        } else {
+          // 中古車：2年後
+          expiryYear = year + 2;
+          expiryMonth = month;
+        }
+
+        const expiryDate = new Date(expiryYear, expiryMonth - 1, 1);
+        // 月末を取得（翌月の0日 = 当月の最終日）
+        const lastDay = new Date(expiryYear, expiryMonth, 0).getDate();
+        expiryDate.setDate(lastDay);
+
+        calculatedExpiryDate = expiryDate;
+
+        // 残り日数計算
+        const today = new Date();
+        const diffTime = expiryDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        // 結果表示
+        el(
+          "#expiryDate"
+        ).textContent = `${expiryYear}年${expiryMonth}月${lastDay}日`;
+
+        if (diffDays < 0) {
+          el("#daysRemaining").innerHTML =
+            '<span style="color:var(--danger);font-weight:bold">車検が切れています！</span>';
+          el("#alertBox").style.display = "block";
+          el("#alertBox").innerHTML =
+            "🚨 車検が切れています！すぐにご予約ください。";
+        } else if (diffDays <= 30) {
+          el(
+            "#daysRemaining"
+          ).innerHTML = `<span style="color:var(--warning);font-weight:bold">あと${diffDays}日</span>`;
+          el("#alertBox").style.display = "block";
+        } else {
+          el("#daysRemaining").textContent = `あと${diffDays}日`;
+          el("#alertBox").style.display = "none";
+        }
+
+        el("#expiryResult").style.display = "block";
+
+        // スムーズスクロール
+        el("#expiryResult").scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+      }
+
+      /* ========================= 車検日登録 ========================= */
+      async function registerExpiryDate() {
+        if (!calculatedExpiryDate) {
+          toast("先に車検満期日を計算してください", false);
+          return;
+        }
+
+        // LIFF初期化確認
+        if (!liffReady) {
+          await initLiff();
+          if (!liffReady) {
+            toast("LIFF初期化に失敗しました", false);
+            return;
+          }
+        }
+
+        try {
+          if (!liff.isInClient()) {
+            toast("スマホのLINEアプリから開いてください", false);
+            return;
+          }
+
+          const profile = await liff.getProfile();
+          const expiryDateStr = calculatedExpiryDate.toLocaleDateString(
+            "ja-JP",
+            {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            }
+          );
+
+          const today = new Date();
+          const diffDays = Math.ceil(
+            (calculatedExpiryDate - today) / (1000 * 60 * 60 * 24)
+          );
+
+          const message = `【車検満期日 登録完了】
+
+お名前: ${profile.displayName}
+次回車検満期日: ${expiryDateStr}
+残り日数: ${diffDays}日
+
+車検30日前と7日前に自動でリマインドをお送りします📅
+
+※この情報は店舗側で管理されます`;
+
+          await liff.sendMessages([{ type: "text", text: message }]);
+          toast("車検満期日を登録しました！", true);
+
+          // 2秒後にLIFFを閉じる
+          setTimeout(() => {
+            liff.closeWindow();
+          }, 2000);
+        } catch (e) {
+          console.error("登録エラー:", e);
+          toast("登録に失敗しました: " + (e.message || e), false);
+        }
+      }
+
+      /* ========================= 費用計算ロジック（既存） ========================= */
       function calc() {
         const carClass = el("#carClass").value;
         const ageBand = el("#ageYears").value;
@@ -514,7 +761,12 @@ ${d.options.length ? "・オプション：" : ""}${d.options
         }
       }
 
-      /* ========================= イベント ========================= */
+      /* ========================= イベントリスナー ========================= */
+      // 車検満期日計算
+      el("#calcExpiryBtn").addEventListener("click", calculateExpiryDate);
+      el("#registerExpiryBtn").addEventListener("click", registerExpiryDate);
+
+      // 費用シミュレーター
       ["#carClass", "#ageYears", "#baseFee", "#discount"].forEach((sel) => {
         el(sel).addEventListener("change", calc);
         el(sel).addEventListener("input", calc);
@@ -544,7 +796,6 @@ ${d.options.length ? "・オプション：" : ""}${d.options
       });
 
       el("#sendBtn").addEventListener("click", async () => {
-        // LIFF初期化待機
         if (!liffReady) {
           await initLiff();
           if (!liffReady) {
