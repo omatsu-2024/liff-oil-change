@@ -3,26 +3,21 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>車検 概算シミュレーター + 満期日登録</title>
+    <title>車検 概算シミュレーター</title>
 
     <!-- LIFF SDK -->
     <script
       charset="utf-8"
       src="https://static.line-scdn.net/liff/edge/2/sdk.js"
     ></script>
-
     <script>
-      // ★あなたの設定
       window.LIFF_ID = "2008228464-kZBg7yrq";
-      // ★GAS WebアプリURL（あなたがくれたURLをセット済み）
-      window.GAS_URL =
-        "https://script.google.com/macros/s/AKfycbx90nhsookvgl5_Ylv2doM0hqfwpRc7jC8DdCI_wFTNCI7e-D5An_VxocV0nDRvQd2O/exec";
     </script>
 
     <style>
       :root {
         --bg: #0f172a;
-        --card: #ffffff;
+        --card: #fff;
         --muted: #64748b;
         --accent: #4f46e5;
         --ok: #10b981;
@@ -49,16 +44,6 @@
         display: grid;
         gap: 16px;
       }
-      .row {
-        display: grid;
-        gap: 12px;
-        grid-template-columns: 1fr;
-      }
-      @media (min-width: 820px) {
-        .row {
-          grid-template-columns: 1fr 1fr;
-        }
-      }
       .card {
         background: var(--card);
         border-radius: 18px;
@@ -75,6 +60,19 @@
         font-size: 13px;
         margin: 0 0 12px;
       }
+      .row {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: 1fr;
+      }
+      @media (min-width: 820px) {
+        .row {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      label small {
+        color: var(--muted);
+      }
       .field {
         display: flex;
         flex-direction: column;
@@ -82,6 +80,7 @@
       }
       .field input[type="number"],
       .field input[type="month"],
+      .field input[type="date"],
       .field select {
         border: 2px solid var(--bd);
         border-radius: 10px;
@@ -93,6 +92,24 @@
       .field input:focus,
       .field select:focus {
         border-color: var(--accent);
+      }
+      .box {
+        border: 2px dashed var(--bd);
+        border-radius: 12px;
+        padding: 12px;
+      }
+      .opt {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px dashed var(--bd);
+      }
+      .opt:last-child {
+        border-bottom: none;
+      }
+      .price {
+        font-variant-numeric: tabular-nums;
       }
       .btn {
         display: inline-flex;
@@ -107,27 +124,49 @@
         font-weight: 800;
         cursor: pointer;
       }
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .btn.sec {
+        background: #0ea5e9;
+      }
       .btn.ghost {
         background: #fff;
         color: #111;
         border: 2px solid var(--bd);
       }
-      .btn.sec {
-        background: #0ea5e9;
-      }
       .btn.success {
         background: var(--ok);
       }
-      .btn.warn {
-        background: #f59e0b;
+      .btn.outline {
+        background: #fff;
+        color: #111;
+        border: 2px solid var(--bd);
+      }
+      .total {
+        font-size: 26px;
+        font-weight: 900;
       }
       .line {
         height: 1px;
         background: var(--bd);
-        margin: 16px 0;
+        margin: 8px 0;
       }
       .muted {
         color: var(--muted);
+      }
+      .badge {
+        display: inline-block;
+        background: #eef2ff;
+        color: #3730a3;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+      }
+      .badge.warning {
+        background: #fef3c7;
+        color: #92400e;
       }
       .footer {
         color: #fff;
@@ -135,27 +174,6 @@
         text-align: center;
         margin-top: 14px;
         font-size: 12px;
-      }
-      .separator {
-        position: relative;
-        margin: 24px 0;
-        height: 1px;
-        background: rgba(255, 255, 255, 0.6);
-      }
-      .separator .badge {
-        position: absolute;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        top: 50%;
-        background: #111827;
-        color: #fff;
-        padding: 6px 12px;
-        border-radius: 999px;
-        font-size: 12px;
-        letter-spacing: 0.2em;
-      }
-      .price {
-        font-variant-numeric: tabular-nums;
       }
       .highlight-box {
         background: #fef3c7;
@@ -169,7 +187,6 @@
         font-weight: 900;
         color: var(--accent);
         margin: 8px 0;
-        text-align: center;
       }
       .alert {
         background: #fee2e2;
@@ -189,614 +206,302 @@
         border: 2px solid var(--bd);
         border-radius: 10px;
         padding: 12px;
+        cursor: pointer;
+        transition: 0.2s;
         text-align: center;
       }
       .radio-item:hover {
         border-color: var(--accent);
         background: #f8f9ff;
       }
-      .closeRow {
+      .radio-item input {
+        margin-right: 6px;
+      }
+      .info-box {
+        background: #e0e7ff;
+        border-radius: 10px;
+        padding: 12px;
+        margin-top: 8px;
+        font-size: 14px;
+      }
+      .section-divider {
         display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 18px 0;
+      }
+      .section-divider .bar {
+        flex: 1;
+        height: 2px;
+        background: linear-gradient(90deg, #c7d2fe, #e5e7eb);
+      }
+      .section-divider .label {
+        font-weight: 800;
+        color: #334155;
+        background: #fff;
+        padding: 6px 10px;
+        border-radius: 10px;
+        border: 1px solid #e5e7eb;
+      }
+      .section-actions {
+        display: flex;
+        gap: 10px;
         justify-content: flex-end;
-        margin-top: 10px;
+        margin-top: 12px;
+      }
+      .mode-tabs {
+        display: flex;
+        gap: 10px;
+        margin: 6px 0 12px;
+      }
+      .mode-tab {
+        flex: 1;
+        border: 2px solid var(--bd);
+        border-radius: 10px;
+        padding: 10px 12px;
+        text-align: center;
+        cursor: pointer;
+      }
+      .mode-tab.active {
+        border-color: var(--accent);
+        background: #eef2ff;
+      }
+      .hidden {
+        display: none !important;
       }
     </style>
   </head>
   <body>
     <div class="wrap">
-      <!-- 車検満期日計算セクション -->
-      <div class="card">
+      <div class="card" id="expiryCard">
         <h1 class="title">🗓️ 車検満期日 計算</h1>
         <p class="sub">
-          初度登録（年月）から、次回の車検満期日を自動計算します
+          「車検証の有効期限を直接入力」または「初年度登録（年月）から自動計算」を選択してください。
         </p>
 
-        <div class="grid row">
-          <div class="field">
-            <label>初度登録（年月） <small>（車検証に記載）</small></label>
-            <input
-              type="month"
-              id="registrationDate"
-              placeholder="例: 2012-01"
-            />
+        <div class="mode-tabs">
+          <div class="mode-tab active" id="tabDirect">
+            車検証の有効期限を直接入力
           </div>
-          <div class="field">
-            <label>車両タイプ</label>
-            <div class="radio-group">
-              <label class="radio-item"
-                ><input
-                  type="radio"
-                  name="carType"
-                  value="new"
-                  checked
-                />新車</label
-              >
-              <label class="radio-item"
-                ><input
-                  type="radio"
-                  name="carType"
-                  value="used"
-                />中古・継続</label
-              >
+          <div class="mode-tab" id="tabCalc">初年度登録から自動計算</div>
+        </div>
+
+        <div id="directPane">
+          <div class="grid row">
+            <div class="field">
+              <label>車検証の有効期限 <small>（日付を入力）</small></label>
+              <input
+                type="date"
+                id="expiryDirect"
+                placeholder="例: 2026-01-31"
+              />
             </div>
-            <small class="muted"
-              >新車：初回3年 → 以後2年ごと ／ 中古・継続：初回から2年ごと</small
-            >
           </div>
         </div>
 
-        <div
-          class="grid"
-          style="grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px"
-        >
-          <button class="btn" id="calcExpiryBtn">満期日を表示</button>
-          <button class="btn success" id="registerExpiryBtn">
-            📅 車検日を登録してリマインドを受け取る
-          </button>
+        <div id="calcPane" class="hidden">
+          <div class="grid row">
+            <div class="field">
+              <label>初年度登録（年月） <small>（車検証に記載）</small></label>
+              <input
+                type="month"
+                id="registrationDate"
+                placeholder="例: 2012-01"
+              />
+            </div>
+            <div class="field">
+              <label>車両タイプ</label>
+              <div class="radio-group">
+                <label class="radio-item"
+                  ><input type="radio" name="carType" value="new" checked />
+                  新車</label
+                >
+                <label class="radio-item"
+                  ><input type="radio" name="carType" value="used" />
+                  中古・継続</label
+                >
+              </div>
+              <div class="info-box">
+                <small
+                  >新車：初回3年 → 以後2年ごと /
+                  中古：最初から2年ごと（登録月の末日が満期）</small
+                >
+              </div>
+            </div>
+          </div>
         </div>
+
+        <button
+          class="btn"
+          id="calcExpiryBtn"
+          style="width: 100%; margin-top: 12px"
+        >
+          車検満期日を計算 / 反映する
+        </button>
 
         <div id="expiryResult" style="display: none; margin-top: 16px">
           <div class="highlight-box">
-            <div style="text-align: center; font-weight: 700; color: #92400e">
-              次回車検満期日
-            </div>
-            <div class="big-number" id="expiryDate">-</div>
-            <div id="daysRemaining" class="muted" style="text-align: center">
-              -
-            </div>
-          </div>
-          <div id="alertBox" style="display: none" class="alert">
-            ⚠️ 車検満期まで30日を切っています！お早めにご予約ください。
-          </div>
-          <div class="closeRow">
-            <button class="btn ghost" onclick="tryClose()">
-              アプリを閉じる
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 区切り -->
-      <div class="separator"><span class="badge">SECTION</span></div>
-
-      <!-- 車検費用シミュレーター -->
-      <div class="card">
-        <h1 class="title">車検 概算シミュレーター</h1>
-        <p class="sub">
-          ※概算の目安です。最新の法定費用・店舗価格に合わせて金額設定を調整してください。
-        </p>
-
-        <div class="grid row">
-          <div class="field">
-            <label
-              >車両区分 <small>（重量税・自賠責・印紙に反映）</small></label
-            >
-            <select id="carClass">
-              <option value="kei">軽自動車</option>
-              <option value="small">小型（〜1.0t）</option>
-              <option value="mid">中型（1.0t〜1.5t）</option>
-              <option value="large">大型（1.5t〜2.0t）</option>
-              <option value="xl">特大（2.0t〜2.5t）</option>
-            </select>
-          </div>
-          <div class="field">
-            <label
-              >初度登録からの経過年数 <small>（重量税に影響）</small></label
-            >
-            <select id="ageYears">
-              <option value="0-13">〜13年</option>
-              <option value="13-18">13〜18年</option>
-              <option value="18+">18年以上</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>店舗 基本点検整備料（任意）</label>
-            <input
-              type="number"
-              id="baseFee"
-              inputmode="numeric"
-              value="19800"
-            />
-          </div>
-          <div class="field">
-            <label>割引（任意）<small> キャンペーン等</small></label>
-            <input type="number" id="discount" inputmode="numeric" value="0" />
-          </div>
-        </div>
-
-        <div class="grid" style="gap: 8px; margin-top: 12px">
-          <div
-            class="field"
-            style="
-              border: 2px dashed var(--bd);
-              border-radius: 12px;
-              padding: 12px;
-            "
-          >
-            <strong>オプション整備（チェックで追加）</strong>
-            <label
-              class="grid"
-              style="
-                grid-template-columns: 1fr auto;
-                align-items: center;
-                padding-top: 8px;
-              "
-            >
-              <span
-                ><input
-                  type="checkbox"
-                  class="optChk"
-                  data-label="エンジンオイル交換"
-                  data-price="3500"
-                />
-                エンジンオイル交換</span
-              ><span class="price">¥3,500</span>
-            </label>
-            <label
-              class="grid"
-              style="grid-template-columns: 1fr auto; align-items: center"
-            >
-              <span
-                ><input
-                  type="checkbox"
-                  class="optChk"
-                  data-label="オイルエレメント交換"
-                  data-price="1500"
-                />
-                オイルエレメント交換</span
-              ><span class="price">¥1,500</span>
-            </label>
-            <label
-              class="grid"
-              style="grid-template-columns: 1fr auto; align-items: center"
-            >
-              <span
-                ><input
-                  type="checkbox"
-                  class="optChk"
-                  data-label="ブレーキフルード交換"
-                  data-price="4500"
-                />
-                ブレーキフルード交換</span
-              ><span class="price">¥4,500</span>
-            </label>
-            <label
-              class="grid"
-              style="grid-template-columns: 1fr auto; align-items: center"
-            >
-              <span
-                ><input
-                  type="checkbox"
-                  class="optChk"
-                  data-label="冷却水（LLC）交換"
-                  data-price="6000"
-                />
-                冷却水（LLC）交換</span
-              ><span class="price">¥6,000</span>
-            </label>
-            <label
-              class="grid"
-              style="grid-template-columns: 1fr auto; align-items: center"
-            >
-              <span
-                ><input
-                  type="checkbox"
-                  class="optChk"
-                  data-label="ワイパーゴム交換"
-                  data-price="1200"
-                />
-                ワイパーゴム交換</span
-              ><span class="price">¥1,200</span>
-            </label>
-            <label
-              class="grid"
-              style="grid-template-columns: 1fr auto; align-items: center"
-            >
-              <span
-                ><input
-                  type="checkbox"
-                  class="optChk"
-                  data-label="エアコンフィルター交換"
-                  data-price="3500"
-                />
-                エアコンフィルター交換</span
-              ><span class="price">¥3,500</span>
-            </label>
-          </div>
-
-          <div class="grid row">
-            <div class="card" style="padding: 14px">
-              <div class="muted" style="font-weight: 700">法定費用（概算）</div>
+            <div style="text-align: center">
               <div
-                id="legalBreakdown"
-                class="grid"
-                style="margin-top: 8px"
-              ></div>
-              <div class="line"></div>
-              <div class="grid" id="shopBreakdown"></div>
-              <div class="line"></div>
-              <div class="price" style="font-size: 26px; font-weight: 900">
-                合計：<span id="grandTotal">¥0</span>
-              </div>
-              <div class="muted" id="note"></div>
-            </div>
-
-            <div class="card" style="padding: 14px">
-              <div class="muted" style="font-weight: 700">見積りメモ</div>
-              <div
-                id="summaryText"
-                class="muted"
-                style="white-space: pre-wrap; margin-top: 8px"
-              ></div>
-              <div
-                class="grid"
-                style="
-                  grid-template-columns: 1fr 1fr;
-                  gap: 10px;
-                  margin-top: 10px;
-                "
+                class="badge warning"
+                style="font-size: 14px; margin-bottom: 8px"
               >
-                <button class="btn ghost" id="copyBtn">テキストをコピー</button>
-                <button class="btn sec" id="sendBtn">LINEに送る</button>
+                次回車検満期日
               </div>
-              <div class="closeRow">
-                <button class="btn ghost" onclick="tryClose()">
-                  アプリを閉じる
-                </button>
+              <div class="big-number" id="expiryDate">—</div>
+              <div
+                id="daysRemaining"
+                class="muted"
+                style="font-size: 16px; margin-top: 4px"
+              >
+                —
               </div>
             </div>
           </div>
+          <div id="alertBox" class="alert" style="display: none"></div>
 
-          <div class="line"></div>
-          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px">
-            <button class="btn" id="calcBtn">概算を計算する</button>
-            <button class="btn ghost" id="resetBtn">入力をリセット</button>
+          <div class="section-actions">
+            <button class="btn success" id="registerExpiryBtn">
+              📅 登録してリマインドを受け取る
+            </button>
+            <button class="btn outline" id="closeExpiryBtn">閉じる</button>
           </div>
         </div>
       </div>
 
-      <p class="footer">
-        ※本ツールは概算の目安です。実際の費用は車両状態・改定等で変動します。店舗の提示価格を優先してください。
-      </p>
+      <div class="section-divider">
+        <span class="bar"></span
+        ><span class="label">ここから概算シミュレーター</span
+        ><span class="bar"></span>
+      </div>
+
+      <!-- ここに概算シミュレーター部分（前のままでOK） -->
     </div>
 
     <script>
-      /* ====== 設定テーブル ====== */
-      const TABLES = {
-        weightTax: {
-          "0-13": {
-            kei: 6600,
-            small: 16400,
-            mid: 24600,
-            large: 32800,
-            xl: 41000,
-          },
-          "13-18": {
-            kei: 7600,
-            small: 18900,
-            mid: 28300,
-            large: 37800,
-            xl: 47200,
-          },
-          "18+": {
-            kei: 8800,
-            small: 25200,
-            mid: 37800,
-            large: 50400,
-            xl: 63000,
-          },
-        },
-        jibaiseki: { std: { kei: 17000, passenger: 17800 } },
-        stamp: { std: { kei: 1800, passenger: 1600 } },
-      };
-
-      /* ====== Util ====== */
-      const fmt = (n) => "¥" + Math.round(n).toLocaleString("ja-JP");
       const el = (s) => document.querySelector(s);
       const els = (s) => [...document.querySelectorAll(s)];
-
-      /* ====== 満期日計算 ====== */
-      let calculatedExpiryDate = null;
-
-      function calculateExpiryDate() {
-        const v = el("#registrationDate").value;
-        if (!v) return toast("初度登録（年月）を入力してください", false);
-
-        const type = document.querySelector(
-          'input[name="carType"]:checked'
-        ).value;
-        const [y, m] = v.split("-").map(Number);
-
-        // 新車は3年後、それ以外は2年後。同月の月末を満期日にする
-        const plusYears = type === "new" ? 3 : 2;
-        const yy = y + plusYears,
-          mm = m; // 同月
-        const lastDay = new Date(yy, mm, 0).getDate();
-        calculatedExpiryDate = new Date(yy, mm - 1, lastDay);
-
-        const today = new Date();
-        const diffDays = Math.ceil((calculatedExpiryDate - today) / 86400000);
-
-        el("#expiryDate").textContent = `${yy}年${mm}月${lastDay}日`;
-        if (diffDays < 0) {
-          el("#daysRemaining").innerHTML =
-            '<span style="color:var(--danger);font-weight:700">車検が切れています！</span>';
-          el("#alertBox").style.display = "block";
-          el("#alertBox").textContent =
-            "🚨 車検が切れています！すぐにご予約ください。";
-        } else if (diffDays <= 30) {
-          el(
-            "#daysRemaining"
-          ).innerHTML = `<span style="color:var(--warning);font-weight:700">あと${diffDays}日</span>`;
-          el("#alertBox").style.display = "block";
-        } else {
-          el("#daysRemaining").textContent = `あと${diffDays}日`;
-          el("#alertBox").style.display = "none";
-        }
-        el("#expiryResult").style.display = "block";
-      }
-
-      async function registerExpiryDate() {
-        if (!calculatedExpiryDate)
-          return toast("先に満期日を表示してください", false);
-        await ensureLiff();
-
-        try {
-          if (!liff.isInClient())
-            return toast("スマホのLINEアプリから開いてください", false);
-
-          const profile = await liff.getProfile();
-          const iso = calculatedExpiryDate.toISOString().split("T")[0];
-
-          // --- GASへ保存（CORS対策で no-cors、レスポンスは見ない） ---
-          await fetch(window.GAS_URL, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              userId: profile.userId,
-              displayName: profile.displayName,
-              expiryDate: iso,
-            }),
-          });
-
-          // --- LINEへ確認メッセージ ---
-          const jp = calculatedExpiryDate.toLocaleDateString("ja-JP", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          });
-          const today = new Date();
-          const diff = Math.ceil((calculatedExpiryDate - today) / 86400000);
-          const text =
-            `【車検満期日 登録完了】\n\nお名前：${profile.displayName}\n次回車検満期日：${jp}\n残り日数：${diff}日\n\n` +
-            `30日前 / 7日前 / 当日に、自動でリマインドをお送りします📅`;
-
-          await liff.sendMessages([{ type: "text", text }]);
-          toast("登録しました。トークをご確認ください！", true);
-        } catch (e) {
-          console.error(e);
-          toast("登録または送信に失敗しました", false);
-        }
-      }
-
-      /* ====== 概算計算 ====== */
-      function calc() {
-        const carClass = el("#carClass").value;
-        const ageBand = el("#ageYears").value;
-        const baseFee = +el("#baseFee").value || 0;
-        const discount = +el("#discount").value || 0;
-
-        const wt = TABLES.weightTax[ageBand][carClass];
-        const jb =
-          carClass === "kei"
-            ? TABLES.jibaiseki.std.kei
-            : TABLES.jibaiseki.std.passenger;
-        const sp =
-          carClass === "kei"
-            ? TABLES.stamp.std.kei
-            : TABLES.stamp.std.passenger;
-
-        const options = els(".optChk")
-          .filter((c) => c.checked)
-          .map((c) => ({ label: c.dataset.label, price: +c.dataset.price }));
-        const optTotal = options.reduce((a, b) => a + b.price, 0);
-        const legalTotal = wt + jb + sp;
-        const shopTotal = Math.max(0, baseFee - discount) + optTotal;
-        const grand = legalTotal + shopTotal;
-
-        renderBreakdown({
-          wt,
-          jb,
-          sp,
-          baseFee,
-          discount,
-          optTotal,
-          options,
-          legalTotal,
-          shopTotal,
-          grand,
-        });
-      }
-
-      function renderBreakdown(d) {
-        el("#legalBreakdown").innerHTML = `
-          <div class="grid" style="grid-template-columns:1fr auto">
-            <div>自賠責（24か月）</div><div class="price">${fmt(d.jb)}</div>
-            <div>重量税（概算）</div><div class="price">${fmt(d.wt)}</div>
-            <div>印紙代（概算）</div><div class="price">${fmt(d.sp)}</div>
-          </div>`;
-
-        const optsHtml = d.options.length
-          ? d.options
-              .map(
-                (o) =>
-                  `<div class="grid" style="grid-template-columns:1fr auto"><div>・${
-                    o.label
-                  }</div><div class="price">${fmt(o.price)}</div></div>`
-              )
-              .join("")
-          : `<div class="muted">オプション整備なし</div>`;
-
-        el("#shopBreakdown").innerHTML = `
-          <div class="grid" style="grid-template-columns:1fr auto">
-            <div>基本点検整備料</div><div class="price">${fmt(
-              +el("#baseFee").value || 0
-            )}</div>
-            <div>割引</div><div class="price">- ${fmt(
-              +el("#discount").value || 0
-            )}</div>
-          </div>
-          <div class="line"></div>
-          ${optsHtml}`;
-
-        el("#grandTotal").textContent = fmt(d.grand);
-
-        const classLabel = {
-          kei: "軽",
-          small: "小型(〜1.0t)",
-          mid: "中型(1.0〜1.5t)",
-          large: "大型(1.5〜2.0t)",
-          xl: "特大(2.0〜2.5t)",
-        }[el("#carClass").value];
-        el(
-          "#note"
-        ).innerHTML = `<span class="muted">区分:</span> ${classLabel}　<span class="muted">年式帯:</span> ${
-          el("#ageYears").value
-        }`;
-
-        const summary = `【車検 概算見積（目安）】
-車両区分：${classLabel}
-年式帯　：${el("#ageYears").value}
-
-＜法定費用 概算＞
-・自賠責（24か月）：${fmt(d.jb)}
-・重量税（概算）　：${fmt(d.wt)}
-・印紙代（概算）　：${fmt(d.sp)}
-
-＜店舗費用＞
-・基本点検整備料　：${fmt(+el("#baseFee").value || 0)}
-・割引　　　　　　：- ${fmt(+el("#discount").value || 0)}
-${d.options.length ? "・オプション：" : ""}${d.options
-          .map((o) => `\n  - ${o.label}：${fmt(o.price)}`)
-          .join("")}
-
-――――――――――
-合計：${fmt(d.grand)}
-※実車確認・法改定により増減する場合があります。`;
-        el("#summaryText").textContent = summary;
-      }
-
-      /* ====== LIFF ====== */
-      let liffReady = false;
-      async function ensureLiff() {
-        if (liffReady) return;
-        await liff.init({ liffId: window.LIFF_ID });
-        liffReady = true;
-      }
-      function tryClose() {
-        try {
-          if (liff && liff.isInClient()) liff.closeWindow();
-          else toast("外部ブラウザのため閉じられません", false);
-        } catch {
-          /* noop */
-        }
-      }
-
-      /* ====== イベント ====== */
-      el("#calcExpiryBtn").addEventListener("click", calculateExpiryDate);
-      el("#registerExpiryBtn").addEventListener("click", registerExpiryDate);
-
-      ["#carClass", "#ageYears", "#baseFee", "#discount"].forEach((s) => {
-        el(s).addEventListener("change", calc);
-        el(s).addEventListener("input", calc);
-      });
-      els(".optChk").forEach((c) => c.addEventListener("change", calc));
-
-      el("#calcBtn").addEventListener("click", calc);
-      el("#resetBtn").addEventListener("click", () => {
-        el("#carClass").value = "kei";
-        el("#ageYears").value = "0-13";
-        el("#baseFee").value = 19800;
-        el("#discount").value = 0;
-        els(".optChk").forEach((c) => (c.checked = false));
-        calc();
-      });
-
-      el("#copyBtn").addEventListener("click", async () => {
-        try {
-          await navigator.clipboard.writeText(
-            el("#summaryText").textContent.trim()
-          );
-          toast("見積りテキストをコピーしました", true);
-        } catch {
-          toast("コピーに失敗しました", false);
-        }
-      });
-
-      el("#sendBtn").addEventListener("click", async () => {
-        await ensureLiff();
-        try {
-          if (!liff.isInClient())
-            return toast("スマホのLINEアプリから開いてください", false);
-          const fs = await liff.getFriendship();
-          if (!fs.friendFlag)
-            return toast("公式アカウントを友だち追加してください", false);
-          await liff.sendMessages([
-            { type: "text", text: el("#summaryText").textContent.trim() },
-          ]);
-          toast("LINEに送信しました", true);
-        } catch (e) {
-          console.error(e);
-          toast(
-            e?.message?.includes("invalid receiver")
-              ? "グループからは送信できません\n1対1トークから開いてください"
-              : "送信に失敗しました",
-            false
-          );
-        }
-      });
-
-      /* ====== Toast ====== */
       function toast(msg, ok = true) {
         const n = document.createElement("div");
         n.textContent = msg;
-        n.style.cssText =
-          `position:fixed;left:50%;top:16px;transform:translateX(-50%);` +
-          `background:${ok ? "rgba(16,185,129,.95)" : "rgba(239,68,68,.95)"};` +
-          `color:#fff;padding:10px 14px;border-radius:999px;font-weight:700;` +
-          `z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);white-space:pre-line`;
+        n.style.cssText = `position:fixed;left:50%;top:16px;transform:translateX(-50%);
+        background:${
+          ok ? "rgba(16,185,129,.95)" : "rgba(239,68,68,.95)"
+        };color:#fff;padding:10px 14px;
+        border-radius:999px;font-weight:700;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);`;
         document.body.appendChild(n);
-        setTimeout(() => n.remove(), 2200);
+        setTimeout(() => n.remove(), 2000);
       }
 
-      // 初期
-      (async () => {
-        calc();
+      const tabDirect = el("#tabDirect"),
+        tabCalc = el("#tabCalc");
+      const directPane = el("#directPane"),
+        calcPane = el("#calcPane");
+      let inputMode = "direct";
+
+      function clearExpiryUI() {
+        calculatedExpiryDate = null;
+        el("#expiryResult").style.display = "none";
+        el("#expiryDate").textContent = "—";
+        el("#daysRemaining").textContent = "—";
+        el("#alertBox").style.display = "none";
+      }
+
+      function setMode(mode) {
+        inputMode = mode;
+        clearExpiryUI();
+        if (mode === "direct") {
+          tabDirect.classList.add("active");
+          tabCalc.classList.remove("active");
+          directPane.classList.remove("hidden");
+          calcPane.classList.add("hidden");
+          el("#registrationDate").value = "";
+        } else {
+          tabCalc.classList.add("active");
+          tabDirect.classList.remove("active");
+          calcPane.classList.remove("hidden");
+          directPane.classList.add("hidden");
+          el("#expiryDirect").value = "";
+        }
+      }
+      tabDirect.addEventListener("click", () => setMode("direct"));
+      tabCalc.addEventListener("click", () => setMode("calc"));
+
+      let calculatedExpiryDate = null;
+      function endOfMonth(y, m) {
+        return new Date(y, m, 0).getDate();
+      }
+
+      function calculateExpiryDate() {
+        const now = new Date();
+        if (inputMode === "direct") {
+          const v = el("#expiryDirect").value;
+          if (!v) {
+            toast("車検証の有効期限を入力してください", false);
+            return;
+          }
+          calculatedExpiryDate = new Date(v + "T00:00:00");
+        } else {
+          const v = el("#registrationDate").value;
+          if (!v) {
+            toast("初年度登録（年月）を入力してください", false);
+            return;
+          }
+          const carType = document.querySelector(
+            'input[name="carType"]:checked'
+          ).value;
+          const [y0, m0] = v.split("-").map(Number);
+          let baseYear = y0 + (carType === "new" ? 3 : 2);
+          let baseMonth = m0;
+          let d = new Date(
+            baseYear,
+            baseMonth - 1,
+            endOfMonth(baseYear, baseMonth)
+          );
+          while (d < now) {
+            baseYear += 2;
+            d = new Date(
+              baseYear,
+              baseMonth - 1,
+              endOfMonth(baseYear, baseMonth)
+            );
+          }
+          calculatedExpiryDate = d;
+        }
+        const d = calculatedExpiryDate;
+        el("#expiryDate").textContent = `${d.getFullYear()}年${
+          d.getMonth() + 1
+        }月${d.getDate()}日`;
+        const diffDays = Math.ceil((d - new Date()) / (1000 * 60 * 60 * 24));
+        const alertBox = el("#alertBox");
+        if (diffDays < 0) {
+          alertBox.textContent = "🚨 車検が切れています！";
+          alertBox.style.display = "block";
+        } else if (diffDays <= 30) {
+          alertBox.textContent = `⚠️ あと${diffDays}日`;
+          alertBox.style.display = "block";
+        } else {
+          alertBox.style.display = "none";
+        }
+        el("#daysRemaining").textContent = `あと${diffDays}日`;
+        el("#expiryResult").style.display = "block";
+      }
+
+      let liffReady = false;
+      async function initLiff() {
         try {
-          await ensureLiff();
-        } catch {}
-      })();
+          await liff.init({ liffId: window.LIFF_ID });
+          liffReady = true;
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      el("#calcExpiryBtn").addEventListener("click", calculateExpiryDate);
+      el("#closeExpiryBtn").addEventListener("click", async () => {
+        if (!liffReady) await initLiff();
+        if (liffReady && liff.isInClient()) liff.closeWindow();
+      });
+      initLiff();
     </script>
   </body>
 </html>
