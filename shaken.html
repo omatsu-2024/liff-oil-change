@@ -11,7 +11,6 @@
       src="https://static.line-scdn.net/liff/edge/2/sdk.js"
     ></script>
     <script>
-      // あなたの設定
       window.LIFF_ID = "2008228464-kZBg7yrq";
       const GAS_URL =
         "https://script.google.com/macros/s/AKfycbx90nhsookvgl5_Ylv2doM0hqfwpRc7jC8DdCI_wFTNCI7e-D5An_VxocV0nDRvQd2O/exec";
@@ -27,6 +26,9 @@
         --danger: #ef4444;
         --bd: #e5e7eb;
         --warning: #f59e0b;
+        --tab: #eef2ff;
+        --tabActive: #4338ca;
+        --tabRing: #c7d2fe;
       }
       * {
         box-sizing: border-box;
@@ -160,7 +162,9 @@
         color: var(--muted);
       }
       .badge {
-        display: inline-block;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
         background: #eef2ff;
         color: #3730a3;
         padding: 3px 8px;
@@ -227,6 +231,8 @@
         margin-top: 8px;
         font-size: 14px;
       }
+
+      /* ===== セクション区切り ===== */
       .section-divider {
         display: flex;
         align-items: center;
@@ -255,6 +261,80 @@
       .hidden {
         display: none !important;
       }
+
+      /* ===== 入力モードタブ（視認性UP版） ===== */
+      .mode-tabs {
+        display: flex;
+        gap: 10px;
+        margin: 6px 0 12px;
+      }
+      .mode-tab {
+        position: relative;
+        flex: 1;
+        user-select: none;
+        border: 2px solid var(--bd);
+        border-radius: 12px;
+        padding: 12px;
+        text-align: center;
+        cursor: pointer;
+        line-height: 1.3;
+        background: var(--tab);
+        color: #334155;
+        font-weight: 700;
+        transition: background 0.2s, border-color 0.2s, transform 0.06s;
+      }
+      .mode-tab:hover {
+        border-color: var(--tabRing);
+      }
+      .mode-tab:active {
+        transform: scale(0.996);
+      }
+      .mode-tab .subtxt {
+        display: block;
+        font-weight: 600;
+        font-size: 12px;
+        color: #64748b;
+      }
+      .mode-tab .check {
+        position: absolute;
+        inset: auto 10px 10px auto;
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        border: 2px solid var(--bd);
+        background: #fff;
+        display: grid;
+        place-items: center;
+        color: transparent;
+        transition: 0.2s;
+      }
+      .mode-tab.active {
+        background: linear-gradient(180deg, #eef2ff 0%, #fff 100%);
+        border-color: var(--tabActive);
+        box-shadow: 0 0 0 4px #eef2ff;
+        color: #1f2937;
+      }
+      .mode-tab.active .check {
+        background: #22c55e;
+        border-color: #16a34a;
+        color: #fff;
+      }
+      .current-mode {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #0f172a;
+        font-size: 12px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .current-mode svg {
+        width: 16px;
+        height: 16px;
+      }
     </style>
   </head>
   <body>
@@ -266,38 +346,67 @@
           「車検証の有効期限を直接入力」または「初年度登録（年月）から自動計算」のどちらかを選んでください。
         </p>
 
+        <!-- 現在モード表示 -->
+        <div class="current-mode" id="currentModeBadge">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M12 4v16M4 12h16"
+              stroke="#0f172a"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span id="currentModeText"
+            >現在の入力方法：車検証の有効期限を直接入力</span
+          >
+        </div>
+
         <!-- 入力モード切替 -->
-        <div
-          class="mode-tabs"
-          style="display: flex; gap: 10px; margin: 6px 0 12px"
-        >
+        <div class="mode-tabs" role="tablist" aria-label="入力方法の選択">
           <div
             class="mode-tab active"
             id="tabDirect"
-            style="
-              flex: 1;
-              border: 2px solid var(--bd);
-              border-radius: 10px;
-              padding: 10px 12px;
-              text-align: center;
-              cursor: pointer;
-            "
+            role="tab"
+            aria-selected="true"
+            tabindex="0"
+            data-mode="direct"
           >
             車検証の有効期限を直接入力
+            <span class="subtxt">有効期限の日付をそのまま入力</span>
+            <span class="check" aria-hidden="true">
+              <!-- check icon -->
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+                <path
+                  d="M5 13l4 4L19 7"
+                  stroke="currentColor"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </span>
           </div>
           <div
             class="mode-tab"
             id="tabCalc"
-            style="
-              flex: 1;
-              border: 2px solid var(--bd);
-              border-radius: 10px;
-              padding: 10px 12px;
-              text-align: center;
-              cursor: pointer;
-            "
+            role="tab"
+            aria-selected="false"
+            tabindex="0"
+            data-mode="calc"
           >
             初年度登録から自動計算
+            <span class="subtxt">登録月の末日ベースで自動算出</span>
+            <span class="check" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+                <path
+                  d="M5 13l4 4L19 7"
+                  stroke="currentColor"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </span>
           </div>
         </div>
 
@@ -404,7 +513,7 @@
         ><span class="bar"></span>
       </div>
 
-      <!-- 車検 概算シミュレーター -->
+      <!-- 車検 概算シミュレーター（以下は元のまま） -->
       <div class="card" id="simCard">
         <h1 class="title">車検 概算シミュレーター</h1>
         <p class="sub">
@@ -578,7 +687,7 @@
     </div>
 
     <script>
-      /* ========== 設定テーブル ========== */
+      /* ========= 設定テーブル ========= */
       const TABLES = {
         weightTax: {
           "0-13": {
@@ -607,7 +716,7 @@
         stamp: { std: { kei: 1800, passenger: 1600 } },
       };
 
-      /* ========== ユーティリティ ========== */
+      /* ========= ユーティリティ ========= */
       const fmt = (n) => "¥" + Math.round(n).toLocaleString("ja-JP");
       const el = (sel) => document.querySelector(sel);
       const els = (sel) => [...document.querySelectorAll(sel)];
@@ -615,39 +724,63 @@
         const n = document.createElement("div");
         n.textContent = msg;
         n.style.cssText = `position:fixed;left:50%;top:16px;transform:translateX(-50%);
-        background:${
-          ok ? "rgba(16,185,129,.95)" : "rgba(239,68,68,.95)"
-        };color:#fff;padding:10px 14px;
-        border-radius:999px;font-weight:700;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);white-space:pre-line`;
+          background:${
+            ok ? "rgba(16,185,129,.95)" : "rgba(239,68,68,.95)"
+          };color:#fff;padding:10px 14px;
+          border-radius:999px;font-weight:700;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);white-space:pre-line`;
         document.body.appendChild(n);
         setTimeout(() => n.remove(), 2000);
       }
 
-      /* ========== モード切替 ========== */
+      /* ========= 入力モード切替（視認性UP） ========= */
       const tabDirect = el("#tabDirect");
       const tabCalc = el("#tabCalc");
       const directPane = el("#directPane");
       const calcPane = el("#calcPane");
+      const currentModeText = el("#currentModeText");
       let inputMode = "direct"; // direct | calc
 
-      function setMode(mode) {
-        inputMode = mode;
-        if (mode === "direct") {
-          tabDirect.classList.add("active");
-          tabCalc.classList.remove("active");
+      function updateModeUI() {
+        // active class & aria
+        [tabDirect, tabCalc].forEach((t) => {
+          const active = t.dataset.mode === inputMode;
+          t.classList.toggle("active", active);
+          t.setAttribute("aria-selected", String(active));
+          if (active) t.setAttribute("tabindex", "0");
+          else t.setAttribute("tabindex", "-1");
+        });
+        // panes
+        if (inputMode === "direct") {
           directPane.classList.remove("hidden");
           calcPane.classList.add("hidden");
+          currentModeText.textContent =
+            "現在の入力方法：車検証の有効期限を直接入力";
         } else {
-          tabCalc.classList.add("active");
-          tabDirect.classList.remove("active");
           calcPane.classList.remove("hidden");
           directPane.classList.add("hidden");
+          currentModeText.textContent =
+            "現在の入力方法：初年度登録から自動計算";
         }
       }
-      tabDirect.addEventListener("click", () => setMode("direct"));
-      tabCalc.addEventListener("click", () => setMode("calc"));
+      function setMode(mode) {
+        inputMode = mode;
+        updateModeUI();
+      }
+      // クリック/Enter/Space対応
+      function bindTab(tab, mode) {
+        tab.addEventListener("click", () => setMode(mode));
+        tab.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setMode(mode);
+          }
+        });
+      }
+      bindTab(tabDirect, "direct");
+      bindTab(tabCalc, "calc");
+      updateModeUI();
 
-      /* ========== 車検満期日計算 ========== */
+      /* ========= 車検満期日計算 ========= */
       let calculatedExpiryDate = null;
       const endOfMonth = (y, m) => new Date(y, m, 0).getDate(); // m:1-12
 
@@ -655,14 +788,14 @@
         const now = new Date();
 
         if (inputMode === "direct") {
-          const v = el("#expiryDirect").value; // yyyy-mm-dd
+          const v = el("#expiryDirect").value;
           if (!v) {
             toast("車検証の有効期限（日付）を入力してください", false);
             return;
           }
           calculatedExpiryDate = new Date(v + "T00:00:00");
         } else {
-          const v = el("#registrationDate").value; // yyyy-mm
+          const v = el("#registrationDate").value;
           if (!v) {
             toast("初年度登録（年月）を入力してください", false);
             return;
@@ -719,7 +852,7 @@
         });
       }
 
-      /* ========== 車検日登録送信（LIFF→GAS） ========== */
+      /* ========= 車検日登録送信（LIFF） ========= */
       let liffReady = false;
       async function initLiff() {
         if (!window.LIFF_ID) {
@@ -757,15 +890,13 @@
           const userId = profile.userId;
           const userName = profile.displayName;
 
-          // タイムゾーン安全な yyyy-mm-dd を作る
-          const y = calculatedExpiryDate.getFullYear();
-          const m = String(calculatedExpiryDate.getMonth() + 1).padStart(
-            2,
-            "0"
-          );
-          const d = String(calculatedExpiryDate.getDate()).padStart(2, "0");
-          const expiryISO = `${y}-${m}-${d}`;
-
+          const expiryISO = new Date(
+            calculatedExpiryDate.getFullYear(),
+            calculatedExpiryDate.getMonth(),
+            calculatedExpiryDate.getDate()
+          )
+            .toISOString()
+            .slice(0, 10);
           const displayDate = calculatedExpiryDate.toLocaleDateString("ja-JP", {
             year: "numeric",
             month: "long",
@@ -775,7 +906,7 @@
             (calculatedExpiryDate - new Date()) / (1000 * 60 * 60 * 24)
           );
 
-          // GASへ登録（no-cors：結果は読まずに投げるだけ）
+          // GAS登録（no-corsでOK）
           try {
             await fetch(GAS_URL, {
               method: "POST",
@@ -793,7 +924,6 @@
             console.error("GAS POSTエラー:", postErr);
           }
 
-          // ユーザーへ確認メッセージ
           const msg = `【車検満期日 登録完了】
 
 お名前: ${userName}
@@ -811,7 +941,7 @@
         }
       }
 
-      /* ========== 概算シミュレーター ========== */
+      /* ========= 概算シミュレーター ========= */
       function calc() {
         const carClass = el("#carClass").value;
         const ageBand = el("#ageYears").value;
@@ -853,11 +983,11 @@
 
       function renderBreakdown(d) {
         el("#legalBreakdown").innerHTML = `
-        <div class="grid" style="grid-template-columns:1fr auto">
-          <div>自賠責（24か月）</div><div class="price">${fmt(d.jb)}</div>
-          <div>重量税（概算）</div><div class="price">${fmt(d.wt)}</div>
-          <div>印紙代（概算）</div><div class="price">${fmt(d.sp)}</div>
-        </div>`;
+          <div class="grid" style="grid-template-columns:1fr auto">
+            <div>自賠責（24か月）</div><div class="price">${fmt(d.jb)}</div>
+            <div>重量税（概算）</div><div class="price">${fmt(d.wt)}</div>
+            <div>印紙代（概算）</div><div class="price">${fmt(d.sp)}</div>
+          </div>`;
 
         const optsHtml = d.options.length
           ? d.options
@@ -871,16 +1001,16 @@
           : `<div class="muted">オプション整備なし</div>`;
 
         el("#shopBreakdown").innerHTML = `
-        <div class="grid" style="grid-template-columns:1fr auto">
-          <div>基本点検整備料</div><div class="price">${fmt(
-            +el("#baseFee").value || 0
-          )}</div>
-          <div>割引</div><div class="price">- ${fmt(
-            +el("#discount").value || 0
-          )}</div>
-        </div>
-        <div class="line"></div>
-        ${optsHtml}`;
+          <div class="grid" style="grid-template-columns:1fr auto">
+            <div>基本点検整備料</div><div class="price">${fmt(
+              +el("#baseFee").value || 0
+            )}</div>
+            <div>割引</div><div class="price">- ${fmt(
+              +el("#discount").value || 0
+            )}</div>
+          </div>
+          <div class="line"></div>
+          ${optsHtml}`;
 
         el("#grandTotal").textContent = fmt(d.grand);
 
@@ -919,7 +1049,7 @@ ${d.options.length ? "・オプション：" : ""}${d.options
         el("#summaryText").textContent = summary;
       }
 
-      /* ========== 送信・クローズ等 ========== */
+      /* ========= 送信・クローズ等 ========= */
       ["#carClass", "#ageYears", "#baseFee", "#discount"].forEach((sel) => {
         el(sel).addEventListener("change", calc);
         el(sel).addEventListener("input", calc);
@@ -989,7 +1119,7 @@ ${d.options.length ? "・オプション：" : ""}${d.options
         else toast("LINEアプリ内で開いている時のみ閉じられます", false);
       });
 
-      /* ========== 初期表示 ========== */
+      /* ========= 初期表示 ========= */
       document.addEventListener("DOMContentLoaded", () => {
         calc();
         initLiff();
