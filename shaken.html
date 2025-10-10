@@ -4,8 +4,6 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>車検 概算シミュレーター</title>
-
-    <!-- LIFF SDK -->
     <script
       charset="utf-8"
       src="https://static.line-scdn.net/liff/edge/2/sdk.js"
@@ -123,10 +121,6 @@
         padding: 14px 16px;
         font-weight: 800;
         cursor: pointer;
-      }
-      .btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
       }
       .btn.sec {
         background: #0ea5e9;
@@ -273,10 +267,11 @@
   </head>
   <body>
     <div class="wrap">
+      <!-- ▼ 満期日計算カード -->
       <div class="card" id="expiryCard">
         <h1 class="title">🗓️ 車検満期日 計算</h1>
         <p class="sub">
-          「車検証の有効期限を直接入力」または「初年度登録（年月）から自動計算」を選択してください。
+          「車検証の有効期限を直接入力」または「初年度登録（年月）から自動計算」を選んでください。
         </p>
 
         <div class="mode-tabs">
@@ -287,22 +282,16 @@
         </div>
 
         <div id="directPane">
-          <div class="grid row">
-            <div class="field">
-              <label>車検証の有効期限 <small>（日付を入力）</small></label>
-              <input
-                type="date"
-                id="expiryDirect"
-                placeholder="例: 2026-01-31"
-              />
-            </div>
+          <div class="field">
+            <label>車検証の有効期限 <small>（日付を入力）</small></label>
+            <input type="date" id="expiryDirect" />
           </div>
         </div>
 
         <div id="calcPane" class="hidden">
           <div class="grid row">
             <div class="field">
-              <label>初年度登録（年月） <small>（車検証に記載）</small></label>
+              <label>初年度登録（年月）</label>
               <input
                 type="month"
                 id="registrationDate"
@@ -319,12 +308,6 @@
                 <label class="radio-item"
                   ><input type="radio" name="carType" value="used" />
                   中古・継続</label
-                >
-              </div>
-              <div class="info-box">
-                <small
-                  >新車：初回3年 → 以後2年ごと /
-                  中古：最初から2年ごと（登録月の末日が満期）</small
                 >
               </div>
             </div>
@@ -369,30 +352,112 @@
         </div>
       </div>
 
+      <!-- ▼ 区切り線 -->
       <div class="section-divider">
         <span class="bar"></span
         ><span class="label">ここから概算シミュレーター</span
         ><span class="bar"></span>
       </div>
 
-      <!-- ここに概算シミュレーター部分（前のままでOK） -->
+      <!-- ▼ 車検費用概算シミュレーター -->
+      <div class="card" id="simCard">
+        <h1 class="title">車検 概算シミュレーター</h1>
+        <p class="sub">※概算の目安です。店舗設定に合わせて調整してください。</p>
+
+        <div class="grid row">
+          <div class="field">
+            <label>車両区分</label>
+            <select id="carClass">
+              <option value="kei">軽自動車</option>
+              <option value="small">小型（〜1.0t）</option>
+              <option value="mid">中型（1.0t〜1.5t）</option>
+              <option value="large">大型（1.5t〜2.0t）</option>
+              <option value="xl">特大（2.0t〜2.5t）</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>経過年数</label>
+            <select id="ageYears">
+              <option value="0-13">〜13年</option>
+              <option value="13-18">13〜18年</option>
+              <option value="18+">18年以上</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="box" style="margin-top: 12px">
+          <div class="opt"><strong>オプション整備（任意）</strong></div>
+          <div class="opt">
+            <label
+              ><input
+                type="checkbox"
+                class="optChk"
+                data-label="オイル交換"
+                data-price="3500"
+              />
+              オイル交換</label
+            ><span>¥3,500</span>
+          </div>
+          <div class="opt">
+            <label
+              ><input
+                type="checkbox"
+                class="optChk"
+                data-label="エレメント交換"
+                data-price="1500"
+              />
+              エレメント交換</label
+            ><span>¥1,500</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 12px">
+          <button class="btn" id="calcBtn">概算を計算する</button>
+          <button class="btn ghost" id="resetBtn">リセット</button>
+        </div>
+
+        <div id="resultBox" style="margin-top: 16px; display: none">
+          <div class="highlight-box">
+            <div
+              id="totalPrice"
+              style="font-size: 22px; font-weight: 900; color: var(--accent)"
+            >
+              —
+            </div>
+            <div
+              id="summaryText"
+              class="muted"
+              style="white-space: pre-line; margin-top: 8px"
+            ></div>
+          </div>
+          <div class="section-actions">
+            <button class="btn sec" id="sendBtn">LINEに送る</button>
+            <button class="btn outline" id="closeSimBtn">閉じる</button>
+          </div>
+        </div>
+      </div>
+
+      <p class="footer">
+        ※実際の費用は車両状態や法改定で変わる場合があります。
+      </p>
     </div>
 
     <script>
       const el = (s) => document.querySelector(s);
       const els = (s) => [...document.querySelectorAll(s)];
-      function toast(msg, ok = true) {
+      function toast(m, ok = true) {
         const n = document.createElement("div");
-        n.textContent = msg;
+        n.textContent = m;
         n.style.cssText = `position:fixed;left:50%;top:16px;transform:translateX(-50%);
-        background:${
-          ok ? "rgba(16,185,129,.95)" : "rgba(239,68,68,.95)"
-        };color:#fff;padding:10px 14px;
-        border-radius:999px;font-weight:700;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);`;
+      background:${
+        ok ? "#10b981" : "#ef4444"
+      };color:#fff;padding:10px 14px;border-radius:999px;font-weight:700;z-index:9999`;
         document.body.appendChild(n);
         setTimeout(() => n.remove(), 2000);
       }
 
+      // ================== 満期日計算 ==================
+      let calculatedExpiryDate = null;
       const tabDirect = el("#tabDirect"),
         tabCalc = el("#tabCalc");
       const directPane = el("#directPane"),
@@ -400,13 +465,8 @@
       let inputMode = "direct";
 
       function clearExpiryUI() {
-        calculatedExpiryDate = null;
         el("#expiryResult").style.display = "none";
-        el("#expiryDate").textContent = "—";
-        el("#daysRemaining").textContent = "—";
-        el("#alertBox").style.display = "none";
       }
-
       function setMode(mode) {
         inputMode = mode;
         clearExpiryUI();
@@ -424,69 +484,91 @@
           el("#expiryDirect").value = "";
         }
       }
-      tabDirect.addEventListener("click", () => setMode("direct"));
-      tabCalc.addEventListener("click", () => setMode("calc"));
+      tabDirect.onclick = () => setMode("direct");
+      tabCalc.onclick = () => setMode("calc");
 
-      let calculatedExpiryDate = null;
       function endOfMonth(y, m) {
         return new Date(y, m, 0).getDate();
       }
-
       function calculateExpiryDate() {
         const now = new Date();
         if (inputMode === "direct") {
           const v = el("#expiryDirect").value;
-          if (!v) {
-            toast("車検証の有効期限を入力してください", false);
-            return;
-          }
+          if (!v) return toast("日付を入力してください", false);
           calculatedExpiryDate = new Date(v + "T00:00:00");
         } else {
           const v = el("#registrationDate").value;
-          if (!v) {
-            toast("初年度登録（年月）を入力してください", false);
-            return;
-          }
+          if (!v) return toast("初年度登録を入力してください", false);
           const carType = document.querySelector(
             'input[name="carType"]:checked'
           ).value;
           const [y0, m0] = v.split("-").map(Number);
-          let baseYear = y0 + (carType === "new" ? 3 : 2);
-          let baseMonth = m0;
-          let d = new Date(
-            baseYear,
-            baseMonth - 1,
-            endOfMonth(baseYear, baseMonth)
-          );
+          let y = y0 + (carType === "new" ? 3 : 2),
+            m = m0;
+          let d = new Date(y, m - 1, endOfMonth(y, m));
           while (d < now) {
-            baseYear += 2;
-            d = new Date(
-              baseYear,
-              baseMonth - 1,
-              endOfMonth(baseYear, baseMonth)
-            );
+            y += 2;
+            d = new Date(y, m - 1, endOfMonth(y, m));
           }
           calculatedExpiryDate = d;
         }
         const d = calculatedExpiryDate;
+        const diff = Math.ceil((d - now) / (1000 * 60 * 60 * 24));
         el("#expiryDate").textContent = `${d.getFullYear()}年${
           d.getMonth() + 1
         }月${d.getDate()}日`;
-        const diffDays = Math.ceil((d - new Date()) / (1000 * 60 * 60 * 24));
+        el("#daysRemaining").textContent = `あと${diff}日`;
         const alertBox = el("#alertBox");
-        if (diffDays < 0) {
-          alertBox.textContent = "🚨 車検が切れています！";
+        if (diff <= 0) {
+          alertBox.textContent = "🚨 車検切れ！";
           alertBox.style.display = "block";
-        } else if (diffDays <= 30) {
-          alertBox.textContent = `⚠️ あと${diffDays}日`;
+        } else if (diff <= 30) {
+          alertBox.textContent = `⚠️ あと${diff}日`;
           alertBox.style.display = "block";
-        } else {
-          alertBox.style.display = "none";
-        }
-        el("#daysRemaining").textContent = `あと${diffDays}日`;
+        } else alertBox.style.display = "none";
         el("#expiryResult").style.display = "block";
       }
 
+      // ================== 概算シミュレーター ==================
+      const TABLES = {
+        weight: {
+          kei: 6600,
+          small: 16400,
+          mid: 24600,
+          large: 32800,
+          xl: 41000,
+        },
+        jb: { kei: 17000, car: 17800 },
+        stamp: { kei: 1800, car: 1600 },
+      };
+      function calc() {
+        const cls = el("#carClass").value,
+          age = el("#ageYears").value;
+        const wt = TABLES.weight[cls],
+          jb = cls === "kei" ? TABLES.jb.kei : TABLES.jb.car,
+          st = cls === "kei" ? TABLES.stamp.kei : TABLES.stamp.car;
+        const opts = els(".optChk")
+          .filter((c) => c.checked)
+          .map((c) => ({ l: c.dataset.label, p: +c.dataset.price }));
+        const total = wt + jb + st + opts.reduce((a, b) => a + b.p, 0);
+        el("#totalPrice").textContent =
+          "概算合計：" + total.toLocaleString() + "円";
+        el("#summaryText").textContent = `法定費用合計：約${(
+          wt +
+          jb +
+          st
+        ).toLocaleString()}円\nオプション：${
+          opts.map((o) => o.l).join("、") || "なし"
+        }\n合計：約${total.toLocaleString()}円`;
+        el("#resultBox").style.display = "block";
+      }
+      el("#calcBtn").onclick = calc;
+      el("#resetBtn").onclick = () => {
+        els(".optChk").forEach((c) => (c.checked = false));
+        el("#resultBox").style.display = "none";
+      };
+
+      // ================== LIFF送信/閉じる ==================
       let liffReady = false;
       async function initLiff() {
         try {
@@ -496,11 +578,24 @@
           console.error(e);
         }
       }
-      el("#calcExpiryBtn").addEventListener("click", calculateExpiryDate);
-      el("#closeExpiryBtn").addEventListener("click", async () => {
+      el("#sendBtn").onclick = async () => {
+        if (!liffReady) await initLiff();
+        if (!liff.isInClient())
+          return toast("LINEアプリ内で開いてください", false);
+        await liff.sendMessages([
+          { type: "text", text: el("#summaryText").textContent },
+        ]);
+        toast("LINEに送信しました！");
+      };
+      el("#closeExpiryBtn").onclick = async () => {
         if (!liffReady) await initLiff();
         if (liffReady && liff.isInClient()) liff.closeWindow();
-      });
+      };
+      el("#closeSimBtn").onclick = async () => {
+        if (!liffReady) await initLiff();
+        if (liffReady && liff.isInClient()) liff.closeWindow();
+      };
+      el("#calcExpiryBtn").onclick = calculateExpiryDate;
       initLiff();
     </script>
   </body>
