@@ -14,6 +14,9 @@
       window.LIFF_ID = "2008228464-kZBg7yrq";
       const GAS_URL =
         "https://script.google.com/macros/s/AKfycbx90nhsookvgl5_Ylv2doM0hqfwpRc7jC8DdCI_wFTNCI7e-D5An_VxocV0nDRvQd2O/exec";
+
+      // L Message 側のキーワード応答トリガー（この文言に完全一致で反応させる）
+      const REMINDER_KEYWORD = "リマインド開始";
     </script>
 
     <style>
@@ -232,7 +235,7 @@
         font-size: 14px;
       }
 
-      /* ===== セクション区切り ===== */
+      /* 区切り */
       .section-divider {
         display: flex;
         align-items: center;
@@ -262,7 +265,7 @@
         display: none !important;
       }
 
-      /* ===== 入力モードタブ（視認性UP版） ===== */
+      /* 入力モードタブ（視認性UP） */
       .mode-tabs {
         display: flex;
         gap: 10px;
@@ -374,7 +377,6 @@
             車検証の有効期限を直接入力
             <span class="subtxt">有効期限の日付をそのまま入力</span>
             <span class="check" aria-hidden="true">
-              <!-- check icon -->
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
                 <path
                   d="M5 13l4 4L19 7"
@@ -497,7 +499,10 @@
 
           <div class="section-actions">
             <button class="btn success" id="registerExpiryBtn">
-              📅 車検日を登録してリマインドを受け取る
+              📅 車検日をトーク画面に送る
+            </button>
+            <button class="btn sec" id="startReminderBtn">
+              🔔 車検日リマインドを開始する
             </button>
             <button class="btn outline" id="closeExpiryBtn">
               アプリを閉じる
@@ -513,7 +518,7 @@
         ><span class="bar"></span>
       </div>
 
-      <!-- 車検 概算シミュレーター（以下は元のまま） -->
+      <!-- 車検 概算シミュレーター -->
       <div class="card" id="simCard">
         <h1 class="title">車検 概算シミュレーター</h1>
         <p class="sub">
@@ -687,7 +692,7 @@
     </div>
 
     <script>
-      /* ========= 設定テーブル ========= */
+      /* ===== 設定テーブル ===== */
       const TABLES = {
         weightTax: {
           "0-13": {
@@ -716,7 +721,7 @@
         stamp: { std: { kei: 1800, passenger: 1600 } },
       };
 
-      /* ========= ユーティリティ ========= */
+      /* ===== ユーティリティ ===== */
       const fmt = (n) => "¥" + Math.round(n).toLocaleString("ja-JP");
       const el = (sel) => document.querySelector(sel);
       const els = (sel) => [...document.querySelectorAll(sel)];
@@ -732,7 +737,7 @@
         setTimeout(() => n.remove(), 2000);
       }
 
-      /* ========= 入力モード切替（視認性UP） ========= */
+      /* ===== 入力モード切替（視認性UP） ===== */
       const tabDirect = el("#tabDirect");
       const tabCalc = el("#tabCalc");
       const directPane = el("#directPane");
@@ -741,7 +746,6 @@
       let inputMode = "direct"; // direct | calc
 
       function updateModeUI() {
-        // active class & aria
         [tabDirect, tabCalc].forEach((t) => {
           const active = t.dataset.mode === inputMode;
           t.classList.toggle("active", active);
@@ -749,7 +753,6 @@
           if (active) t.setAttribute("tabindex", "0");
           else t.setAttribute("tabindex", "-1");
         });
-        // panes
         if (inputMode === "direct") {
           directPane.classList.remove("hidden");
           calcPane.classList.add("hidden");
@@ -766,7 +769,6 @@
         inputMode = mode;
         updateModeUI();
       }
-      // クリック/Enter/Space対応
       function bindTab(tab, mode) {
         tab.addEventListener("click", () => setMode(mode));
         tab.addEventListener("keydown", (e) => {
@@ -780,7 +782,7 @@
       bindTab(tabCalc, "calc");
       updateModeUI();
 
-      /* ========= 車検満期日計算 ========= */
+      /* ===== 車検満期日計算 ===== */
       let calculatedExpiryDate = null;
       const endOfMonth = (y, m) => new Date(y, m, 0).getDate(); // m:1-12
 
@@ -852,7 +854,7 @@
         });
       }
 
-      /* ========= 車検日登録送信（LIFF） ========= */
+      /* ===== LIFF初期化 & 送信系 ===== */
       let liffReady = false;
       async function initLiff() {
         if (!window.LIFF_ID) {
@@ -897,6 +899,7 @@
           )
             .toISOString()
             .slice(0, 10);
+
           const displayDate = calculatedExpiryDate.toLocaleDateString("ja-JP", {
             year: "numeric",
             month: "long",
@@ -906,7 +909,7 @@
             (calculatedExpiryDate - new Date()) / (1000 * 60 * 60 * 24)
           );
 
-          // GAS登録（no-corsでOK）
+          // GAS登録（no-cors）
           try {
             await fetch(GAS_URL, {
               method: "POST",
@@ -924,16 +927,21 @@
             console.error("GAS POSTエラー:", postErr);
           }
 
-          const msg = `【車検満期日 登録完了】
+          const msg = `✅ 登録ありがとうございます！
 
+このLINEで車検リマインドを受け取るために
+下のボタンを押してください👇
+
+👉 【リマインド開始】
+
+— 登録内容 —
 お名前: ${userName}
 次回車検満期日: ${displayDate}
 残り日数: ${diffDays}日
 
-車検30日前と7日前に自動でリマインドをお送りします📅
-※この情報は店舗側で管理されます`;
-          await liff.sendMessages([{ type: "text", text: msg }]);
+※「リマインド開始」は自動応答用の合言葉です。`;
 
+          await liff.sendMessages([{ type: "text", text: msg }]);
           toast("車検満期日を登録しました！", true);
         } catch (e) {
           console.error("登録エラー:", e);
@@ -941,7 +949,39 @@
         }
       }
 
-      /* ========= 概算シミュレーター ========= */
+      // 「🔔 リマインドを開始する」ボタン：キーワードを1対1トークへ送信
+      async function sendReminderKickoff() {
+        try {
+          if (!liffReady) {
+            await initLiff();
+          }
+          if (!liffReady) {
+            toast("LIFF初期化に失敗しました", false);
+            return;
+          }
+
+          if (!liff.isInClient()) {
+            toast("スマホのLINEアプリから開いてください", false);
+            return;
+          }
+          const fs = await liff.getFriendship();
+          if (!fs.friendFlag) {
+            toast("公式アカウントを友だち追加してください", false);
+            return;
+          }
+
+          await liff.sendMessages([{ type: "text", text: REMINDER_KEYWORD }]);
+          toast(
+            "「リマインド開始」を送信しました。まもなく登録完了の自動返信が届きます。",
+            true
+          );
+        } catch (e) {
+          console.error(e);
+          toast("送信に失敗しました", false);
+        }
+      }
+
+      /* ===== 概算シミュレーター ===== */
       function calc() {
         const carClass = el("#carClass").value;
         const ageBand = el("#ageYears").value;
@@ -1049,7 +1089,7 @@ ${d.options.length ? "・オプション：" : ""}${d.options
         el("#summaryText").textContent = summary;
       }
 
-      /* ========= 送信・クローズ等 ========= */
+      /* ===== イベント紐付け ===== */
       ["#carClass", "#ageYears", "#baseFee", "#discount"].forEach((sel) => {
         el(sel).addEventListener("change", calc);
         el(sel).addEventListener("input", calc);
@@ -1108,6 +1148,7 @@ ${d.options.length ? "・オプション：" : ""}${d.options
 
       el("#calcExpiryBtn").addEventListener("click", calculateExpiryDate);
       el("#registerExpiryBtn").addEventListener("click", registerExpiryDate);
+      el("#startReminderBtn").addEventListener("click", sendReminderKickoff);
       el("#closeExpiryBtn").addEventListener("click", async () => {
         if (!liffReady) await initLiff();
         if (liffReady && liff.isInClient()) liff.closeWindow();
@@ -1119,7 +1160,7 @@ ${d.options.length ? "・オプション：" : ""}${d.options
         else toast("LINEアプリ内で開いている時のみ閉じられます", false);
       });
 
-      /* ========= 初期表示 ========= */
+      /* ===== 初期表示 ===== */
       document.addEventListener("DOMContentLoaded", () => {
         calc();
         initLiff();
