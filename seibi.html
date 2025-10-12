@@ -13,23 +13,20 @@
 
     <script>
       /* ====== 設定（必要に応じて編集） ====== */
-      window.LIFF_ID = "2008228464-Jy1OL86j"; /* ← あなたのLIFF ID */
-      window.GAS_URL =
-        "https://script.google.com/macros/s/AKfycbz0EzPRsZ77DFPU8qC555lxya1Zo_KHVRbl_Z32WBKRCIKPb5GCDTgNm7mrhcEUUlDH/exec"; /* ← あなたのGAS URL */
+      window.LIFF_ID = "あなたのLIFF ID";
+      window.GAS_URL = "あなたのGAS WebアプリURL（/exec）";
       window.POST_TOKEN =
-        "change-me-32chars"; /* ← GASのPOST_SHARED_TOKEN と同じ値 */
+        "change-me-32chars"; /* GASのPOST_SHARED_TOKENと一致させる */
     </script>
 
     <style>
       :root {
         --primary: #4f46e5;
-        --success: #10b981;
         --warning: #f59e0b;
         --danger: #ef4444;
         --gray: #64748b;
         --light: #f8fafc;
         --border: #e5e7eb;
-        --bg: #667eea;
       }
       * {
         box-sizing: border-box;
@@ -87,8 +84,8 @@
         color: #1e293b;
         margin-bottom: 12px;
         display: flex;
-        align-items: center;
         gap: 8px;
+        align-items: center;
       }
       .badge {
         display: inline-block;
@@ -96,14 +93,6 @@
         border-radius: 12px;
         font-size: 12px;
         font-weight: 600;
-      }
-      .badge-warning {
-        background: #fef3c7;
-        color: #92400e;
-      }
-      .badge-danger {
-        background: #fee2e2;
-        color: #991b1b;
       }
       .recommendation {
         background: var(--light);
@@ -176,9 +165,8 @@
         gap: 8px;
       }
 
-      /* 日付入力（左アイコン＋両方クリックでカレンダー） */
+      /* 日付UI（左アイコン＋どちらでも開く） */
       .date-field {
-        position: relative;
         display: flex;
         align-items: center;
         border: 1px solid var(--border);
@@ -206,7 +194,6 @@
         font-size: 16px;
         min-height: 28px;
         background: transparent;
-        cursor: text;
       }
       .date-hint {
         font-size: 12px;
@@ -280,7 +267,7 @@
         border-radius: 0 0 16px 16px;
       }
 
-      /* 1ページ時に余白を圧縮する用 */
+      /* 1ページ時 余白圧縮 */
       .modal-card.shrink {
         bottom: auto;
       }
@@ -288,7 +275,6 @@
         max-height: 48vh;
       }
 
-      /* 履歴の各行 */
       .hist {
         padding: 16px 18px;
         border-bottom: 1px solid var(--border);
@@ -349,13 +335,13 @@
         <div id="recommendations"></div>
       </div>
 
-      <!-- 整備履歴（モーダル起動） -->
+      <!-- 整備履歴（モーダル起動ボタン） -->
       <div class="card">
         <div class="section-title">📋 整備履歴</div>
         <button class="btn" id="openHistoryBtn">整備履歴を見る</button>
       </div>
 
-      <!-- 📏 走行距離の更新 -->
+      <!-- 走行距離の更新 -->
       <div class="card">
         <div class="section-title">📏 走行距離の更新</div>
         <div class="row">
@@ -383,7 +369,7 @@
         </p>
       </div>
 
-      <!-- ➕ 履歴追加 -->
+      <!-- 履歴追加 -->
       <div class="card">
         <div class="section-title">➕ 整備履歴を追加</div>
 
@@ -410,7 +396,7 @@
           カレンダーアイコン または 入力欄をタップして日付を選択してください
         </div>
 
-        <!-- 整備種類（ドロップダウン + その他） -->
+        <!-- 整備種類 -->
         <div style="margin-top: 12px; display: grid; gap: 8px">
           <select
             id="hTypeSelect"
@@ -482,14 +468,14 @@
         </div>
       </div>
 
-      <!-- 🗓️ 次回目安日（Googleカレンダー追加） -->
+      <!-- 次回目安日 & Googleカレンダー -->
       <div class="card" id="nextBox" style="display: none">
         <div class="section-title">🗓️ 次回メンテ目安日</div>
         <p id="nextText" style="margin-bottom: 8px"></p>
         <button class="btn" id="gcalBtn">Googleカレンダーに追加</button>
       </div>
 
-      <!-- 予約ボタン -->
+      <!-- 予約ボタン（任意） -->
       <button class="btn" onclick="openReservation()">
         📅 次回メンテナンスを予約する
       </button>
@@ -503,7 +489,7 @@
       </div>
     </div>
 
-    <!-- ====== モーダル（整備履歴） ====== -->
+    <!-- モーダル（整備履歴） -->
     <div id="historyModal" class="modal" aria-hidden="true">
       <div class="modal-backdrop"></div>
       <div class="modal-card">
@@ -511,9 +497,7 @@
           <div class="modal-title">📄 整備履歴</div>
           <button class="modal-close" id="closeHistoryBtn">閉じる</button>
         </div>
-        <div class="modal-body">
-          <div id="modalHistoryList"></div>
-        </div>
+        <div class="modal-body"><div id="modalHistoryList"></div></div>
         <div class="modal-footer" id="modalFooter">
           <button class="btn ghost" id="prevBtn" style="width: auto">
             前へ
@@ -537,11 +521,11 @@
 
     <script>
       let userId = "";
-      let HISTORY = []; // モーダル用
+      let HISTORY = [];
       const HIST_PAGE_SIZE = 10;
       let histPage = 0;
 
-      /* ========= ユーティリティ ========= */
+      /* ===== ユーティリティ ===== */
       const toast = (m) => {
         const n = document.createElement("div");
         n.textContent = m;
@@ -557,7 +541,24 @@
           : `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
       };
 
-      /* ========= LIFF初期化 ========= */
+      /* ===== 共通POST（FormDataで送信：iOSプリフライト回避） ===== */
+      async function postGAS(obj) {
+        const fd = new FormData();
+        for (const [k, v] of Object.entries(obj)) {
+          fd.append(
+            k,
+            typeof v === "object" ? JSON.stringify(v) : String(v ?? "")
+          );
+        }
+        const res = await fetch(window.GAS_URL, {
+          method: "POST",
+          body: fd,
+          credentials: "omit",
+        });
+        return res.json();
+      }
+
+      /* ===== LIFF初期化 ===== */
       async function initApp() {
         try {
           await liff.init({ liffId: window.LIFF_ID });
@@ -576,7 +577,7 @@
         }
       }
 
-      /* ========= データ読み込み ========= */
+      /* ===== データ読み込み ===== */
       async function loadData() {
         try {
           const res = await fetch(
@@ -585,16 +586,16 @@
           const result = await res.json();
           if (result.status === "error")
             throw new Error(result.message || "error");
-
           const data = result.data;
+
           document.getElementById("userName").textContent = data.customer.name;
           document.getElementById(
             "carInfo"
           ).textContent = `${data.customer.carModel} (${data.customer.carNumber})`;
 
           displayRecommendations(data.nextMaintenance);
-
           HISTORY = Array.isArray(data.history) ? data.history : [];
+
           document.getElementById("loading").style.display = "none";
           document.getElementById("content").style.display = "block";
 
@@ -605,7 +606,7 @@
         }
       }
 
-      /* ========= 推奨表示 ========= */
+      /* ===== 推奨表示 ===== */
       function displayRecommendations(recs) {
         const box = document.getElementById("recommendations");
         if (!recs || !recs.length) {
@@ -617,8 +618,8 @@
           .map((r) => {
             const urgent = r.urgency === "至急";
             const badge = urgent
-              ? '<span class="badge badge-danger">至急</span>'
-              : '<span class="badge badge-warning">推奨</span>';
+              ? '<span class="badge" style="background:#fee2e2;color:#991b1b">至急</span>'
+              : '<span class="badge" style="background:#fef3c7;color:#92400e">推奨</span>';
             return `<div class="recommendation ${urgent ? "urgent" : ""}">
                     <div style="display:flex;align-items:center;gap:8px;"><strong>${
                       r.type
@@ -629,7 +630,7 @@
           .join("");
       }
 
-      /* ========= モーダル制御 ========= */
+      /* ===== モーダル（履歴） ===== */
       const modal = document.getElementById("historyModal");
       const modalList = document.getElementById("modalHistoryList");
       const prevBtn = document.getElementById("prevBtn");
@@ -662,29 +663,29 @@
         );
         if (histPage >= totalPages) histPage = totalPages - 1;
         if (histPage < 0) histPage = 0;
-
         const slice = HISTORY.slice(
           histPage * HIST_PAGE_SIZE,
           (histPage + 1) * HIST_PAGE_SIZE
         );
+
         modalList.innerHTML = slice
           .map(
             (item) => `
-          <div class="hist">
-            <div class="hist-date">${fmtDate(item.date)}</div>
-            <div class="hist-type">${item.type || ""}</div>
-            <div class="hist-detail">${item.detail || ""}</div>
-            <div class="hist-meta">
-              <span class="price">¥${(
-                Number(item.price) || 0
-              ).toLocaleString()}</span>
-              <span class="km">${
-                item.mileage
-                  ? Number(item.mileage).toLocaleString() + "km"
-                  : "-"
-              }</span>
-            </div>
-          </div>`
+            <div class="hist">
+              <div class="hist-date">${fmtDate(item.date)}</div>
+              <div class="hist-type">${item.type || ""}</div>
+              <div class="hist-detail">${item.detail || ""}</div>
+              <div class="hist-meta">
+                <span class="price">¥${(
+                  Number(item.price) || 0
+                ).toLocaleString()}</span>
+                <span class="km">${
+                  item.mileage
+                    ? Number(item.mileage).toLocaleString() + "km"
+                    : "-"
+                }</span>
+              </div>
+            </div>`
           )
           .join("");
 
@@ -710,7 +711,7 @@
         renderHistoryModal();
       });
 
-      /* ========= 次回目安日（Googleカレンダー追加） ========= */
+      /* ===== 次回目安日 + Googleカレンダー ===== */
       function showNextDate(recs) {
         const box = document.getElementById("nextBox");
         if (!recs || !recs.length) {
@@ -719,7 +720,7 @@
         }
 
         const today = new Date();
-        const target = new Date(today);
+        let target = new Date(today);
         const oil = recs.find((r) => (r.type || "").includes("オイル"));
         target.setDate(today.getDate() + (oil ? 30 : 14));
 
@@ -730,38 +731,37 @@
         }月${target.getDate()}日 頃に点検をおすすめします`;
         box.style.display = "block";
 
-        const pad = (n) => String(n).padStart(2, "0");
-        const yyyy = target.getFullYear();
-        const mm = pad(target.getMonth() + 1);
-        const dd = pad(target.getDate());
-        const start = `${yyyy}${mm}${dd}T100000`; // 10:00
-        const end = `${yyyy}${mm}${dd}T110000`; // 11:00
-        const title = encodeURIComponent("点検の目安日");
-        const details = encodeURIComponent(
-          "LINEのマイページから作成（整備履歴マイページ）"
-        );
-
-        const url =
-          `https://calendar.google.com/calendar/render?action=TEMPLATE` +
-          `&text=${title}&details=${details}&dates=${start}/${end}&ctz=Asia/Tokyo`;
-
         document.getElementById("gcalBtn").onclick = () => {
-          liff.openWindow({ url, external: true });
+          const pad = (n) => String(n).padStart(2, "0");
+          const y = target.getFullYear(),
+            m = pad(target.getMonth() + 1),
+            d = pad(target.getDate());
+          const start = `${y}${m}${d}T100000`;
+          const end = `${y}${m}${d}T110000`;
+          const query = new URLSearchParams({
+            action: "TEMPLATE",
+            text: "点検の目安日",
+            dates: `${start}/${end}`,
+            details: "LINEのマイページから作成",
+            ctz: "Asia/Tokyo",
+          }).toString();
+          const url = `https://calendar.google.com/calendar/render?${query}`;
+          liff.openWindow({ url, external: true }); // Googleアプリ/ブラウザで開く
         };
       }
 
-      /* ========= 日付UI（アイコン/入力どちらでも開く） ========= */
+      /* ===== 日付UI: アイコン/入力どちらでも開く ===== */
       document
         .getElementById("dateIcon")
         .addEventListener("click", () =>
           document.getElementById("hDate").showPicker?.()
         );
       document.getElementById("dateField").addEventListener("click", (e) => {
-        if (e.target.id === "hDate") return;
-        document.getElementById("hDate").showPicker?.();
+        if (e.target.id !== "hDate")
+          document.getElementById("hDate").showPicker?.();
       });
 
-      /* ========= ドロップダウン：その他 ========= */
+      /* ===== 種類：その他 ===== */
       const typeSelect = document.getElementById("hTypeSelect");
       const typeOther = document.getElementById("hTypeOther");
       typeSelect.addEventListener("change", () => {
@@ -773,28 +773,23 @@
         }
       });
 
-      /* ========= POST: 走行距離更新 ========= */
+      /* ===== POST: 走行距離更新 ===== */
       document
         .getElementById("saveMileageBtn")
         .addEventListener("click", saveMileage);
       async function saveMileage() {
         const v = Number(document.getElementById("mileageInput").value || 0);
-        if (!v || v <= 0) {
+        if (!v) {
           toast("走行距離を入力してください");
           return;
         }
         try {
-          const r = await fetch(window.GAS_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              action: "updateMileage",
-              userId,
-              mileage: v,
-              token: window.POST_TOKEN,
-            }),
+          const j = await postGAS({
+            action: "updateMileage",
+            userId,
+            mileage: v,
+            token: window.POST_TOKEN,
           });
-          const j = await r.json();
           if (j.status === "success") {
             toast("保存しました");
             loadData();
@@ -806,7 +801,7 @@
         }
       }
 
-      /* ========= POST: 履歴追加 ========= */
+      /* ===== POST: 履歴追加 ===== */
       document
         .getElementById("addHistoryBtn")
         .addEventListener("click", addHistory);
@@ -816,29 +811,22 @@
           typeSelect.value === "__other__"
             ? typeOther.value.trim()
             : typeSelect.value;
-        const p = {
+        const payload = {
+          action: "appendHistory",
+          userId,
           date,
           type: (typeVal || "").trim(),
           detail: document.getElementById("hDetail").value.trim(),
           price: Number(document.getElementById("hPrice").value || 0),
           mileage: Number(document.getElementById("hMileage").value || 0),
+          token: window.POST_TOKEN,
         };
-        if (!p.date || !p.type) {
+        if (!payload.date || !payload.type) {
           toast("整備日と整備項目は必須です");
           return;
         }
         try {
-          const r = await fetch(window.GAS_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              action: "appendHistory",
-              userId,
-              ...p,
-              token: window.POST_TOKEN,
-            }),
-          });
-          const j = await r.json();
+          const j = await postGAS(payload);
           if (j.status === "success") {
             toast("登録しました");
             ["hDate", "hDetail", "hPrice", "hMileage"].forEach(
@@ -856,7 +844,7 @@
         }
       }
 
-      /* ========= 予約ページ ========= */
+      /* ===== 予約ページ（任意） ===== */
       function openReservation() {
         liff.openWindow({
           url: "https://lin.ee/your-reserve",
@@ -864,7 +852,7 @@
         });
       }
 
-      /* ========= エラー表示 ========= */
+      /* ===== エラー表示 ===== */
       function showError(msg) {
         document.getElementById("loading").style.display = "none";
         document.getElementById("content").style.display = "none";
@@ -872,7 +860,6 @@
         document.getElementById("errorMessage").textContent = msg;
       }
 
-      // 初期化
       window.addEventListener("DOMContentLoaded", initApp);
     </script>
   </body>
