@@ -206,57 +206,49 @@
         font-size: 16px;
       }
 
-      /* ==== 日付入力：ラベル＋アイコン付き ==== */
-      .field {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
+      /* ---- 日付入力（左アイコン） ---- */
       .field-label {
         font-size: 14px;
         font-weight: 700;
-        color: #1e293b;
+        color: #1f2937;
+        margin-bottom: 6px;
       }
-      .field-hint {
-        font-size: 12px;
-        color: #64748b;
-      }
-      .input-group {
+      .date-input {
         position: relative;
-      }
-      .input-date {
-        width: 100%;
-        padding: 12px 44px 12px 12px; /* 右にアイコン分の余白 */
+        display: flex;
+        align-items: center;
         border: 1px solid #e5e7eb;
         border-radius: 10px;
-        font-size: 16px;
         background: #fff;
-        color: #111;
       }
-      .input-date:focus {
-        outline: none;
-        border-color: #4f46e5;
-        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
-      }
-      .input-icon {
+      .date-input .calendar-btn {
         position: absolute;
-        right: 10px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 22px;
-        height: 22px;
-        color: #64748b;
-        pointer-events: none;
-      }
-      .input-icon-btn {
-        position: absolute;
-        right: 0;
-        top: 0;
-        bottom: 0;
-        width: 40px;
-        background: transparent;
-        border: 0;
+        left: 10px;
+        display: grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
         cursor: pointer;
+        border: 0;
+        background: transparent;
+        color: #4f46e5;
+        outline: none;
+      }
+      .date-input .calendar-btn:active {
+        transform: scale(0.96);
+      }
+      .date-input .date-control {
+        width: 100%;
+        padding: 12px 12px 12px 44px; /* ← 左アイコン分の余白 */
+        border: 0;
+        background: transparent;
+        border-radius: 10px;
+      }
+      .hint {
+        display: block;
+        margin-top: 6px;
+        font-size: 12px;
+        color: #64748b;
       }
     </style>
   </head>
@@ -313,7 +305,6 @@
           </button>
         </div>
         <p
-          id="mileageHint"
           class="badge"
           style="margin-top: 8px; background: #eef2ff; color: #3730a3"
         >
@@ -324,52 +315,55 @@
       <!-- ➕ 履歴追加 -->
       <div class="card">
         <div class="section-title">➕ 整備履歴を追加</div>
-        <div class="grid" style="display: grid; gap: 8px">
-          <!-- ☆☆☆ ここを“日付フィールド（ラベル/アイコン/ヒント付き）”に差し替え ☆☆☆ -->
-          <div class="field">
-            <div class="field-label">整備日</div>
-            <div class="input-group">
-              <input
-                id="hDate"
-                type="date"
-                class="input-date"
-                aria-label="整備日"
-              />
-              <!-- アイコン -->
-              <svg
-                class="input-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden="true"
-              >
-                <rect
-                  x="3"
-                  y="4"
-                  width="18"
-                  height="18"
-                  rx="2"
-                  ry="2"
-                  stroke="currentColor"
-                  stroke-width="2"
-                />
-                <path
-                  d="M16 2v4M8 2v4M3 10h18"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                />
-              </svg>
-              <!-- タップでピッカーを開く -->
-              <button
-                type="button"
-                class="input-icon-btn"
-                aria-label="カレンダーを開く"
-                onclick="(function(el){ if(el.showPicker){ el.showPicker(); } else { el.focus(); } })(document.getElementById('hDate'));"
-              ></button>
-            </div>
-            <div class="field-hint">カレンダーから整備日を選択</div>
-          </div>
 
+        <!-- 日付（左アイコン・どちらを押しても開く） -->
+        <label for="hDate" class="field-label">整備日</label>
+        <div class="date-input" style="margin-bottom: 8px">
+          <button
+            type="button"
+            id="hDateIcon"
+            class="calendar-btn"
+            aria-label="日付を選択"
+          >
+            <!-- calendar svg -->
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              fill="none"
+              aria-hidden="true"
+            >
+              <rect
+                x="3"
+                y="4"
+                width="18"
+                height="18"
+                rx="3"
+                stroke="currentColor"
+                stroke-width="2"
+              />
+              <path
+                d="M8 2v4M16 2v4M3 10h18"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+          <input
+            id="hDate"
+            class="date-control"
+            type="date"
+            aria-label="整備日を選択"
+          />
+        </div>
+        <small class="hint"
+          >カレンダーアイコン または
+          入力欄をタップして日付を選択してください</small
+        >
+
+        <!-- 他の入力 -->
+        <div class="grid" style="display: grid; gap: 8px; margin-top: 10px">
           <input
             id="hType"
             placeholder="例: オイル交換"
@@ -447,11 +441,11 @@
         document.body.appendChild(n);
         setTimeout(() => n.remove(), 2000);
       };
-      function formatDate(dateStr) {
-        const d = new Date(dateStr);
+      const formatDate = (s) => {
+        const d = new Date(s);
         if (isNaN(+d)) return "-";
         return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
-      }
+      };
 
       /* ========= LIFF初期化 ========= */
       async function initApp() {
@@ -481,8 +475,8 @@
           const result = await res.json();
           if (result.status === "error")
             throw new Error(result.message || "error");
-
           const data = result.data;
+
           document.getElementById("userName").textContent = data.customer.name;
           document.getElementById(
             "carInfo"
@@ -514,14 +508,14 @@
             const badge = urgent
               ? '<span class="badge badge-danger">至急</span>'
               : '<span class="badge badge-warning">推奨</span>';
-            return `<div class="recommendation ${urgent ? "urgent" : ""}">
-                    <h4>${r.type} ${badge}</h4><p>${r.reason || ""}</p>
-                  </div>`;
+            return `<div class="recommendation ${urgent ? "urgent" : ""}"><h4>${
+              r.type
+            } ${badge}</h4><p>${r.reason || ""}</p></div>`;
           })
           .join("");
       }
 
-      /* ========= 履歴表示（ページング付き） ========= */
+      /* ========= 履歴表示（ページング） ========= */
       function displayHistoryPaged(history) {
         const pageSize = 10;
         let page = 0;
@@ -550,20 +544,22 @@
                       : "-"
                   }</span>
                 </div>
-              </div>`
+              </div>
+            `
               )
               .join("") +
-            `<div style="display:flex;gap:8px;margin-top:8px;">
-                 <button class="btn" style="background:#e5e7eb;color:#111" ${
-                   page === 0 ? "disabled" : ""
-                 } id="prevBtn">前へ</button>
-                 <button class="btn" style="background:#e5e7eb;color:#111" ${
-                   (page + 1) * pageSize >= history.length ? "disabled" : ""
-                 } id="nextBtn">次へ</button>
-                 <div style="margin-left:auto;padding:12px 0;color:#64748b">${
-                   page + 1
-                 } / ${Math.max(1, Math.ceil(history.length / pageSize))}</div>
-               </div>`;
+            `
+              <div style="display:flex;gap:8px;margin-top:8px;">
+                <button class="btn" style="background:#e5e7eb;color:#111" ${
+                  page === 0 ? "disabled" : ""
+                } id="prevBtn">前へ</button>
+                <button class="btn" style="background:#e5e7eb;color:#111" ${
+                  (page + 1) * pageSize >= history.length ? "disabled" : ""
+                } id="nextBtn">次へ</button>
+                <div style="margin-left:auto;padding:12px 0;color:#64748b">${
+                  page + 1
+                } / ${Math.max(1, Math.ceil(history.length / pageSize))}</div>
+              </div>`;
           const prev = document.getElementById("prevBtn"),
             next = document.getElementById("nextBtn");
           prev &&
@@ -634,7 +630,9 @@
 
       /* ========= POST: 走行距離更新 ========= */
       document.addEventListener("click", (e) => {
-        if (e.target && e.target.id === "saveMileageBtn") saveMileage();
+        if (e.target && e.target.id === "saveMileageBtn") {
+          saveMileage();
+        }
       });
       async function saveMileage() {
         const v = Number(document.getElementById("mileageInput").value || 0);
@@ -667,7 +665,9 @@
 
       /* ========= POST: 履歴追加 ========= */
       document.addEventListener("click", (e) => {
-        if (e.target && e.target.id === "addHistoryBtn") addHistory();
+        if (e.target && e.target.id === "addHistoryBtn") {
+          addHistory();
+        }
       });
       async function addHistory() {
         const p = {
@@ -706,6 +706,29 @@
           toast("通信エラー");
         }
       }
+
+      /* ========= 日付入力：アイコン＆入力欄どちらでも開く ========= */
+      function openDatePicker(el) {
+        if (el.showPicker) {
+          el.showPicker();
+        } else {
+          el.focus();
+        }
+      }
+      document.addEventListener("DOMContentLoaded", () => {
+        const dateEl = document.getElementById("hDate");
+        const iconEl = document.getElementById("hDateIcon");
+        // 入力欄タップでも確実に開く
+        dateEl.addEventListener("click", () => openDatePicker(dateEl));
+        // 左アイコンタップでも開く（キーボード操作にも対応）
+        iconEl.addEventListener("click", () => openDatePicker(dateEl));
+        iconEl.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            openDatePicker(dateEl);
+          }
+        });
+      });
 
       /* ========= 予約ページ ========= */
       function openReservation() {
