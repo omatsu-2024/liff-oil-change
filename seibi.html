@@ -447,32 +447,34 @@
             slice
               .map(
                 (item) => `
-      <div class="history-item">
-        <div class="history-date">${formatDate(item.date)}</div>
-        <div class="history-type">${item.type}</div>
-        <div class="history-detail">${item.detail || ""}</div>
-        <div class="history-meta">
-          <span class="price">¥${(
-            Number(item.price) || 0
-          ).toLocaleString()}</span>
-          <span class="mileage">${
-            item.mileage ? Number(item.mileage).toLocaleString() + "km" : "-"
-          }</span>
-        </div>
-      </div>`
+            <div class="history-item">
+              <div class="history-date">${formatDate(item.date)}</div>
+              <div class="history-type">${item.type}</div>
+              <div class="history-detail">${item.detail || ""}</div>
+              <div class="history-meta">
+                <span class="price">¥${(
+                  Number(item.price) || 0
+                ).toLocaleString()}</span>
+                <span class="mileage">${
+                  item.mileage
+                    ? Number(item.mileage).toLocaleString() + "km"
+                    : "-"
+                }</span>
+              </div>
+            </div>`
               )
               .join("") +
             `<div style="display:flex;gap:8px;margin-top:8px;">
-           <button class="btn" style="background:#e5e7eb;color:#111" ${
-             page === 0 ? "disabled" : ""
-           } id="prevBtn">前へ</button>
-           <button class="btn" style="background:#e5e7eb;color:#111" ${
-             (page + 1) * pageSize >= history.length ? "disabled" : ""
-           } id="nextBtn">次へ</button>
-           <div style="margin-left:auto;padding:12px 0;color:#64748b">${
-             page + 1
-           } / ${Math.max(1, Math.ceil(history.length / pageSize))}</div>
-         </div>`;
+                 <button class="btn" style="background:#e5e7eb;color:#111" ${
+                   page === 0 ? "disabled" : ""
+                 } id="prevBtn">前へ</button>
+                 <button class="btn" style="background:#e5e7eb;color:#111" ${
+                   (page + 1) * pageSize >= history.length ? "disabled" : ""
+                 } id="nextBtn">次へ</button>
+                 <div style="margin-left:auto;padding:12px 0;color:#64748b">${
+                   page + 1
+                 } / ${Math.max(1, Math.ceil(history.length / pageSize))}</div>
+               </div>`;
           const prev = document.getElementById("prevBtn"),
             next = document.getElementById("nextBtn");
           prev &&
@@ -541,7 +543,7 @@
         };
       }
 
-      /* ========= POST: 走行距離更新 ========= */
+      /* ========= POST: 走行距離更新（CORSプリフライト回避） ========= */
       document.addEventListener("click", (e) => {
         if (e.target && e.target.id === "saveMileageBtn") {
           saveMileage();
@@ -556,7 +558,7 @@
         try {
           const r = await fetch(window.GAS_URL, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "text/plain;charset=utf-8" }, // ← ここがポイント
             body: JSON.stringify({
               action: "updateMileage",
               userId,
@@ -576,7 +578,7 @@
         }
       }
 
-      /* ========= POST: 履歴追加 ========= */
+      /* ========= POST: 履歴追加（CORSプリフライト回避） ========= */
       document.addEventListener("click", (e) => {
         if (e.target && e.target.id === "addHistoryBtn") {
           addHistory();
@@ -597,7 +599,7 @@
         try {
           const r = await fetch(window.GAS_URL, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "text/plain;charset=utf-8" }, // ← ここがポイント
             body: JSON.stringify({
               action: "appendHistory",
               userId,
