@@ -239,7 +239,7 @@
       }
       .date-input .date-control {
         width: 100%;
-        padding: 12px 12px 12px 44px; /* ← 左アイコン分の余白 */
+        padding: 12px 12px 12px 44px; /* 左アイコン分 */
         border: 0;
         background: transparent;
         border-radius: 10px;
@@ -249,6 +249,25 @@
         margin-top: 6px;
         font-size: 12px;
         color: #64748b;
+      }
+
+      /* ---- セレクト＋その他入力 ---- */
+      .select-row {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+      @media (min-width: 520px) {
+        .select-row {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      .input-like {
+        padding: 12px;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        width: 100%;
+        background: #fff;
       }
     </style>
   </head>
@@ -325,7 +344,6 @@
             class="calendar-btn"
             aria-label="日付を選択"
           >
-            <!-- calendar svg -->
             <svg
               viewBox="0 0 24 24"
               width="20"
@@ -362,17 +380,42 @@
           入力欄をタップして日付を選択してください</small
         >
 
-        <!-- 他の入力 -->
+        <!-- 整備内容（セレクト＋その他） -->
+        <div style="margin-top: 12px">
+          <label class="field-label" for="hTypeSelect">整備内容</label>
+          <div class="select-row">
+            <select
+              id="hTypeSelect"
+              class="input-like"
+              aria-label="整備内容を選択"
+            >
+              <option value="" disabled selected>選択してください</option>
+              <option>オイル交換</option>
+              <option>オイル・エレメント交換</option>
+              <option>ブレーキフルード交換</option>
+              <option>冷却水（LLC）交換</option>
+              <option>バッテリー交換</option>
+              <option>タイヤ交換</option>
+              <option>ワイパーゴム交換</option>
+              <option>エアコンフィルター交換</option>
+              <option>ブレーキパッド交換</option>
+              <option>法定12ヶ月点検</option>
+              <option>6ヶ月点検</option>
+              <option value="other">その他（自由入力）</option>
+            </select>
+
+            <!-- その他入力（other選択時のみ表示） -->
+            <input
+              id="hTypeOther"
+              class="input-like"
+              placeholder="その他の内容を入力"
+              style="display: none"
+            />
+          </div>
+        </div>
+
+        <!-- 詳細ほか -->
         <div class="grid" style="display: grid; gap: 8px; margin-top: 10px">
-          <input
-            id="hType"
-            placeholder="例: オイル交換"
-            style="
-              padding: 12px;
-              border: 1px solid #e5e7eb;
-              border-radius: 10px;
-            "
-          />
           <input
             id="hDetail"
             placeholder="例: エンジンオイル交換"
@@ -460,6 +503,38 @@
           document.getElementById("avatar").textContent =
             profile.displayName.charAt(0);
           await loadData();
+
+          // セレクトの「その他」切替
+          const sel = document.getElementById("hTypeSelect");
+          const other = document.getElementById("hTypeOther");
+          sel.addEventListener("change", () => {
+            if (sel.value === "other") {
+              other.style.display = "block";
+              other.focus();
+            } else {
+              other.style.display = "none";
+              other.value = "";
+            }
+          });
+
+          // 日付ピッカーをアイコン/入力欄どちらでも開く
+          const dateEl = document.getElementById("hDate");
+          const iconEl = document.getElementById("hDateIcon");
+          const openPicker = (el) => {
+            if (el.showPicker) {
+              el.showPicker();
+            } else {
+              el.focus();
+            }
+          };
+          dateEl.addEventListener("click", () => openPicker(dateEl));
+          iconEl.addEventListener("click", () => openPicker(dateEl));
+          iconEl.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              openPicker(dateEl);
+            }
+          });
         } catch (e) {
           console.error(e);
           showError("LINEとの接続に失敗しました");
@@ -663,24 +738,34 @@
         }
       }
 
-      /* ========= POST: 履歴追加 ========= */
+      /* ========= POST: 履歴追加（セレクト対応） ========= */
       document.addEventListener("click", (e) => {
         if (e.target && e.target.id === "addHistoryBtn") {
           addHistory();
         }
       });
       async function addHistory() {
+        const sel = document.getElementById("hTypeSelect");
+        const other = document.getElementById("hTypeOther");
+
+        let typeValue = sel.value === "other" ? other.value.trim() : sel.value;
+        if (!typeValue) {
+          toast("整備内容を選択（または入力）してください");
+          return;
+        }
+
         const p = {
           date: document.getElementById("hDate").value,
-          type: document.getElementById("hType").value.trim(),
+          type: typeValue,
           detail: document.getElementById("hDetail").value.trim(),
           price: Number(document.getElementById("hPrice").value || 0),
           mileage: Number(document.getElementById("hMileage").value || 0),
         };
-        if (!p.date || !p.type) {
-          toast("日付と種類は必須です");
+        if (!p.date) {
+          toast("整備日を入力してください");
           return;
         }
+
         try {
           const r = await fetch(window.GAS_URL, {
             method: "POST",
@@ -695,9 +780,13 @@
           const j = await r.json();
           if (j.status === "success") {
             toast("登録しました");
-            ["hDate", "hType", "hDetail", "hPrice", "hMileage"].forEach(
+            // 入力クリア
+            ["hDate", "hDetail", "hPrice", "hMileage"].forEach(
               (id) => (document.getElementById(id).value = "")
             );
+            sel.value = "";
+            other.value = "";
+            other.style.display = "none";
             loadData();
           } else {
             toast("登録に失敗: " + (j.message || ""));
@@ -706,29 +795,6 @@
           toast("通信エラー");
         }
       }
-
-      /* ========= 日付入力：アイコン＆入力欄どちらでも開く ========= */
-      function openDatePicker(el) {
-        if (el.showPicker) {
-          el.showPicker();
-        } else {
-          el.focus();
-        }
-      }
-      document.addEventListener("DOMContentLoaded", () => {
-        const dateEl = document.getElementById("hDate");
-        const iconEl = document.getElementById("hDateIcon");
-        // 入力欄タップでも確実に開く
-        dateEl.addEventListener("click", () => openDatePicker(dateEl));
-        // 左アイコンタップでも開く（キーボード操作にも対応）
-        iconEl.addEventListener("click", () => openDatePicker(dateEl));
-        iconEl.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            openDatePicker(dateEl);
-          }
-        });
-      });
 
       /* ========= 予約ページ ========= */
       function openReservation() {
