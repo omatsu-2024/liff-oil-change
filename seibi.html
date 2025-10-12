@@ -12,7 +12,7 @@
     ></script>
 
     <script>
-      /* ====== 設定（必要に応じて編集） ====== */
+      /* ====== 設定 ====== */
       window.LIFF_ID = "2008228464-Jy1OL86j"; /* ← あなたのLIFF ID */
       window.GAS_URL =
         "https://script.google.com/macros/s/AKfycbz0EzPRsZ77DFPU8qC555lxya1Zo_KHVRbl_Z32WBKRCIKPb5GCDTgNm7mrhcEUUlDH/exec"; /* ← あなたのGAS URL */
@@ -142,7 +142,7 @@
       }
       .history-detail {
         font-size: 14px;
-        color: var(--gray);
+        color: #6b7280;
         margin-bottom: 8px;
       }
       .history-meta {
@@ -155,7 +155,7 @@
         color: var(--primary);
       }
       .mileage {
-        color: var(--gray);
+        color: #64748b;
       }
       .loading {
         text-align: center;
@@ -205,7 +205,8 @@
       select {
         font-size: 16px;
       }
-      /* 日付入力（左アイコントリガーつき） */
+
+      /* 日付UI */
       .date-row {
         display: flex;
         align-items: center;
@@ -231,6 +232,99 @@
         font-size: 12px;
         color: #64748b;
         line-height: 1.4;
+      }
+
+      /* ===== モーダル（履歴） ===== */
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        backdrop-filter: blur(2px);
+        display: none;
+        z-index: 9998;
+      }
+      .modal-backdrop.show {
+        display: block;
+      }
+      .modal {
+        position: fixed;
+        inset: 0;
+        display: none;
+        z-index: 9999;
+        outline: none;
+      }
+      .modal.show {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+      }
+      @media (min-width: 600px) {
+        .modal.show {
+          align-items: center;
+        }
+      }
+      .modal-dialog {
+        width: 100%;
+        max-width: 640px;
+        background: #fff;
+        border-radius: 18px 18px 0 0;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+        display: flex;
+        flex-direction: column;
+        max-height: 90vh;
+      }
+      @media (min-width: 600px) {
+        .modal-dialog {
+          border-radius: 18px;
+        }
+      }
+      .modal-header {
+        position: sticky;
+        top: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: space-between;
+        padding: 14px 16px;
+        border-bottom: 1px solid #e5e7eb;
+        background: #fff;
+        border-radius: 18px 18px 0 0;
+      }
+      .modal-title {
+        font-weight: 800;
+        color: #111827;
+      }
+      .modal-close {
+        appearance: none;
+        border: 0;
+        background: #eef2ff;
+        color: #3730a3;
+        border-radius: 10px;
+        padding: 8px 10px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .modal-body {
+        padding: 8px 16px 16px;
+        overflow-y: auto;
+      }
+      .modal-footer {
+        position: sticky;
+        bottom: 0;
+        background: #fff;
+        border-top: 1px solid #e5e7eb;
+        padding: 10px 16px;
+        display: flex;
+        gap: 8px;
+        border-radius: 0 0 18px 18px;
+      }
+      .btn-muted {
+        background: #e5e7eb;
+        color: #111;
+      }
+      .noscr {
+        overflow: hidden;
+        touch-action: none;
       }
     </style>
   </head>
@@ -260,10 +354,11 @@
         <div id="recommendations"></div>
       </div>
 
-      <!-- 整備履歴 -->
+      <!-- 整備履歴（プレビュー＋モーダル起動） -->
       <div class="card">
         <div class="section-title">📋 整備履歴</div>
-        <div id="historyList"></div>
+        <div id="historyPreview"></div>
+        <button class="btn" id="openHistoryBtn">整備履歴を見る</button>
       </div>
 
       <!-- 📏 走行距離の更新 -->
@@ -298,7 +393,6 @@
       <div class="card">
         <div class="section-title">➕ 整備履歴を追加</div>
 
-        <!-- 整備日（左のカレンダーアイコン or 入力欄をタップで反応） -->
         <label
           for="hDate"
           style="display: block; font-weight: 700; margin-bottom: 6px"
@@ -306,7 +400,6 @@
         >
         <div class="date-row">
           <div class="date-icon" id="calendarBtn" aria-label="カレンダーを開く">
-            <!-- シンプルなアイコン -->
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
               <rect
                 x="3"
@@ -336,7 +429,6 @@
           カレンダーアイコン または 入力欄をタップして日付を選択してください
         </div>
 
-        <!-- 整備内容（ドロップダウン＋その他） -->
         <div style="margin-top: 12px">
           <select
             id="hTypeSel"
@@ -373,7 +465,6 @@
           />
         </div>
 
-        <!-- 詳細・金額・走行距離 -->
         <input
           id="hDetail"
           placeholder="例: エンジンオイル交換"
@@ -421,7 +512,6 @@
         <button class="btn" id="icsBtn">端末カレンダーに追加（.ics）</button>
       </div>
 
-      <!-- 予約ボタン（任意でURL変更） -->
       <button class="btn" onclick="openReservation()">
         📅 次回メンテナンスを予約する
       </button>
@@ -435,20 +525,51 @@
       </div>
     </div>
 
+    <!-- ===== 履歴モーダル（ポップアップ） ===== -->
+    <div class="modal-backdrop" id="historyBackdrop"></div>
+    <div
+      class="modal"
+      id="historyModal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="historyTitle"
+    >
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <div class="modal-title" id="historyTitle">📋 整備履歴</div>
+          <button class="modal-close" id="closeHistoryBtn">閉じる</button>
+        </div>
+        <div class="modal-body" id="historyModalList">
+          <!-- 履歴アイテムがここに入る -->
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-muted" id="histPrevBtn">前へ</button>
+          <button class="btn btn-muted" id="histNextBtn">次へ</button>
+          <div
+            id="histPageInfo"
+            style="margin-left: auto; padding: 12px 0; color: #64748b"
+          ></div>
+        </div>
+      </div>
+    </div>
+
     <script>
       let userId = "";
+      let HISTORY = []; // 全履歴
+      let histPage = 0; // モーダルのページ
+      const HIST_PAGE_SIZE = 20; // モーダル内表示件数
 
       /* ========= ユーティリティ ========= */
       const toast = (m) => {
         const n = document.createElement("div");
         n.textContent = m;
         n.style.cssText =
-          "position:fixed;left:50%;top:16px;transform:translateX(-50%);background:rgba(16,185,129,.95);color:#fff;padding:10px 14px;border-radius:999px;font-weight:700;z-index:9999";
+          "position:fixed;left:50%;top:16px;transform:translateX(-50%);background:rgba(16,185,129,.95);color:#fff;padding:10px 14px;border-radius:999px;font-weight:700;z-index:10000";
         document.body.appendChild(n);
         setTimeout(() => n.remove(), 2000);
       };
-      function formatDate(dateStr) {
-        const d = new Date(dateStr);
+      function formatDate(s) {
+        const d = new Date(s);
         if (isNaN(+d)) return "-";
         return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
       }
@@ -472,7 +593,7 @@
         }
       }
 
-      /* ========= データ読み込み ========= */
+      /* ========= データ取得 ========= */
       async function loadData() {
         try {
           const res = await fetch(
@@ -482,13 +603,19 @@
           if (result.status === "error")
             throw new Error(result.message || "error");
           const data = result.data;
+
           document.getElementById("userName").textContent = data.customer.name;
           document.getElementById(
             "carInfo"
           ).textContent = `${data.customer.carModel} (${data.customer.carNumber})`;
+
           displayRecommendations(data.nextMaintenance);
-          displayHistory(data.history);
+
+          HISTORY = Array.isArray(data.history) ? data.history : [];
+          renderHistoryPreview(HISTORY);
+
           showNextDate(data.nextMaintenance);
+
           document.getElementById("loading").style.display = "none";
           document.getElementById("content").style.display = "block";
         } catch (e) {
@@ -518,71 +645,108 @@
           .join("");
       }
 
-      /* ========= 履歴表示（ページング） ========= */
-      function displayHistoryPaged(history) {
-        const pageSize = 10;
-        let page = 0;
-        const container = document.getElementById("historyList");
-        const render = () => {
-          const slice = history.slice(page * pageSize, (page + 1) * pageSize);
-          if (slice.length === 0 && page > 0) {
-            page = 0;
-            return render();
-          }
-          container.innerHTML =
-            slice
-              .map(
-                (item) => `
-      <div class="history-item">
-        <div class="history-date">${formatDate(item.date)}</div>
-        <div class="history-type">${item.type}</div>
-        <div class="history-detail">${item.detail || ""}</div>
-        <div class="history-meta">
-          <span class="price">¥${(
-            Number(item.price) || 0
-          ).toLocaleString()}</span>
-          <span class="mileage">${
-            item.mileage ? Number(item.mileage).toLocaleString() + "km" : "-"
-          }</span>
-        </div>
-      </div>`
-              )
-              .join("") +
-            `
-      <div style="display:flex;gap:8px;margin-top:8px;">
-        <button class="btn" style="background:#e5e7eb;color:#111" ${
-          page === 0 ? "disabled" : ""
-        } id="prevBtn">前へ</button>
-        <button class="btn" style="background:#e5e7eb;color:#111" ${
-          (page + 1) * pageSize >= history.length ? "disabled" : ""
-        } id="nextBtn">次へ</button>
-        <div style="margin-left:auto;padding:12px 0;color:#64748b">${
-          page + 1
-        } / ${Math.max(1, Math.ceil(history.length / pageSize))}</div>
-      </div>`;
-          const prev = document.getElementById("prevBtn"),
-            next = document.getElementById("nextBtn");
-          prev &&
-            (prev.onclick = () => {
-              page--;
-              render();
-            });
-          next &&
-            (next.onclick = () => {
-              page++;
-              render();
-            });
-        };
-        render();
-      }
-      function displayHistory(history) {
-        if (!history || history.length === 0) {
-          document.getElementById("historyList").innerHTML =
-            '<p class="empty">整備履歴がありません</p>';
+      /* ========= 履歴プレビュー（最新3件） ========= */
+      function renderHistoryPreview(all) {
+        const container = document.getElementById("historyPreview");
+        if (!all || all.length === 0) {
+          container.innerHTML = '<p class="empty">整備履歴がありません</p>';
           return;
         }
-        displayHistoryPaged(history);
+        const recent = all.slice(0, 3);
+        container.innerHTML = recent
+          .map(
+            (item) => `
+    <div class="history-item">
+      <div class="history-date">${formatDate(item.date)}</div>
+      <div class="history-type">${item.type}</div>
+      <div class="history-detail">${item.detail || ""}</div>
+      <div class="history-meta">
+        <span class="price">¥${(
+          Number(item.price) || 0
+        ).toLocaleString()}</span>
+        <span class="mileage">${
+          item.mileage ? Number(item.mileage).toLocaleString() + "km" : "-"
+        }</span>
+      </div>
+    </div>`
+          )
+          .join("");
       }
+
+      /* ========= 履歴モーダル ========= */
+      const backdrop = document.getElementById("historyBackdrop");
+      const modal = document.getElementById("historyModal");
+      const modalList = document.getElementById("historyModalList");
+      const prevBtn = document.getElementById("histPrevBtn");
+      const nextBtn = document.getElementById("histNextBtn");
+      const pageInfo = document.getElementById("histPageInfo");
+
+      function openHistoryModal() {
+        histPage = 0;
+        renderHistoryModal();
+        backdrop.classList.add("show");
+        modal.classList.add("show");
+        document.body.classList.add("noscr");
+      }
+      function closeHistoryModal() {
+        backdrop.classList.remove("show");
+        modal.classList.remove("show");
+        document.body.classList.remove("noscr");
+      }
+      function renderHistoryModal() {
+        const totalPages = Math.max(
+          1,
+          Math.ceil(HISTORY.length / HIST_PAGE_SIZE)
+        );
+        if (histPage >= totalPages) histPage = totalPages - 1;
+        if (histPage < 0) histPage = 0;
+        const slice = HISTORY.slice(
+          histPage * HIST_PAGE_SIZE,
+          (histPage + 1) * HIST_PAGE_SIZE
+        );
+        modalList.innerHTML = slice
+          .map(
+            (item) => `
+    <div class="history-item">
+      <div class="history-date">${formatDate(item.date)}</div>
+      <div class="history-type">${item.type}</div>
+      <div class="history-detail">${item.detail || ""}</div>
+      <div class="history-meta">
+        <span class="price">¥${(
+          Number(item.price) || 0
+        ).toLocaleString()}</span>
+        <span class="mileage">${
+          item.mileage ? Number(item.mileage).toLocaleString() + "km" : "-"
+        }</span>
+      </div>
+    </div>`
+          )
+          .join("");
+        prevBtn.disabled = histPage === 0;
+        nextBtn.disabled = histPage + 1 >= totalPages;
+        pageInfo.textContent = `${histPage + 1} / ${totalPages}`;
+      }
+
+      /* クリック系 */
+      document
+        .getElementById("openHistoryBtn")
+        .addEventListener("click", openHistoryModal);
+      document
+        .getElementById("closeHistoryBtn")
+        .addEventListener("click", closeHistoryModal);
+      backdrop.addEventListener("click", closeHistoryModal);
+      prevBtn.addEventListener("click", () => {
+        histPage--;
+        renderHistoryModal();
+      });
+      nextBtn.addEventListener("click", () => {
+        histPage++;
+        renderHistoryModal();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && modal.classList.contains("show"))
+          closeHistoryModal();
+      });
 
       /* ========= 次回目安日＋ICS ========= */
       function showNextDate(recs) {
@@ -627,15 +791,12 @@
         };
       }
 
-      /* ========= 入力支援（カレンダー・その他） ========= */
-      document
-        .getElementById("calendarBtn")
-        .addEventListener(
-          "click",
-          () =>
-            document.getElementById("hDate").showPicker &&
-            document.getElementById("hDate").showPicker()
-        );
+      /* ========= 入力支援 ========= */
+      document.getElementById("calendarBtn").addEventListener("click", () => {
+        const d = document.getElementById("hDate");
+        if (d.showPicker) d.showPicker();
+        else d.focus();
+      });
       document.getElementById("hTypeSel").addEventListener("change", (e) => {
         const other = document.getElementById("hTypeOther");
         if (e.target.value === "__OTHER__") {
@@ -647,12 +808,10 @@
         }
       });
 
-      /* ========= POST: 走行距離更新（text/plain でプリフライト回避） ========= */
-      document.addEventListener("click", (e) => {
-        if (e.target && e.target.id === "saveMileageBtn") {
-          saveMileage();
-        }
-      });
+      /* ========= POST: 距離 & 履歴（text/plain でプリフライト回避） ========= */
+      document
+        .getElementById("saveMileageBtn")
+        .addEventListener("click", saveMileage);
       async function saveMileage() {
         const v = Number(document.getElementById("mileageInput").value || 0);
         if (!v || v <= 0) {
@@ -662,7 +821,7 @@
         try {
           const r = await fetch(window.GAS_URL, {
             method: "POST",
-            headers: { "Content-Type": "text/plain" }, // ← 重要：プリフライト回避
+            headers: { "Content-Type": "text/plain" },
             body: JSON.stringify({
               action: "updateMileage",
               userId,
@@ -682,12 +841,9 @@
         }
       }
 
-      /* ========= POST: 履歴追加（text/plain） ========= */
-      document.addEventListener("click", (e) => {
-        if (e.target && e.target.id === "addHistoryBtn") {
-          addHistory();
-        }
-      });
+      document
+        .getElementById("addHistoryBtn")
+        .addEventListener("click", addHistory);
       async function addHistory() {
         const sel = document.getElementById("hTypeSel").value;
         const type =
@@ -708,7 +864,7 @@
         try {
           const r = await fetch(window.GAS_URL, {
             method: "POST",
-            headers: { "Content-Type": "text/plain" }, // ← 重要：プリフライト回避
+            headers: { "Content-Type": "text/plain" },
             body: JSON.stringify({
               action: "appendHistory",
               userId,
@@ -727,7 +883,7 @@
             );
             document.getElementById("hTypeSel").value = "";
             document.getElementById("hTypeOther").style.display = "none";
-            loadData();
+            await loadData(); // HISTORYを更新（プレビューも更新）
           } else {
             toast("登録に失敗: " + (j.message || ""));
           }
@@ -736,7 +892,7 @@
         }
       }
 
-      /* ========= 予約ページ ========= */
+      /* ========= 予約 ========= */
       function openReservation() {
         liff.openWindow({
           url: "https://lin.ee/your-reserve",
