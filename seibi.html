@@ -205,6 +205,59 @@
       select {
         font-size: 16px;
       }
+
+      /* ==== 日付入力：ラベル＋アイコン付き ==== */
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .field-label {
+        font-size: 14px;
+        font-weight: 700;
+        color: #1e293b;
+      }
+      .field-hint {
+        font-size: 12px;
+        color: #64748b;
+      }
+      .input-group {
+        position: relative;
+      }
+      .input-date {
+        width: 100%;
+        padding: 12px 44px 12px 12px; /* 右にアイコン分の余白 */
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        font-size: 16px;
+        background: #fff;
+        color: #111;
+      }
+      .input-date:focus {
+        outline: none;
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+      }
+      .input-icon {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 22px;
+        height: 22px;
+        color: #64748b;
+        pointer-events: none;
+      }
+      .input-icon-btn {
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 40px;
+        background: transparent;
+        border: 0;
+        cursor: pointer;
+      }
     </style>
   </head>
   <body>
@@ -268,19 +321,55 @@
         </p>
       </div>
 
-      <!-- ➕ 履歴追加（任意） -->
+      <!-- ➕ 履歴追加 -->
       <div class="card">
         <div class="section-title">➕ 整備履歴を追加</div>
         <div class="grid" style="display: grid; gap: 8px">
-          <input
-            id="hDate"
-            type="date"
-            style="
-              padding: 12px;
-              border: 1px solid #e5e7eb;
-              border-radius: 10px;
-            "
-          />
+          <!-- ☆☆☆ ここを“日付フィールド（ラベル/アイコン/ヒント付き）”に差し替え ☆☆☆ -->
+          <div class="field">
+            <div class="field-label">整備日</div>
+            <div class="input-group">
+              <input
+                id="hDate"
+                type="date"
+                class="input-date"
+                aria-label="整備日"
+              />
+              <!-- アイコン -->
+              <svg
+                class="input-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <rect
+                  x="3"
+                  y="4"
+                  width="18"
+                  height="18"
+                  rx="2"
+                  ry="2"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+                <path
+                  d="M16 2v4M8 2v4M3 10h18"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
+              <!-- タップでピッカーを開く -->
+              <button
+                type="button"
+                class="input-icon-btn"
+                aria-label="カレンダーを開く"
+                onclick="(function(el){ if(el.showPicker){ el.showPicker(); } else { el.focus(); } })(document.getElementById('hDate'));"
+              ></button>
+            </div>
+            <div class="field-hint">カレンダーから整備日を選択</div>
+          </div>
+
           <input
             id="hType"
             placeholder="例: オイル交換"
@@ -425,9 +514,9 @@
             const badge = urgent
               ? '<span class="badge badge-danger">至急</span>'
               : '<span class="badge badge-warning">推奨</span>';
-            return `<div class="recommendation ${urgent ? "urgent" : ""}"><h4>${
-              r.type
-            } ${badge}</h4><p>${r.reason || ""}</p></div>`;
+            return `<div class="recommendation ${urgent ? "urgent" : ""}">
+                    <h4>${r.type} ${badge}</h4><p>${r.reason || ""}</p>
+                  </div>`;
           })
           .join("");
       }
@@ -447,21 +536,21 @@
             slice
               .map(
                 (item) => `
-            <div class="history-item">
-              <div class="history-date">${formatDate(item.date)}</div>
-              <div class="history-type">${item.type}</div>
-              <div class="history-detail">${item.detail || ""}</div>
-              <div class="history-meta">
-                <span class="price">¥${(
-                  Number(item.price) || 0
-                ).toLocaleString()}</span>
-                <span class="mileage">${
-                  item.mileage
-                    ? Number(item.mileage).toLocaleString() + "km"
-                    : "-"
-                }</span>
-              </div>
-            </div>`
+              <div class="history-item">
+                <div class="history-date">${formatDate(item.date)}</div>
+                <div class="history-type">${item.type}</div>
+                <div class="history-detail">${item.detail || ""}</div>
+                <div class="history-meta">
+                  <span class="price">¥${(
+                    Number(item.price) || 0
+                  ).toLocaleString()}</span>
+                  <span class="mileage">${
+                    item.mileage
+                      ? Number(item.mileage).toLocaleString() + "km"
+                      : "-"
+                  }</span>
+                </div>
+              </div>`
               )
               .join("") +
             `<div style="display:flex;gap:8px;margin-top:8px;">
@@ -543,11 +632,9 @@
         };
       }
 
-      /* ========= POST: 走行距離更新（CORSプリフライト回避） ========= */
+      /* ========= POST: 走行距離更新 ========= */
       document.addEventListener("click", (e) => {
-        if (e.target && e.target.id === "saveMileageBtn") {
-          saveMileage();
-        }
+        if (e.target && e.target.id === "saveMileageBtn") saveMileage();
       });
       async function saveMileage() {
         const v = Number(document.getElementById("mileageInput").value || 0);
@@ -558,7 +645,7 @@
         try {
           const r = await fetch(window.GAS_URL, {
             method: "POST",
-            headers: { "Content-Type": "text/plain;charset=utf-8" }, // ← ここがポイント
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               action: "updateMileage",
               userId,
@@ -578,11 +665,9 @@
         }
       }
 
-      /* ========= POST: 履歴追加（CORSプリフライト回避） ========= */
+      /* ========= POST: 履歴追加 ========= */
       document.addEventListener("click", (e) => {
-        if (e.target && e.target.id === "addHistoryBtn") {
-          addHistory();
-        }
+        if (e.target && e.target.id === "addHistoryBtn") addHistory();
       });
       async function addHistory() {
         const p = {
@@ -599,7 +684,7 @@
         try {
           const r = await fetch(window.GAS_URL, {
             method: "POST",
-            headers: { "Content-Type": "text/plain;charset=utf-8" }, // ← ここがポイント
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               action: "appendHistory",
               userId,
