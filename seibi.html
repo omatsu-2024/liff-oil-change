@@ -4,16 +4,22 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>整備履歴 マイページ</title>
+
+    <!-- LIFF SDK -->
     <script
       charset="utf-8"
       src="https://static.line-scdn.net/liff/edge/2/sdk.js"
     ></script>
+
     <script>
-      // ★あなたの設定（そのまま）
-      window.LIFF_ID = "2008228464-Jy1OL86j";
+      /* ====== 設定（必要に応じて編集） ====== */
+      window.LIFF_ID = "2008228464-Jy1OL86j"; /* ← あなたのLIFF ID */
       window.GAS_URL =
-        "https://script.google.com/macros/s/AKfycbz0EzPRsZ77DFPU8qC555lxya1Zo_KHVRbl_Z32WBKRCIKPb5GCDTgNm7mrhcEUUlDH/exec";
+        "https://script.google.com/macros/s/AKfycbz0EzPRsZ77DFPU8qC555lxya1Zo_KHVRbl_Z32WBKRCIKPb5GCDTgNm7mrhcEUUlDH/exec"; /* ← あなたのGAS URL */
+      window.POST_TOKEN =
+        "change-me-32chars"; /* ← GASのPOST_SHARED_TOKENと同じ値にする */
     </script>
+
     <style>
       :root {
         --primary: #4f46e5;
@@ -195,14 +201,20 @@
         cursor: pointer;
         margin-top: 12px;
       }
+      input,
+      select {
+        font-size: 16px;
+      }
     </style>
   </head>
   <body>
+    <!-- 読み込み -->
     <div id="loading" class="loading">
       <div class="loading-spinner"></div>
       <p>読み込み中...</p>
     </div>
 
+    <!-- 本文 -->
     <div id="content" class="container" style="display: none">
       <!-- ヘッダー -->
       <div class="card">
@@ -215,7 +227,7 @@
         </div>
       </div>
 
-      <!-- 次回メンテナンス推奨 -->
+      <!-- 次回メンテ推奨 -->
       <div class="card">
         <div class="section-title">🔧 次回メンテナンス推奨</div>
         <div id="recommendations"></div>
@@ -227,12 +239,106 @@
         <div id="historyList"></div>
       </div>
 
-      <!-- 予約ボタン -->
+      <!-- 📏 走行距離の更新 -->
+      <div class="card">
+        <div class="section-title">📏 走行距離の更新</div>
+        <div style="display: flex; gap: 8px">
+          <input
+            id="mileageInput"
+            type="number"
+            inputmode="numeric"
+            placeholder="現在の走行距離 (km)"
+            style="
+              flex: 1;
+              padding: 12px;
+              border: 1px solid #e5e7eb;
+              border-radius: 10px;
+            "
+          />
+          <button class="btn" id="saveMileageBtn" style="width: auto">
+            保存
+          </button>
+        </div>
+        <p
+          id="mileageHint"
+          class="badge"
+          style="margin-top: 8px; background: #eef2ff; color: #3730a3"
+        >
+          最新の距離を入れると推奨タイミングが賢くなります
+        </p>
+      </div>
+
+      <!-- ➕ 履歴追加（任意） -->
+      <div class="card">
+        <div class="section-title">➕ 整備履歴を追加</div>
+        <div class="grid" style="display: grid; gap: 8px">
+          <input
+            id="hDate"
+            type="date"
+            style="
+              padding: 12px;
+              border: 1px solid #e5e7eb;
+              border-radius: 10px;
+            "
+          />
+          <input
+            id="hType"
+            placeholder="例: オイル交換"
+            style="
+              padding: 12px;
+              border: 1px solid #e5e7eb;
+              border-radius: 10px;
+            "
+          />
+          <input
+            id="hDetail"
+            placeholder="例: エンジンオイル交換"
+            style="
+              padding: 12px;
+              border: 1px solid #e5e7eb;
+              border-radius: 10px;
+            "
+          />
+          <input
+            id="hPrice"
+            type="number"
+            inputmode="numeric"
+            placeholder="金額(円)"
+            style="
+              padding: 12px;
+              border: 1px solid #e5e7eb;
+              border-radius: 10px;
+            "
+          />
+          <input
+            id="hMileage"
+            type="number"
+            inputmode="numeric"
+            placeholder="整備時走行距離(km)"
+            style="
+              padding: 12px;
+              border: 1px solid #e5e7eb;
+              border-radius: 10px;
+            "
+          />
+          <button class="btn" id="addHistoryBtn">この内容で登録する</button>
+        </div>
+      </div>
+
+      <!-- 🗓️ 次回目安日 & ICS -->
+      <div class="card" id="nextBox" style="display: none">
+        <div class="section-title">🗓️ 次回メンテ目安日</div>
+        <p id="nextText" style="margin-bottom: 8px"></p>
+        <button class="btn" id="icsBtn">端末カレンダーに追加（.ics）</button>
+      </div>
+
+      <!-- 予約ボタン（任意でURL変更） -->
       <button class="btn" onclick="openReservation()">
         📅 次回メンテナンスを予約する
       </button>
     </div>
 
+    <!-- エラー -->
     <div id="error" class="container" style="display: none">
       <div class="card error">
         <h3 style="margin-bottom: 8px">⚠️ エラー</h3>
@@ -243,190 +349,294 @@
     <script>
       let userId = "";
 
-      // ===== ユーティリティ =====
-      const $ = (s) => document.querySelector(s);
-      const $$ = (s) => [...document.querySelectorAll(s)];
-
-      function safeFirstChar(str) {
-        if (!str) return "👤";
-        // サロゲートペア対策（簡易）
-        return Array.from(str)[0] || "👤";
-      }
-
-      function toNumber(n, def = 0) {
-        const x = Number(n);
-        return Number.isFinite(x) ? x : def;
-      }
-
+      /* ========= ユーティリティ ========= */
+      const toast = (m) => {
+        const n = document.createElement("div");
+        n.textContent = m;
+        n.style.cssText =
+          "position:fixed;left:50%;top:16px;transform:translateX(-50%);background:rgba(16,185,129,.95);color:#fff;padding:10px 14px;border-radius:999px;font-weight:700;z-index:9999";
+        document.body.appendChild(n);
+        setTimeout(() => n.remove(), 2000);
+      };
       function formatDate(dateStr) {
-        if (!dateStr) return "-";
         const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return "-";
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, "0");
-        const da = String(d.getDate()).padStart(2, "0");
-        return `${y}年${m}月${da}日`;
+        if (isNaN(+d)) return "-";
+        return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
       }
 
-      function showError(message) {
-        $("#loading").style.display = "none";
-        $("#content").style.display = "none";
-        $("#error").style.display = "block";
-        $("#errorMessage").textContent =
-          message || "データの取得に失敗しました";
-      }
-
-      function isSuccessPayload(resJson) {
-        // ok:true 優先、なければ status:"success"
-        if (typeof resJson?.ok === "boolean") return resJson.ok;
-        if (typeof resJson?.status === "string")
-          return resJson.status.toLowerCase() === "success";
-        return false;
-      }
-
-      // ===== LIFF初期化 =====
+      /* ========= LIFF初期化 ========= */
       async function initApp() {
         try {
           await liff.init({ liffId: window.LIFF_ID });
-
-          // 開発時：PCブラウザ等で userId を URL パラメータから与えてテスト可能
-          const urlParams = new URLSearchParams(location.search);
-          if (urlParams.get("userId")) {
-            userId = urlParams.get("userId");
-          } else {
-            if (!liff.isLoggedIn()) {
-              liff.login();
-              return;
-            }
-            const profile = await liff.getProfile();
-            userId = profile.userId;
-            $("#avatar").textContent = safeFirstChar(profile.displayName);
+          if (!liff.isLoggedIn()) {
+            liff.login();
+            return;
           }
-
+          const profile = await liff.getProfile();
+          userId = profile.userId;
+          document.getElementById("avatar").textContent =
+            profile.displayName.charAt(0);
           await loadData();
-        } catch (err) {
-          console.error("LIFF初期化エラー:", err);
+        } catch (e) {
+          console.error(e);
           showError("LINEとの接続に失敗しました");
         }
       }
 
-      // ===== データ読み込み =====
+      /* ========= データ読み込み ========= */
       async function loadData() {
         try {
-          // キャッシュバスター & エラーチェック
-          const url = `${window.GAS_URL}?userId=${encodeURIComponent(
-            userId
-          )}&_=${Date.now()}`;
-          const response = await fetch(url, { method: "GET" });
-          if (!response.ok) {
-            throw new Error(`HTTPエラー: ${response.status}`);
-          }
+          const res = await fetch(
+            `${window.GAS_URL}?userId=${encodeURIComponent(userId)}`
+          );
+          const result = await res.json();
+          if (result.status === "error")
+            throw new Error(result.message || "error");
 
-          const result = await response.json();
-          if (!isSuccessPayload(result)) {
-            const msg =
-              result?.message || result?.error || "GASからエラーが返りました";
-            throw new Error(msg);
-          }
+          const data = result.data;
+          document.getElementById("userName").textContent = data.customer.name;
+          document.getElementById(
+            "carInfo"
+          ).textContent = `${data.customer.carModel} (${data.customer.carNumber})`;
 
-          const data = result.data || {};
-          const customer = data.customer || {};
-          const history = Array.isArray(data.history) ? data.history : [];
-          const recs = Array.isArray(data.nextMaintenance)
-            ? data.nextMaintenance
-            : [];
+          displayRecommendations(data.nextMaintenance);
+          displayHistory(data.history);
+          showNextDate(data.nextMaintenance);
 
-          // 顧客情報
-          $("#userName").textContent = customer.name || "(名前未登録)";
-          $("#carInfo").textContent = `${customer.carModel || "-"} (${
-            customer.carNumber || "-"
-          })`;
-
-          // 推奨表示
-          displayRecommendations(recs);
-
-          // 履歴表示
-          displayHistory(history);
-
-          // 画面切替
-          $("#loading").style.display = "none";
-          $("#content").style.display = "block";
-        } catch (err) {
-          console.error("データ取得エラー:", err);
-          showError(err.message || "データの取得に失敗しました");
+          document.getElementById("loading").style.display = "none";
+          document.getElementById("content").style.display = "block";
+        } catch (e) {
+          console.error(e);
+          showError(e.message || "データの取得に失敗しました");
         }
       }
 
-      // ===== 推奨メンテ表示 =====
-      function displayRecommendations(recommendations) {
-        const container = $("#recommendations");
-        if (!recommendations || recommendations.length === 0) {
-          container.innerHTML =
+      /* ========= 推奨表示 ========= */
+      function displayRecommendations(recs) {
+        const box = document.getElementById("recommendations");
+        if (!recs || recs.length === 0) {
+          box.innerHTML =
             '<p class="empty">現在、推奨メンテナンスはありません✨</p>';
           return;
         }
-        container.innerHTML = recommendations
-          .map((rec) => {
-            const urgent = rec.urgency === "至急";
+        box.innerHTML = recs
+          .map((r) => {
+            const urgent = r.urgency === "至急";
             const badge = urgent
               ? '<span class="badge badge-danger">至急</span>'
               : '<span class="badge badge-warning">推奨</span>';
-            const reason = rec.reason || "";
-            const type = rec.type || "メンテナンス";
-            return `
-      <div class="recommendation ${urgent ? "urgent" : ""}">
-        <h4>${type} ${badge}</h4>
-        <p>${reason}</p>
-      </div>
-    `;
+            return `<div class="recommendation ${urgent ? "urgent" : ""}"><h4>${
+              r.type
+            } ${badge}</h4><p>${r.reason || ""}</p></div>`;
           })
           .join("");
       }
 
-      // ===== 履歴表示 =====
+      /* ========= 履歴表示（ページング付き） ========= */
+      function displayHistoryPaged(history) {
+        const pageSize = 10;
+        let page = 0;
+        const container = document.getElementById("historyList");
+        const render = () => {
+          const slice = history.slice(page * pageSize, (page + 1) * pageSize);
+          if (slice.length === 0 && page > 0) {
+            page = 0;
+            return render();
+          }
+          container.innerHTML =
+            slice
+              .map(
+                (item) => `
+      <div class="history-item">
+        <div class="history-date">${formatDate(item.date)}</div>
+        <div class="history-type">${item.type}</div>
+        <div class="history-detail">${item.detail || ""}</div>
+        <div class="history-meta">
+          <span class="price">¥${(
+            Number(item.price) || 0
+          ).toLocaleString()}</span>
+          <span class="mileage">${
+            item.mileage ? Number(item.mileage).toLocaleString() + "km" : "-"
+          }</span>
+        </div>
+      </div>`
+              )
+              .join("") +
+            `<div style="display:flex;gap:8px;margin-top:8px;">
+           <button class="btn" style="background:#e5e7eb;color:#111" ${
+             page === 0 ? "disabled" : ""
+           } id="prevBtn">前へ</button>
+           <button class="btn" style="background:#e5e7eb;color:#111" ${
+             (page + 1) * pageSize >= history.length ? "disabled" : ""
+           } id="nextBtn">次へ</button>
+           <div style="margin-left:auto;padding:12px 0;color:#64748b">${
+             page + 1
+           } / ${Math.max(1, Math.ceil(history.length / pageSize))}</div>
+         </div>`;
+          const prev = document.getElementById("prevBtn"),
+            next = document.getElementById("nextBtn");
+          prev &&
+            (prev.onclick = () => {
+              page--;
+              render();
+            });
+          next &&
+            (next.onclick = () => {
+              page++;
+              render();
+            });
+        };
+        render();
+      }
       function displayHistory(history) {
-        const container = $("#historyList");
         if (!history || history.length === 0) {
-          container.innerHTML = '<p class="empty">整備履歴がありません</p>';
+          document.getElementById("historyList").innerHTML =
+            '<p class="empty">整備履歴がありません</p>';
           return;
         }
-        container.innerHTML = history
-          .map((item) => {
-            const date = formatDate(item.date);
-            const type = item.type || "整備";
-            const detail = item.detail || "";
-            const price = toNumber(item.price, NaN);
-            const mileage = toNumber(item.mileage, NaN);
-            const priceStr = Number.isFinite(price)
-              ? "¥" + price.toLocaleString()
-              : "-";
-            const mileageStr = Number.isFinite(mileage)
-              ? mileage.toLocaleString() + "km"
-              : "-";
-            return `
-      <div class="history-item">
-        <div class="history-date">${date}</div>
-        <div class="history-type">${type}</div>
-        <div class="history-detail">${detail}</div>
-        <div class="history-meta">
-          <span class="price">${priceStr}</span>
-          <span class="mileage">${mileageStr}</span>
-        </div>
-      </div>
-    `;
-          })
-          .join("");
+        displayHistoryPaged(history);
       }
 
-      // ===== 予約導線（任意のURLへ） =====
+      /* ========= 次回目安日＋ICS ========= */
+      function showNextDate(recs) {
+        const box = document.getElementById("nextBox");
+        if (!recs || !recs.length) {
+          box.style.display = "none";
+          return;
+        }
+        const today = new Date();
+        let target = new Date(today);
+        const oil = recs.find((r) => r.type.includes("オイル"));
+        target.setDate(today.getDate() + (oil ? 30 : 14));
+        document.getElementById(
+          "nextText"
+        ).textContent = `${target.getFullYear()}年${
+          target.getMonth() + 1
+        }月${target.getDate()}日 頃に点検をおすすめします`;
+        box.style.display = "block";
+
+        document.getElementById("icsBtn").onclick = () => {
+          const y = target.getFullYear(),
+            m = String(target.getMonth() + 1).padStart(2, "0"),
+            d = String(target.getDate()).padStart(2, "0");
+          const ics = [
+            "BEGIN:VCALENDAR",
+            "VERSION:2.0",
+            "PRODID:-//Shop//Maintenance//JP",
+            "BEGIN:VEVENT",
+            `DTSTART;TZID=Asia/Tokyo:${y}${m}${d}T100000`,
+            `DTEND;TZID=Asia/Tokyo:${y}${m}${d}T110000`,
+            "SUMMARY:点検の目安日",
+            "DESCRIPTION:LINEのマイページから作成",
+            "END:VEVENT",
+            "END:VCALENDAR",
+          ].join("\r\n");
+          const blob = new Blob([ics], { type: "text/calendar" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "maintenance.ics";
+          a.click();
+          URL.revokeObjectURL(url);
+        };
+      }
+
+      /* ========= POST: 走行距離更新 ========= */
+      document.addEventListener("click", (e) => {
+        if (e.target && e.target.id === "saveMileageBtn") {
+          saveMileage();
+        }
+      });
+      async function saveMileage() {
+        const v = Number(document.getElementById("mileageInput").value || 0);
+        if (!v || v <= 0) {
+          toast("走行距離を入力してください");
+          return;
+        }
+        try {
+          const r = await fetch(window.GAS_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "updateMileage",
+              userId,
+              mileage: v,
+              token: window.POST_TOKEN,
+            }),
+          });
+          const j = await r.json();
+          if (j.status === "success") {
+            toast("保存しました");
+            loadData();
+          } else {
+            toast("保存に失敗: " + (j.message || ""));
+          }
+        } catch {
+          toast("通信エラー");
+        }
+      }
+
+      /* ========= POST: 履歴追加 ========= */
+      document.addEventListener("click", (e) => {
+        if (e.target && e.target.id === "addHistoryBtn") {
+          addHistory();
+        }
+      });
+      async function addHistory() {
+        const p = {
+          date: document.getElementById("hDate").value,
+          type: document.getElementById("hType").value.trim(),
+          detail: document.getElementById("hDetail").value.trim(),
+          price: Number(document.getElementById("hPrice").value || 0),
+          mileage: Number(document.getElementById("hMileage").value || 0),
+        };
+        if (!p.date || !p.type) {
+          toast("日付と種類は必須です");
+          return;
+        }
+        try {
+          const r = await fetch(window.GAS_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "appendHistory",
+              userId,
+              ...p,
+              token: window.POST_TOKEN,
+            }),
+          });
+          const j = await r.json();
+          if (j.status === "success") {
+            toast("登録しました");
+            ["hDate", "hType", "hDetail", "hPrice", "hMileage"].forEach(
+              (id) => (document.getElementById(id).value = "")
+            );
+            loadData();
+          } else {
+            toast("登録に失敗: " + (j.message || ""));
+          }
+        } catch {
+          toast("通信エラー");
+        }
+      }
+
+      /* ========= 予約ページ ========= */
       function openReservation() {
         liff.openWindow({
-          url: "https://lin.ee/あなたの予約ページ",
+          url: "https://lin.ee/your-reserve",
           external: false,
         });
       }
 
-      // ===== 初期化 =====
+      /* ========= エラー表示 ========= */
+      function showError(msg) {
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("content").style.display = "none";
+        document.getElementById("error").style.display = "block";
+        document.getElementById("errorMessage").textContent = msg;
+      }
+
+      /* 初期化 */
       window.addEventListener("DOMContentLoaded", initApp);
     </script>
   </body>
