@@ -176,7 +176,7 @@
         gap: 8px;
       }
 
-      /* ==== 日付入力（左アイコン＋両方クリックでカレンダー） ==== */
+      /* 日付入力（左アイコン＋両方クリックでカレンダー） */
       .date-field {
         position: relative;
         display: flex;
@@ -214,7 +214,7 @@
         margin-top: 6px;
       }
 
-      /* ==== モーダル ==== */
+      /* モーダル */
       .modal {
         position: fixed;
         inset: 0;
@@ -280,7 +280,7 @@
         border-radius: 0 0 16px 16px;
       }
 
-      /* ==== 1ページ時に余白を圧縮する用 ==== */
+      /* 1ページ時に余白を圧縮する用 */
       .modal-card.shrink {
         bottom: auto;
       }
@@ -349,7 +349,7 @@
         <div id="recommendations"></div>
       </div>
 
-      <!-- 整備履歴（モーダル起動ボタンに変更） -->
+      <!-- 整備履歴（モーダル起動） -->
       <div class="card">
         <div class="section-title">📋 整備履歴</div>
         <button class="btn" id="openHistoryBtn">整備履歴を見る</button>
@@ -482,11 +482,11 @@
         </div>
       </div>
 
-      <!-- 🗓️ 次回目安日 & ICS -->
+      <!-- 🗓️ 次回目安日（Googleカレンダー追加） -->
       <div class="card" id="nextBox" style="display: none">
         <div class="section-title">🗓️ 次回メンテ目安日</div>
         <p id="nextText" style="margin-bottom: 8px"></p>
-        <button class="btn" id="icsBtn">端末カレンダーに追加（.ics）</button>
+        <button class="btn" id="gcalBtn">Googleカレンダーに追加</button>
       </div>
 
       <!-- 予約ボタン -->
@@ -537,7 +537,7 @@
 
     <script>
       let userId = "";
-      let HISTORY = []; // モーダル用に保持
+      let HISTORY = []; // モーダル用
       const HIST_PAGE_SIZE = 10;
       let histPage = 0;
 
@@ -594,10 +594,10 @@
 
           displayRecommendations(data.nextMaintenance);
 
-          // モーダル用に履歴を保持
           HISTORY = Array.isArray(data.history) ? data.history : [];
           document.getElementById("loading").style.display = "none";
           document.getElementById("content").style.display = "block";
+
           showNextDate(data.nextMaintenance);
         } catch (e) {
           console.error(e);
@@ -619,11 +619,12 @@
             const badge = urgent
               ? '<span class="badge badge-danger">至急</span>'
               : '<span class="badge badge-warning">推奨</span>';
-            return `<div class="recommendation ${
-              urgent ? "urgent" : ""
-            }"><div style="display:flex;align-items:center;gap:8px;"><strong>${
-              r.type
-            }</strong> ${badge}</div><p>${r.reason || ""}</p></div>`;
+            return `<div class="recommendation ${urgent ? "urgent" : ""}">
+                    <div style="display:flex;align-items:center;gap:8px;"><strong>${
+                      r.type
+                    }</strong> ${badge}</div>
+                    <p>${r.reason || ""}</p>
+                  </div>`;
           })
           .join("");
       }
@@ -669,26 +670,26 @@
         modalList.innerHTML = slice
           .map(
             (item) => `
-        <div class="hist">
-          <div class="hist-date">${fmtDate(item.date)}</div>
-          <div class="hist-type">${item.type || ""}</div>
-          <div class="hist-detail">${item.detail || ""}</div>
-          <div class="hist-meta">
-            <span class="price">¥${(
-              Number(item.price) || 0
-            ).toLocaleString()}</span>
-            <span class="km">${
-              item.mileage ? Number(item.mileage).toLocaleString() + "km" : "-"
-            }</span>
-          </div>
-        </div>
-      `
+          <div class="hist">
+            <div class="hist-date">${fmtDate(item.date)}</div>
+            <div class="hist-type">${item.type || ""}</div>
+            <div class="hist-detail">${item.detail || ""}</div>
+            <div class="hist-meta">
+              <span class="price">¥${(
+                Number(item.price) || 0
+              ).toLocaleString()}</span>
+              <span class="km">${
+                item.mileage
+                  ? Number(item.mileage).toLocaleString() + "km"
+                  : "-"
+              }</span>
+            </div>
+          </div>`
           )
           .join("");
 
         const footer = document.getElementById("modalFooter");
         const card = modal.querySelector(".modal-card");
-
         if (totalPages === 1) {
           footer.style.display = "none";
           card.classList.add("shrink");
@@ -709,17 +710,19 @@
         renderHistoryModal();
       });
 
-      /* ========= 次回目安日＋ICS ========= */
+      /* ========= 次回目安日（Googleカレンダー追加） ========= */
       function showNextDate(recs) {
         const box = document.getElementById("nextBox");
         if (!recs || !recs.length) {
           box.style.display = "none";
           return;
         }
+
         const today = new Date();
-        let target = new Date(today);
-        const oil = recs.find((r) => r.type.includes("オイル"));
+        const target = new Date(today);
+        const oil = recs.find((r) => (r.type || "").includes("オイル"));
         target.setDate(today.getDate() + (oil ? 30 : 14));
+
         document.getElementById(
           "nextText"
         ).textContent = `${target.getFullYear()}年${
@@ -727,29 +730,23 @@
         }月${target.getDate()}日 頃に点検をおすすめします`;
         box.style.display = "block";
 
-        document.getElementById("icsBtn").onclick = () => {
-          const y = target.getFullYear(),
-            m = String(target.getMonth() + 1).padStart(2, "0"),
-            d = String(target.getDate()).padStart(2, "0");
-          const ics = [
-            "BEGIN:VCALENDAR",
-            "VERSION:2.0",
-            "PRODID:-//Shop//Maintenance//JP",
-            "BEGIN:VEVENT",
-            `DTSTART;TZID=Asia/Tokyo:${y}${m}${d}T100000`,
-            `DTEND;TZID=Asia/Tokyo:${y}${m}${d}T110000`,
-            "SUMMARY:点検の目安日",
-            "DESCRIPTION:LINEのマイページから作成",
-            "END:VEVENT",
-            "END:VCALENDAR",
-          ].join("\r\n");
-          const blob = new Blob([ics], { type: "text/calendar" });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = "maintenance.ics";
-          a.click();
-          URL.revokeObjectURL(url);
+        const pad = (n) => String(n).padStart(2, "0");
+        const yyyy = target.getFullYear();
+        const mm = pad(target.getMonth() + 1);
+        const dd = pad(target.getDate());
+        const start = `${yyyy}${mm}${dd}T100000`; // 10:00
+        const end = `${yyyy}${mm}${dd}T110000`; // 11:00
+        const title = encodeURIComponent("点検の目安日");
+        const details = encodeURIComponent(
+          "LINEのマイページから作成（整備履歴マイページ）"
+        );
+
+        const url =
+          `https://calendar.google.com/calendar/render?action=TEMPLATE` +
+          `&text=${title}&details=${details}&dates=${start}/${end}&ctz=Asia/Tokyo`;
+
+        document.getElementById("gcalBtn").onclick = () => {
+          liff.openWindow({ url, external: true });
         };
       }
 
@@ -764,7 +761,7 @@
         document.getElementById("hDate").showPicker?.();
       });
 
-      /* ========= ドロップダウン：その他ハンドリング ========= */
+      /* ========= ドロップダウン：その他 ========= */
       const typeSelect = document.getElementById("hTypeSelect");
       const typeOther = document.getElementById("hTypeOther");
       typeSelect.addEventListener("change", () => {
@@ -776,7 +773,7 @@
         }
       });
 
-      /* ========= POST: 走行距離更新（CORS回避版） ========= */
+      /* ========= POST: 走行距離更新 ========= */
       document
         .getElementById("saveMileageBtn")
         .addEventListener("click", saveMileage);
@@ -789,8 +786,7 @@
         try {
           const r = await fetch(window.GAS_URL, {
             method: "POST",
-            // ★ application/json を使わない（iOS/Safariプリフライト回避）
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               action: "updateMileage",
               userId,
@@ -798,25 +794,19 @@
               token: window.POST_TOKEN,
             }),
           });
-          const text = await r.text();
-          let j;
-          try {
-            j = JSON.parse(text);
-          } catch {
-            throw new Error("サーバー応答が不正: " + text.slice(0, 120));
-          }
+          const j = await r.json();
           if (j.status === "success") {
             toast("保存しました");
             loadData();
           } else {
             toast("保存に失敗: " + (j.message || ""));
           }
-        } catch (err) {
-          toast("通信エラー: " + (err.message || ""));
+        } catch {
+          toast("通信エラー");
         }
       }
 
-      /* ========= POST: 履歴追加（CORS回避版） ========= */
+      /* ========= POST: 履歴追加 ========= */
       document
         .getElementById("addHistoryBtn")
         .addEventListener("click", addHistory);
@@ -840,7 +830,7 @@
         try {
           const r = await fetch(window.GAS_URL, {
             method: "POST",
-            headers: { "Content-Type": "text/plain;charset=utf-8" }, // ★ここ
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               action: "appendHistory",
               userId,
@@ -848,14 +838,7 @@
               token: window.POST_TOKEN,
             }),
           });
-          const text = await r.text();
-          let j;
-          try {
-            j = JSON.parse(text);
-          } catch {
-            throw new Error("サーバー応答が不正: " + text.slice(0, 120));
-          }
-
+          const j = await r.json();
           if (j.status === "success") {
             toast("登録しました");
             ["hDate", "hDetail", "hPrice", "hMileage"].forEach(
@@ -868,8 +851,8 @@
           } else {
             toast("登録に失敗: " + (j.message || ""));
           }
-        } catch (err) {
-          toast("通信エラー: " + (err.message || ""));
+        } catch {
+          toast("通信エラー");
         }
       }
 
