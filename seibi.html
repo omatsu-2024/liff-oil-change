@@ -17,7 +17,7 @@
       window.GAS_URL =
         "https://script.google.com/macros/s/AKfycbz0EzPRsZ77DFPU8qC555lxya1Zo_KHVRbl_Z32WBKRCIKPb5GCDTgNm7mrhcEUUlDH/exec"; /* ← あなたのGAS URL */
       window.POST_TOKEN =
-        "change-me-32chars"; /* ← GASのPOST_SHARED_TOKENと同じ値にする */
+        "change-me-32chars"; /* ← GASのPOST_SHARED_TOKENと同じ値 */
     </script>
 
     <style>
@@ -205,69 +205,32 @@
       select {
         font-size: 16px;
       }
-
-      /* ---- 日付入力（左アイコン） ---- */
-      .field-label {
-        font-size: 14px;
-        font-weight: 700;
-        color: #1f2937;
-        margin-bottom: 6px;
-      }
-      .date-input {
-        position: relative;
+      /* 日付入力（左アイコントリガーつき） */
+      .date-row {
         display: flex;
         align-items: center;
+        gap: 10px;
+      }
+      .date-icon {
+        width: 40px;
+        height: 40px;
         border: 1px solid #e5e7eb;
         border-radius: 10px;
-        background: #fff;
-      }
-      .date-input .calendar-btn {
-        position: absolute;
-        left: 10px;
         display: grid;
         place-items: center;
-        width: 28px;
-        height: 28px;
         cursor: pointer;
-        border: 0;
-        background: transparent;
-        color: #4f46e5;
-        outline: none;
       }
-      .date-input .calendar-btn:active {
-        transform: scale(0.96);
-      }
-      .date-input .date-control {
-        width: 100%;
-        padding: 12px 12px 12px 44px; /* 左アイコン分 */
-        border: 0;
-        background: transparent;
-        border-radius: 10px;
-      }
-      .hint {
-        display: block;
-        margin-top: 6px;
-        font-size: 12px;
-        color: #64748b;
-      }
-
-      /* ---- セレクト＋その他入力 ---- */
-      .select-row {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 8px;
-      }
-      @media (min-width: 520px) {
-        .select-row {
-          grid-template-columns: 1fr 1fr;
-        }
-      }
-      .input-like {
+      .date-input {
+        flex: 1;
         padding: 12px;
         border: 1px solid #e5e7eb;
         border-radius: 10px;
-        width: 100%;
-        background: #fff;
+      }
+      .hint {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #64748b;
+        line-height: 1.4;
       }
     </style>
   </head>
@@ -335,120 +298,120 @@
       <div class="card">
         <div class="section-title">➕ 整備履歴を追加</div>
 
-        <!-- 日付（左アイコン・どちらを押しても開く） -->
-        <label for="hDate" class="field-label">整備日</label>
-        <div class="date-input" style="margin-bottom: 8px">
-          <button
-            type="button"
-            id="hDateIcon"
-            class="calendar-btn"
-            aria-label="日付を選択"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              width="20"
-              height="20"
-              fill="none"
-              aria-hidden="true"
-            >
+        <!-- 整備日（左のカレンダーアイコン or 入力欄をタップで反応） -->
+        <label
+          for="hDate"
+          style="display: block; font-weight: 700; margin-bottom: 6px"
+          >整備日</label
+        >
+        <div class="date-row">
+          <div class="date-icon" id="calendarBtn" aria-label="カレンダーを開く">
+            <!-- シンプルなアイコン -->
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
               <rect
                 x="3"
                 y="4"
                 width="18"
                 height="18"
                 rx="3"
-                stroke="currentColor"
+                stroke="#4f46e5"
                 stroke-width="2"
               />
               <path
                 d="M8 2v4M16 2v4M3 10h18"
-                stroke="currentColor"
+                stroke="#4f46e5"
                 stroke-width="2"
                 stroke-linecap="round"
               />
             </svg>
-          </button>
+          </div>
           <input
             id="hDate"
-            class="date-control"
+            class="date-input"
             type="date"
-            aria-label="整備日を選択"
+            placeholder="整備日"
           />
         </div>
-        <small class="hint"
-          >カレンダーアイコン または
-          入力欄をタップして日付を選択してください</small
-        >
+        <div class="hint">
+          カレンダーアイコン または 入力欄をタップして日付を選択してください
+        </div>
 
-        <!-- 整備内容（セレクト＋その他） -->
+        <!-- 整備内容（ドロップダウン＋その他） -->
         <div style="margin-top: 12px">
-          <label class="field-label" for="hTypeSelect">整備内容</label>
-          <div class="select-row">
-            <select
-              id="hTypeSelect"
-              class="input-like"
-              aria-label="整備内容を選択"
-            >
-              <option value="" disabled selected>選択してください</option>
-              <option>オイル交換</option>
-              <option>オイル・エレメント交換</option>
-              <option>ブレーキフルード交換</option>
-              <option>冷却水（LLC）交換</option>
-              <option>バッテリー交換</option>
-              <option>タイヤ交換</option>
-              <option>ワイパーゴム交換</option>
-              <option>エアコンフィルター交換</option>
-              <option>ブレーキパッド交換</option>
-              <option>法定12ヶ月点検</option>
-              <option>6ヶ月点検</option>
-              <option value="other">その他（自由入力）</option>
-            </select>
-
-            <!-- その他入力（other選択時のみ表示） -->
-            <input
-              id="hTypeOther"
-              class="input-like"
-              placeholder="その他の内容を入力"
-              style="display: none"
-            />
-          </div>
+          <select
+            id="hTypeSel"
+            style="
+              width: 100%;
+              padding: 12px;
+              border: 1px solid #e5e7eb;
+              border-radius: 10px;
+            "
+          >
+            <option value="" selected disabled>整備内容を選択（必須）</option>
+            <option>オイル交換</option>
+            <option>オイルエレメント交換</option>
+            <option>ブレーキフルード交換</option>
+            <option>冷却水（LLC）交換</option>
+            <option>ワイパーゴム交換</option>
+            <option>エアコンフィルター交換</option>
+            <option>タイヤ交換</option>
+            <option>バッテリー交換</option>
+            <option>ブレーキパッド交換</option>
+            <option>12か月点検</option>
+            <option value="__OTHER__">その他（手入力）</option>
+          </select>
+          <input
+            id="hTypeOther"
+            placeholder="その他の整備内容"
+            style="
+              display: none;
+              margin-top: 8px;
+              padding: 12px;
+              border: 1px solid #e5e7eb;
+              border-radius: 10px;
+            "
+          />
         </div>
 
-        <!-- 詳細ほか -->
-        <div class="grid" style="display: grid; gap: 8px; margin-top: 10px">
-          <input
-            id="hDetail"
-            placeholder="例: エンジンオイル交換"
-            style="
-              padding: 12px;
-              border: 1px solid #e5e7eb;
-              border-radius: 10px;
-            "
-          />
-          <input
-            id="hPrice"
-            type="number"
-            inputmode="numeric"
-            placeholder="金額(円)"
-            style="
-              padding: 12px;
-              border: 1px solid #e5e7eb;
-              border-radius: 10px;
-            "
-          />
-          <input
-            id="hMileage"
-            type="number"
-            inputmode="numeric"
-            placeholder="整備時走行距離(km)"
-            style="
-              padding: 12px;
-              border: 1px solid #e5e7eb;
-              border-radius: 10px;
-            "
-          />
-          <button class="btn" id="addHistoryBtn">この内容で登録する</button>
-        </div>
+        <!-- 詳細・金額・走行距離 -->
+        <input
+          id="hDetail"
+          placeholder="例: エンジンオイル交換"
+          style="
+            margin-top: 8px;
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+          "
+        />
+        <input
+          id="hPrice"
+          type="number"
+          inputmode="numeric"
+          placeholder="金額(円)"
+          style="
+            margin-top: 8px;
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+          "
+        />
+        <input
+          id="hMileage"
+          type="number"
+          inputmode="numeric"
+          placeholder="整備時走行距離(km)"
+          style="
+            margin-top: 8px;
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+          "
+        />
+
+        <button class="btn" id="addHistoryBtn" style="margin-top: 12px">
+          この内容で登録する
+        </button>
       </div>
 
       <!-- 🗓️ 次回目安日 & ICS -->
@@ -484,11 +447,11 @@
         document.body.appendChild(n);
         setTimeout(() => n.remove(), 2000);
       };
-      const formatDate = (s) => {
-        const d = new Date(s);
+      function formatDate(dateStr) {
+        const d = new Date(dateStr);
         if (isNaN(+d)) return "-";
         return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
-      };
+      }
 
       /* ========= LIFF初期化 ========= */
       async function initApp() {
@@ -503,38 +466,6 @@
           document.getElementById("avatar").textContent =
             profile.displayName.charAt(0);
           await loadData();
-
-          // セレクトの「その他」切替
-          const sel = document.getElementById("hTypeSelect");
-          const other = document.getElementById("hTypeOther");
-          sel.addEventListener("change", () => {
-            if (sel.value === "other") {
-              other.style.display = "block";
-              other.focus();
-            } else {
-              other.style.display = "none";
-              other.value = "";
-            }
-          });
-
-          // 日付ピッカーをアイコン/入力欄どちらでも開く
-          const dateEl = document.getElementById("hDate");
-          const iconEl = document.getElementById("hDateIcon");
-          const openPicker = (el) => {
-            if (el.showPicker) {
-              el.showPicker();
-            } else {
-              el.focus();
-            }
-          };
-          dateEl.addEventListener("click", () => openPicker(dateEl));
-          iconEl.addEventListener("click", () => openPicker(dateEl));
-          iconEl.addEventListener("keydown", (e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              openPicker(dateEl);
-            }
-          });
         } catch (e) {
           console.error(e);
           showError("LINEとの接続に失敗しました");
@@ -551,16 +482,13 @@
           if (result.status === "error")
             throw new Error(result.message || "error");
           const data = result.data;
-
           document.getElementById("userName").textContent = data.customer.name;
           document.getElementById(
             "carInfo"
           ).textContent = `${data.customer.carModel} (${data.customer.carNumber})`;
-
           displayRecommendations(data.nextMaintenance);
           displayHistory(data.history);
           showNextDate(data.nextMaintenance);
-
           document.getElementById("loading").style.display = "none";
           document.getElementById("content").style.display = "block";
         } catch (e) {
@@ -605,36 +533,33 @@
             slice
               .map(
                 (item) => `
-              <div class="history-item">
-                <div class="history-date">${formatDate(item.date)}</div>
-                <div class="history-type">${item.type}</div>
-                <div class="history-detail">${item.detail || ""}</div>
-                <div class="history-meta">
-                  <span class="price">¥${(
-                    Number(item.price) || 0
-                  ).toLocaleString()}</span>
-                  <span class="mileage">${
-                    item.mileage
-                      ? Number(item.mileage).toLocaleString() + "km"
-                      : "-"
-                  }</span>
-                </div>
-              </div>
-            `
+      <div class="history-item">
+        <div class="history-date">${formatDate(item.date)}</div>
+        <div class="history-type">${item.type}</div>
+        <div class="history-detail">${item.detail || ""}</div>
+        <div class="history-meta">
+          <span class="price">¥${(
+            Number(item.price) || 0
+          ).toLocaleString()}</span>
+          <span class="mileage">${
+            item.mileage ? Number(item.mileage).toLocaleString() + "km" : "-"
+          }</span>
+        </div>
+      </div>`
               )
               .join("") +
             `
-              <div style="display:flex;gap:8px;margin-top:8px;">
-                <button class="btn" style="background:#e5e7eb;color:#111" ${
-                  page === 0 ? "disabled" : ""
-                } id="prevBtn">前へ</button>
-                <button class="btn" style="background:#e5e7eb;color:#111" ${
-                  (page + 1) * pageSize >= history.length ? "disabled" : ""
-                } id="nextBtn">次へ</button>
-                <div style="margin-left:auto;padding:12px 0;color:#64748b">${
-                  page + 1
-                } / ${Math.max(1, Math.ceil(history.length / pageSize))}</div>
-              </div>`;
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn" style="background:#e5e7eb;color:#111" ${
+          page === 0 ? "disabled" : ""
+        } id="prevBtn">前へ</button>
+        <button class="btn" style="background:#e5e7eb;color:#111" ${
+          (page + 1) * pageSize >= history.length ? "disabled" : ""
+        } id="nextBtn">次へ</button>
+        <div style="margin-left:auto;padding:12px 0;color:#64748b">${
+          page + 1
+        } / ${Math.max(1, Math.ceil(history.length / pageSize))}</div>
+      </div>`;
           const prev = document.getElementById("prevBtn"),
             next = document.getElementById("nextBtn");
           prev &&
@@ -676,7 +601,6 @@
           target.getMonth() + 1
         }月${target.getDate()}日 頃に点検をおすすめします`;
         box.style.display = "block";
-
         document.getElementById("icsBtn").onclick = () => {
           const y = target.getFullYear(),
             m = String(target.getMonth() + 1).padStart(2, "0"),
@@ -703,7 +627,27 @@
         };
       }
 
-      /* ========= POST: 走行距離更新 ========= */
+      /* ========= 入力支援（カレンダー・その他） ========= */
+      document
+        .getElementById("calendarBtn")
+        .addEventListener(
+          "click",
+          () =>
+            document.getElementById("hDate").showPicker &&
+            document.getElementById("hDate").showPicker()
+        );
+      document.getElementById("hTypeSel").addEventListener("change", (e) => {
+        const other = document.getElementById("hTypeOther");
+        if (e.target.value === "__OTHER__") {
+          other.style.display = "block";
+          other.focus();
+        } else {
+          other.style.display = "none";
+          other.value = "";
+        }
+      });
+
+      /* ========= POST: 走行距離更新（text/plain でプリフライト回避） ========= */
       document.addEventListener("click", (e) => {
         if (e.target && e.target.id === "saveMileageBtn") {
           saveMileage();
@@ -718,7 +662,7 @@
         try {
           const r = await fetch(window.GAS_URL, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "text/plain" }, // ← 重要：プリフライト回避
             body: JSON.stringify({
               action: "updateMileage",
               userId,
@@ -738,38 +682,33 @@
         }
       }
 
-      /* ========= POST: 履歴追加（セレクト対応） ========= */
+      /* ========= POST: 履歴追加（text/plain） ========= */
       document.addEventListener("click", (e) => {
         if (e.target && e.target.id === "addHistoryBtn") {
           addHistory();
         }
       });
       async function addHistory() {
-        const sel = document.getElementById("hTypeSelect");
-        const other = document.getElementById("hTypeOther");
-
-        let typeValue = sel.value === "other" ? other.value.trim() : sel.value;
-        if (!typeValue) {
-          toast("整備内容を選択（または入力）してください");
-          return;
-        }
-
+        const sel = document.getElementById("hTypeSel").value;
+        const type =
+          sel === "__OTHER__"
+            ? document.getElementById("hTypeOther").value.trim()
+            : sel;
         const p = {
           date: document.getElementById("hDate").value,
-          type: typeValue,
+          type,
           detail: document.getElementById("hDetail").value.trim(),
           price: Number(document.getElementById("hPrice").value || 0),
           mileage: Number(document.getElementById("hMileage").value || 0),
         };
-        if (!p.date) {
-          toast("整備日を入力してください");
+        if (!p.date || !p.type) {
+          toast("整備日と整備内容は必須です");
           return;
         }
-
         try {
           const r = await fetch(window.GAS_URL, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "text/plain" }, // ← 重要：プリフライト回避
             body: JSON.stringify({
               action: "appendHistory",
               userId,
@@ -780,13 +719,14 @@
           const j = await r.json();
           if (j.status === "success") {
             toast("登録しました");
-            // 入力クリア
-            ["hDate", "hDetail", "hPrice", "hMileage"].forEach(
-              (id) => (document.getElementById(id).value = "")
+            ["hDate", "hTypeOther", "hDetail", "hPrice", "hMileage"].forEach(
+              (id) => {
+                const el = document.getElementById(id);
+                if (el) el.value = "";
+              }
             );
-            sel.value = "";
-            other.value = "";
-            other.style.display = "none";
+            document.getElementById("hTypeSel").value = "";
+            document.getElementById("hTypeOther").style.display = "none";
             loadData();
           } else {
             toast("登録に失敗: " + (j.message || ""));
