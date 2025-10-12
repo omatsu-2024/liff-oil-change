@@ -280,13 +280,13 @@
         border-radius: 0 0 16px 16px;
       }
 
-      /* ==== 1ページ時に余白を圧縮する用（追加） ==== */
+      /* 1ページ時に余白を圧縮 */
       .modal-card.shrink {
         bottom: auto;
       }
       .modal-card.shrink .modal-body {
         max-height: 48vh;
-      } /* 60vh → 48vh で下余白を約半分に */
+      }
 
       /* 履歴の各行 */
       .hist {
@@ -537,7 +537,7 @@
 
     <script>
       let userId = "";
-      let HISTORY = []; // モーダル用に保持
+      let HISTORY = [];
       const HIST_PAGE_SIZE = 10;
       let histPage = 0;
 
@@ -556,6 +556,29 @@
           ? "-"
           : `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
       };
+
+      // 共通 POST ヘルパー（デバッグ強化）
+      async function postJson(url, payload) {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const raw = await res.text(); // 生で受ける
+        let json;
+        try {
+          json = JSON.parse(raw);
+        } catch (e) {
+          console.error("POST raw response:", raw);
+          throw new Error(`HTTP ${res.status} / JSON parse error`);
+        }
+        if (!res.ok || json.status === "error") {
+          const msg =
+            json && json.message ? json.message : `HTTP ${res.status}`;
+          throw new Error(msg);
+        }
+        return json;
+      }
 
       /* ========= LIFF初期化 ========= */
       async function initApp() {
@@ -594,7 +617,6 @@
 
           displayRecommendations(data.nextMaintenance);
 
-          // モーダル用に履歴を保持
           HISTORY = Array.isArray(data.history) ? data.history : [];
           document.getElementById("loading").style.display = "none";
           document.getElementById("content").style.display = "block";
@@ -619,11 +641,12 @@
             const badge = urgent
               ? '<span class="badge badge-danger">至急</span>'
               : '<span class="badge badge-warning">推奨</span>';
-            return `<div class="recommendation ${
-              urgent ? "urgent" : ""
-            }"><div style="display:flex;align-items:center;gap:8px;"><strong>${
-              r.type
-            }</strong> ${badge}</div><p>${r.reason || ""}</p></div>`;
+            return `<div class="recommendation ${urgent ? "urgent" : ""}">
+                    <div style="display:flex;align-items:center;gap:8px;"><strong>${
+                      r.type
+                    }</strong> ${badge}</div>
+                    <p>${r.reason || ""}</p>
+                  </div>`;
           })
           .join("");
       }
@@ -669,35 +692,36 @@
         modalList.innerHTML = slice
           .map(
             (item) => `
-        <div class="hist">
-          <div class="hist-date">${fmtDate(item.date)}</div>
-          <div class="hist-type">${item.type || ""}</div>
-          <div class="hist-detail">${item.detail || ""}</div>
-          <div class="hist-meta">
-            <span class="price">¥${(
-              Number(item.price) || 0
-            ).toLocaleString()}</span>
-            <span class="km">${
-              item.mileage ? Number(item.mileage).toLocaleString() + "km" : "-"
-            }</span>
+          <div class="hist">
+            <div class="hist-date">${fmtDate(item.date)}</div>
+            <div class="hist-type">${item.type || ""}</div>
+            <div class="hist-detail">${item.detail || ""}</div>
+            <div class="hist-meta">
+              <span class="price">¥${(
+                Number(item.price) || 0
+              ).toLocaleString()}</span>
+              <span class="km">${
+                item.mileage
+                  ? Number(item.mileage).toLocaleString() + "km"
+                  : "-"
+              }</span>
+            </div>
           </div>
-        </div>
-      `
+        `
           )
           .join("");
 
         const footer = document.getElementById("modalFooter");
         const card = modal.querySelector(".modal-card");
-
         if (totalPages === 1) {
           footer.style.display = "none";
-          card.classList.add("shrink"); // ← 1ページ時は余白を圧縮
+          card.classList.add("shrink");
         } else {
           footer.style.display = "flex";
           prevBtn.disabled = histPage === 0;
           nextBtn.disabled = histPage + 1 >= totalPages;
           pageInfo.textContent = `${histPage + 1} / ${totalPages}`;
-          card.classList.remove("shrink"); // ← 複数ページ時は通常
+          card.classList.remove("shrink");
         }
       }
       prevBtn.addEventListener("click", () => {
@@ -776,40 +800,29 @@
         }
       });
 
-      /* ========= POST: 走行距離更新 ========= */
+      /* ========= POST: 走行距離更新（postJsonで強化） ========= */
       document
         .getElementById("saveMileageBtn")
         .addEventListener("click", saveMileage);
       async function saveMileage() {
         const v = Number(document.getElementById("mileageInput").value || 0);
-        if (!v || v <= 0) {
-          toast("走行距離を入力してください");
-          return;
-        }
+        if (!v || v <= 0) return toast("走行距離を入力してください");
         try {
-          const r = await fetch(window.GAS_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              action: "updateMileage",
-              userId,
-              mileage: v,
-              token: window.POST_TOKEN,
-            }),
+          await postJson(window.GAS_URL, {
+            action: "updateMileage",
+            userId,
+            mileage: v,
+            token: window.POST_TOKEN,
           });
-          const j = await r.json();
-          if (j.status === "success") {
-            toast("保存しました");
-            loadData();
-          } else {
-            toast("保存に失敗: " + (j.message || ""));
-          }
-        } catch {
-          toast("通信エラー");
+          toast("保存しました");
+          loadData();
+        } catch (err) {
+          console.error(err);
+          toast("POST失敗: " + err.message);
         }
       }
 
-      /* ========= POST: 履歴追加 ========= */
+      /* ========= POST: 履歴追加（postJsonで強化） ========= */
       document
         .getElementById("addHistoryBtn")
         .addEventListener("click", addHistory);
@@ -819,43 +832,31 @@
           typeSelect.value === "__other__"
             ? typeOther.value.trim()
             : typeSelect.value;
-        const p = {
+        const payload = {
+          action: "appendHistory",
+          userId,
           date,
           type: (typeVal || "").trim(),
           detail: document.getElementById("hDetail").value.trim(),
           price: Number(document.getElementById("hPrice").value || 0),
           mileage: Number(document.getElementById("hMileage").value || 0),
+          token: window.POST_TOKEN,
         };
-        if (!p.date || !p.type) {
-          toast("整備日と整備項目は必須です");
-          return;
-        }
+        if (!payload.date || !payload.type)
+          return toast("整備日と整備項目は必須です");
         try {
-          const r = await fetch(window.GAS_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              action: "appendHistory",
-              userId,
-              ...p,
-              token: window.POST_TOKEN,
-            }),
-          });
-          const j = await r.json();
-          if (j.status === "success") {
-            toast("登録しました");
-            ["hDate", "hDetail", "hPrice", "hMileage"].forEach(
-              (id) => (document.getElementById(id).value = "")
-            );
-            typeSelect.value = "";
-            typeOther.value = "";
-            typeOther.style.display = "none";
-            loadData();
-          } else {
-            toast("登録に失敗: " + (j.message || ""));
-          }
-        } catch {
-          toast("通信エラー");
+          await postJson(window.GAS_URL, payload);
+          toast("登録しました");
+          ["hDate", "hDetail", "hPrice", "hMileage"].forEach(
+            (id) => (document.getElementById(id).value = "")
+          );
+          typeSelect.value = "";
+          typeOther.value = "";
+          typeOther.style.display = "none";
+          loadData();
+        } catch (err) {
+          console.error(err);
+          toast("POST失敗: " + err.message);
         }
       }
 
