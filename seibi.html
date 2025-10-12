@@ -15,35 +15,9 @@
       /* ====== 設定（必要に応じて編集） ====== */
       window.LIFF_ID = "2008228464-Jy1OL86j"; /* ← あなたのLIFF ID */
       window.GAS_URL =
-        "https://script.google.com/macros/s/AKfycbz0EzPRsZ77DFPU8qC555lxya1Zo_KHVRbl_Z32WBKRCIKPb5GCDTgNm7mrhcEUUlDH/exec"; /* ← あなたのGAS URL (/exec) */
+        "https://script.google.com/macros/s/AKfycbz0EzPRsZ77DFPU8qC555lxya1Zo_KHVRbl_Z32WBKRCIKPb5GCDTgNm7mrhcEUUlDH/exec"; /* ← あなたのGAS URL */
       window.POST_TOKEN =
         "change-me-32chars"; /* ← GASのPOST_SHARED_TOKEN と同じ値 */
-
-      /* ========= 共通 POST ヘルパー（プリフライト回避版） =========
-         application/json を使うと CORS のプリフライト(OPTIONS)で失敗しやすい。
-         text/plain にして JSON 文字列を送ると「シンプルリクエスト」になり通ります。 */
-      async function postJson(url, payload) {
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify(payload),
-          redirect: "follow",
-        });
-        const raw = await res.text();
-        let json;
-        try {
-          json = JSON.parse(raw);
-        } catch (e) {
-          console.error("POST raw:", raw);
-          throw new Error(`HTTP ${res.status} / JSON parse error`);
-        }
-        if (!res.ok || json.status === "error") {
-          throw new Error(
-            json && json.message ? json.message : `HTTP ${res.status}`
-          );
-        }
-        return json;
-      }
     </script>
 
     <style>
@@ -201,7 +175,7 @@
         gap: 8px;
       }
 
-      /* 日付入力（左アイコン＋両方クリックでカレンダー） */
+      /* 日付入力UI */
       .date-field {
         position: relative;
         display: flex;
@@ -377,7 +351,7 @@
         <button class="btn" id="openHistoryBtn">整備履歴を見る</button>
       </div>
 
-      <!-- 走行距離の更新 -->
+      <!-- 走行距離更新 -->
       <div class="card">
         <div class="section-title">📏 走行距離の更新</div>
         <div class="row">
@@ -501,14 +475,14 @@
         </div>
       </div>
 
-      <!-- 次回目安日 & ICS -->
+      <!-- 次回目安日 & Googleカレンダー追加（← ICSを廃止） -->
       <div class="card" id="nextBox" style="display: none">
         <div class="section-title">🗓️ 次回メンテ目安日</div>
         <p id="nextText" style="margin-bottom: 8px"></p>
-        <button class="btn" id="icsBtn">端末カレンダーに追加（.ics）</button>
+        <button class="btn" id="gcalBtn">Googleカレンダーに追加</button>
+        <!-- ← 変更点 -->
       </div>
 
-      <!-- 予約ボタン（任意） -->
       <button class="btn" onclick="openReservation()">
         📅 次回メンテナンスを予約する
       </button>
@@ -530,9 +504,7 @@
           <div class="modal-title">📄 整備履歴</div>
           <button class="modal-close" id="closeHistoryBtn">閉じる</button>
         </div>
-        <div class="modal-body">
-          <div id="modalHistoryList"></div>
-        </div>
+        <div class="modal-body"><div id="modalHistoryList"></div></div>
         <div class="modal-footer" id="modalFooter">
           <button class="btn ghost" id="prevBtn" style="width: auto">
             前へ
@@ -560,7 +532,7 @@
       const HIST_PAGE_SIZE = 10;
       let histPage = 0;
 
-      /* ========= ユーティリティ ========= */
+      /* util */
       const toast = (m) => {
         const n = document.createElement("div");
         n.textContent = m;
@@ -576,7 +548,7 @@
           : `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
       };
 
-      /* ========= LIFF初期化 ========= */
+      /* LIFF init */
       async function initApp() {
         try {
           await liff.init({ liffId: window.LIFF_ID });
@@ -595,7 +567,7 @@
         }
       }
 
-      /* ========= データ読み込み ========= */
+      /* fetch data */
       async function loadData() {
         try {
           const res = await fetch(
@@ -610,11 +582,13 @@
           document.getElementById(
             "carInfo"
           ).textContent = `${data.customer.carModel} (${data.customer.carNumber})`;
-          displayRecommendations(data.nextMaintenance);
 
+          displayRecommendations(data.nextMaintenance);
           HISTORY = Array.isArray(data.history) ? data.history : [];
+
           document.getElementById("loading").style.display = "none";
           document.getElementById("content").style.display = "block";
+
           showNextDate(data.nextMaintenance);
         } catch (e) {
           console.error(e);
@@ -622,7 +596,7 @@
         }
       }
 
-      /* ========= 推奨表示 ========= */
+      /* recommendations */
       function displayRecommendations(recs) {
         const box = document.getElementById("recommendations");
         if (!recs || !recs.length) {
@@ -637,16 +611,15 @@
               ? '<span class="badge badge-danger">至急</span>'
               : '<span class="badge badge-warning">推奨</span>';
             return `<div class="recommendation ${urgent ? "urgent" : ""}">
-                    <div style="display:flex;align-items:center;gap:8px;"><strong>${
-                      r.type
-                    }</strong> ${badge}</div>
-                    <p>${r.reason || ""}</p>
-                  </div>`;
+            <div style="display:flex;align-items:center;gap:8px;"><strong>${
+              r.type
+            }</strong> ${badge}</div>
+            <p>${r.reason || ""}</p></div>`;
           })
           .join("");
       }
 
-      /* ========= モーダル制御 ========= */
+      /* modal */
       const modal = document.getElementById("historyModal");
       const modalList = document.getElementById("modalHistoryList");
       const prevBtn = document.getElementById("prevBtn");
@@ -727,17 +700,18 @@
         renderHistoryModal();
       });
 
-      /* ========= 次回目安日＋ICS ========= */
+      /* 次回目安日 + Googleカレンダー追加 */
       function showNextDate(recs) {
         const box = document.getElementById("nextBox");
         if (!recs || !recs.length) {
           box.style.display = "none";
           return;
         }
+
         const today = new Date();
-        const target = new Date(today);
         const oil = recs.find((r) => r.type.includes("オイル"));
-        target.setDate(today.getDate() + (oil ? 30 : 14));
+        const target = new Date(today);
+        target.setDate(today.getDate() + (oil ? 30 : 14)); // 目安
         document.getElementById(
           "nextText"
         ).textContent = `${target.getFullYear()}年${
@@ -745,33 +719,23 @@
         }月${target.getDate()}日 頃に点検をおすすめします`;
         box.style.display = "block";
 
-        document.getElementById("icsBtn").onclick = () => {
+        // Googleカレンダー登録URLを作成（ローカル時間で10:00-11:00）
+        document.getElementById("gcalBtn").onclick = () => {
+          const pad = (n) => String(n).padStart(2, "0");
           const y = target.getFullYear(),
-            m = String(target.getMonth() + 1).padStart(2, "0"),
-            d = String(target.getDate()).padStart(2, "0");
-          const ics = [
-            "BEGIN:VCALENDAR",
-            "VERSION:2.0",
-            "PRODID:-//Shop//Maintenance//JP",
-            "BEGIN:VEVENT",
-            `DTSTART;TZID=Asia/Tokyo:${y}${m}${d}T100000`,
-            `DTEND;TZID=Asia/Tokyo:${y}${m}${d}T110000`,
-            "SUMMARY:点検の目安日",
-            "DESCRIPTION:LINEのマイページから作成",
-            "END:VEVENT",
-            "END:VCALENDAR",
-          ].join("\r\n");
-          const blob = new Blob([ics], { type: "text/calendar" });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = "maintenance.ics";
-          a.click();
-          URL.revokeObjectURL(url);
+            m = pad(target.getMonth() + 1),
+            d = pad(target.getDate());
+          const start = `${y}${m}${d}T100000`; // 10:00
+          const end = `${y}${m}${d}T110000`; // 11:00
+          const text = encodeURIComponent("点検の目安日");
+          const details = encodeURIComponent("LINEのマイページから作成");
+          const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&details=${details}&dates=${start}/${end}`;
+          // iPhoneは external:true でSafariに出す
+          liff.openWindow({ url, external: true });
         };
       }
 
-      /* ========= 日付UI（アイコン/入力どちらでも開く） ========= */
+      /* 日付UI */
       document
         .getElementById("dateIcon")
         .addEventListener("click", () =>
@@ -782,7 +746,7 @@
         document.getElementById("hDate").showPicker?.();
       });
 
-      /* ========= ドロップダウン：その他 ========= */
+      /* ドロップダウン：その他 */
       const typeSelect = document.getElementById("hTypeSelect");
       const typeOther = document.getElementById("hTypeOther");
       typeSelect.addEventListener("change", () => {
@@ -794,7 +758,7 @@
         }
       });
 
-      /* ========= POST: 走行距離更新 ========= */
+      /* POST: 走行距離更新 */
       document
         .getElementById("saveMileageBtn")
         .addEventListener("click", saveMileage);
@@ -805,21 +769,29 @@
           return;
         }
         try {
-          const j = await postJson(window.GAS_URL, {
-            action: "updateMileage",
-            userId,
-            mileage: v,
-            token: window.POST_TOKEN,
+          const r = await fetch(window.GAS_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "updateMileage",
+              userId,
+              mileage: v,
+              token: window.POST_TOKEN,
+            }),
           });
-          toast("保存しました");
-          loadData();
-        } catch (e) {
-          console.error(e);
-          toast("POST失敗: " + e.message);
+          const j = await r.json();
+          if (j.status === "success") {
+            toast("保存しました");
+            loadData();
+          } else {
+            toast("保存に失敗: " + (j.message || ""));
+          }
+        } catch {
+          toast("通信エラー");
         }
       }
 
-      /* ========= POST: 履歴追加 ========= */
+      /* POST: 履歴追加 */
       document
         .getElementById("addHistoryBtn")
         .addEventListener("click", addHistory);
@@ -840,28 +812,36 @@
           toast("整備日と整備項目は必須です");
           return;
         }
+
         try {
-          const j = await postJson(window.GAS_URL, {
-            action: "appendHistory",
-            userId,
-            ...p,
-            token: window.POST_TOKEN,
+          const r = await fetch(window.GAS_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "appendHistory",
+              userId,
+              ...p,
+              token: window.POST_TOKEN,
+            }),
           });
-          toast("登録しました");
-          ["hDate", "hDetail", "hPrice", "hMileage"].forEach(
-            (id) => (document.getElementById(id).value = "")
-          );
-          typeSelect.value = "";
-          typeOther.value = "";
-          typeOther.style.display = "none";
-          loadData();
-        } catch (e) {
-          console.error(e);
-          toast("POST失敗: " + e.message);
+          const j = await r.json();
+          if (j.status === "success") {
+            toast("登録しました");
+            ["hDate", "hDetail", "hPrice", "hMileage"].forEach(
+              (id) => (document.getElementById(id).value = "")
+            );
+            typeSelect.value = "";
+            typeOther.value = "";
+            typeOther.style.display = "none";
+            loadData();
+          } else {
+            toast("登録に失敗: " + (j.message || ""));
+          }
+        } catch {
+          toast("通信エラー");
         }
       }
 
-      /* ========= 予約ページ ========= */
       function openReservation() {
         liff.openWindow({
           url: "https://lin.ee/your-reserve",
@@ -869,7 +849,6 @@
         });
       }
 
-      /* ========= エラー表示 ========= */
       function showError(msg) {
         document.getElementById("loading").style.display = "none";
         document.getElementById("content").style.display = "none";
