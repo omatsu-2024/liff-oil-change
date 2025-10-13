@@ -12,12 +12,11 @@
     ></script>
 
     <script>
-      /* ====== 設定（必要に応じて編集） ====== */
+      /* ====== 設定 ====== */
       window.LIFF_ID = "2008228464-Jy1OL86j";
       window.GAS_URL =
         "https://script.google.com/macros/s/AKfycbz0EzPRsZ77DFPU8qC555lxya1Zo_KHVRbl_Z32WBKRCIKPb5GCDTgNm7mrhcEUUlDH/exec";
-      window.POST_TOKEN =
-        "change-me-32chars"; /* GASのPOST_SHARED_TOKENと一致させる */
+      window.POST_TOKEN = "change-me-32chars"; // GAS側と同じ
     </script>
 
     <style>
@@ -56,20 +55,25 @@
         display: flex;
         align-items: center;
         gap: 12px;
-        margin-bottom: 12px;
+        margin-bottom: 20px;
       }
+
+      /* ★ アイコンが縦長になるのを防止 */
       .avatar {
-        width: 60px;
+        flex: 0 0 60px; /* 幅を固定し、親の伸縮から守る */
+        width: 60px; /* 念のため明示 */
         height: 60px;
+        aspect-ratio: 1/1; /* 常に正方形（iOS/Android対応ブラウザで有効） */
         border-radius: 50%;
         background: linear-gradient(135deg, #667eea, #764ba2);
-        display: flex;
+        display: inline-flex; /* 文字の中央寄せを安定させる */
         align-items: center;
         justify-content: center;
         color: #fff;
         font-size: 24px;
         font-weight: 700;
       }
+
       .user-info h2 {
         font-size: 20px;
         color: #1e293b;
@@ -79,6 +83,7 @@
         font-size: 14px;
         color: var(--gray);
       }
+
       .section-title {
         font-size: 16px;
         font-weight: 700;
@@ -156,9 +161,6 @@
         background: #e5e7eb;
         color: #111;
       }
-      .btn.slim {
-        padding: 10px;
-      }
       input,
       select,
       button {
@@ -168,6 +170,8 @@
         display: flex;
         gap: 8px;
       }
+
+      /* 日付UI */
       .date-field {
         display: flex;
         align-items: center;
@@ -203,7 +207,7 @@
         margin-top: 6px;
       }
 
-      /* モーダル共通 */
+      /* モーダル */
       .modal {
         position: fixed;
         inset: 0;
@@ -257,7 +261,7 @@
       }
       .modal-body {
         overflow: auto;
-        padding: 12px 16px;
+        padding: 8px 2px;
         max-height: 60vh;
       }
       .modal-footer {
@@ -307,19 +311,6 @@
       .hist-meta .km {
         color: #6b7280;
       }
-
-      /* 車両情報の表 */
-      .kv {
-        display: grid;
-        grid-template-columns: 8em 1fr;
-        gap: 8px 12px;
-      }
-      .kv dt {
-        color: #64748b;
-      }
-      .kv dd {
-        margin: 0;
-      }
     </style>
   </head>
   <body>
@@ -340,11 +331,8 @@
             <p id="carInfo">-</p>
           </div>
         </div>
-        <div class="row">
-          <button id="openVehicleBtn" class="btn ghost slim">
-            車両情報を見る
-          </button>
-        </div>
+        <!-- 車両情報モーダル起動 -->
+        <button class="btn ghost" id="openCarBtn">車両情報を見る</button>
       </div>
 
       <!-- 次回メンテ推奨 -->
@@ -490,13 +478,8 @@
         <button class="btn" id="gcalBtn">Googleカレンダーに追加</button>
       </div>
 
-      <!-- 予約ボタン（任意） -->
-      <button
-        class="btn"
-        onclick="openReservation(https://liff.line.me/2008228464-nMpDkLPK?calendar_salon_id=18905&ts=1760362889)"
-      >
-        📅 次回メンテナンスを予約する
-      </button>
+      <!-- 予約ボタン -->
+      <button class="btn" id="reserveBtn">📅 次回メンテナンスを予約する</button>
     </div>
 
     <!-- エラー -->
@@ -538,25 +521,37 @@
     </div>
 
     <!-- モーダル（車両情報） -->
-    <div id="vehicleModal" class="modal" aria-hidden="true">
+    <div id="carModal" class="modal" aria-hidden="true">
       <div class="modal-backdrop"></div>
       <div class="modal-card">
         <div class="modal-header">
-          <div class="modal-title">🚘 車両情報</div>
-          <button class="modal-close" id="closeVehicleBtn">閉じる</button>
+          <div class="modal-title">🚗 車両情報</div>
+          <button class="modal-close" id="closeCarBtn">閉じる</button>
         </div>
         <div class="modal-body">
-          <dl id="vehicleKv" class="kv"></dl>
+          <div class="hist">
+            <div class="hist-type" id="carModelText">-</div>
+            <div class="hist-detail" id="carPlateText">-</div>
+            <div class="hist-detail" id="carClassText">-</div>
+            <div class="hist-detail" id="carDisplacementText">-</div>
+            <div class="hist-detail" id="carFirstRegText">-</div>
+          </div>
         </div>
       </div>
     </div>
 
     <script>
       let userId = "";
-      let CUSTOMER = null;
       let HISTORY = [];
       const HIST_PAGE_SIZE = 10;
       let histPage = 0;
+      let CAR_INFO = {
+        model: "",
+        plate: "",
+        clazz: "",
+        disp: "",
+        firstReg: "",
+      };
 
       /* ===== ユーティリティ ===== */
       const toast = (m) => {
@@ -574,7 +569,7 @@
           : `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
       };
 
-      /* ===== 共通POST（FormDataで送信：iOSプリフライト回避） ===== */
+      /* ===== 共通POST（FormData） ===== */
       async function postGAS(obj) {
         const fd = new FormData();
         for (const [k, v] of Object.entries(obj)) {
@@ -601,9 +596,8 @@
           }
           const profile = await liff.getProfile();
           userId = profile.userId;
-          document.getElementById("avatar").textContent = (
-            profile.displayName || "？"
-          ).charAt(0);
+          document.getElementById("avatar").textContent =
+            profile.displayName.charAt(0);
           await loadData();
         } catch (e) {
           console.error(e);
@@ -622,37 +616,26 @@
             throw new Error(result.message || "error");
           const data = result.data;
 
-          CUSTOMER = data.customer || {};
-          // ユーザー名
-          document.getElementById("userName").textContent =
-            CUSTOMER.name || "-";
+          document.getElementById("userName").textContent = data.customer.name;
+          document.getElementById(
+            "carInfo"
+          ).textContent = `${data.customer.carModel} (${data.customer.carNumber})`;
 
-          // 車情報（carName を優先、なければ従来の carModel）
-          const carLabel = CUSTOMER.carName || CUSTOMER.carModel || "";
-          const numberLab = CUSTOMER.carNumber
-            ? `（${CUSTOMER.carNumber}）`
-            : "";
-          const catLabel = CUSTOMER.carCategory
-            ? ` / ${CUSTOMER.carCategory}`
-            : "";
-          const dispLabel = CUSTOMER.displacement
-            ? ` / ${CUSTOMER.displacement}`
-            : "";
-          const firstLabel = CUSTOMER.firstRegistration
-            ? ` / 初度：${CUSTOMER.firstRegistration}`
-            : "";
-          document.getElementById("carInfo").textContent =
-            carLabel + numberLab + catLabel + dispLabel + firstLabel || "-";
+          // 車両モーダル用に保持（※顧客情報にある基本項目のみ）
+          CAR_INFO = {
+            model: data.customer.carModel || "-",
+            plate: data.customer.carNumber || "-",
+            clazz: "-", // 拡張したらここへ
+            disp: "-", // 拡張したらここへ
+            firstReg: "-", // 拡張したらここへ
+          };
 
-          // 推奨 & 履歴
           displayRecommendations(data.nextMaintenance);
           HISTORY = Array.isArray(data.history) ? data.history : [];
 
-          // 画面表示
           document.getElementById("loading").style.display = "none";
           document.getElementById("content").style.display = "block";
 
-          // 次回目安
           showNextDate(data.nextMaintenance);
         } catch (e) {
           console.error(e);
@@ -701,11 +684,11 @@
         });
       document
         .getElementById("closeHistoryBtn")
-        .addEventListener("click", closeHistoryModal);
+        .addEventListener("click", closeHistory);
       historyModal
         .querySelector(".modal-backdrop")
-        .addEventListener("click", closeHistoryModal);
-      function closeHistoryModal() {
+        .addEventListener("click", closeHistory);
+      function closeHistory() {
         historyModal.classList.remove("show");
         historyModal.setAttribute("aria-hidden", "true");
       }
@@ -717,11 +700,11 @@
         );
         if (histPage >= totalPages) histPage = totalPages - 1;
         if (histPage < 0) histPage = 0;
+
         const slice = HISTORY.slice(
           histPage * HIST_PAGE_SIZE,
           (histPage + 1) * HIST_PAGE_SIZE
         );
-
         modalList.innerHTML = slice
           .map(
             (item) => `
@@ -767,46 +750,35 @@
       });
 
       /* ===== モーダル（車両情報） ===== */
-      const vehicleModal = document.getElementById("vehicleModal");
-      const vehicleKv = document.getElementById("vehicleKv");
+      const carModal = document.getElementById("carModal");
+      document.getElementById("openCarBtn").addEventListener("click", () => {
+        document.getElementById(
+          "carModelText"
+        ).textContent = `車種：${CAR_INFO.model}`;
+        document.getElementById(
+          "carPlateText"
+        ).textContent = `ナンバー：${CAR_INFO.plate}`;
+        document.getElementById(
+          "carClassText"
+        ).textContent = `車種カテゴリ：${CAR_INFO.clazz}`;
+        document.getElementById(
+          "carDisplacementText"
+        ).textContent = `排気量：${CAR_INFO.disp}`;
+        document.getElementById(
+          "carFirstRegText"
+        ).textContent = `初年度登録：${CAR_INFO.firstReg}`;
+        carModal.classList.add("show");
+        carModal.setAttribute("aria-hidden", "false");
+      });
       document
-        .getElementById("openVehicleBtn")
-        .addEventListener("click", () => {
-          renderVehicleModal();
-          vehicleModal.classList.add("show");
-          vehicleModal.setAttribute("aria-hidden", "false");
-        });
-      document
-        .getElementById("closeVehicleBtn")
-        .addEventListener("click", closeVehicleModal);
-      vehicleModal
+        .getElementById("closeCarBtn")
+        .addEventListener("click", () => closeCar());
+      carModal
         .querySelector(".modal-backdrop")
-        .addEventListener("click", closeVehicleModal);
-      function closeVehicleModal() {
-        vehicleModal.classList.remove("show");
-        vehicleModal.setAttribute("aria-hidden", "true");
-      }
-
-      function renderVehicleModal() {
-        const c = CUSTOMER || {};
-        const rows = [
-          ["お名前", c.name || "-"],
-          ["車名", c.carName || c.carModel || "-"],
-          ["ナンバー", c.carNumber || "-"],
-          ["車種カテゴリ", c.carCategory || "-"],
-          ["排気量", c.displacement || "-"],
-          ["初度登録", c.firstRegistration || "-"],
-          [
-            "最終走行距離",
-            c.lastMileage != null && c.lastMileage !== ""
-              ? `${Number(c.lastMileage).toLocaleString()} km`
-              : "-",
-          ],
-          ["距離更新日", c.mileageUpdatedAt || "-"],
-        ];
-        vehicleKv.innerHTML = rows
-          .map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`)
-          .join("");
+        .addEventListener("click", () => closeCar());
+      function closeCar() {
+        carModal.classList.remove("show");
+        carModal.setAttribute("aria-hidden", "true");
       }
 
       /* ===== 次回目安日 + Googleカレンダー ===== */
@@ -942,12 +914,14 @@
         }
       }
 
-      /* ===== 予約ページ（任意） ===== */
+      /* ===== 予約ページ（指定URL） ===== */
+      document
+        .getElementById("reserveBtn")
+        .addEventListener("click", openReservation);
       function openReservation() {
-        liff.openWindow({
-          url: "https://lin.ee/your-reserve",
-          external: false,
-        });
+        const url =
+          "https://liff.line.me/2008228464-nMpDkLPK?calendar_salon_id=18905&ts=1760362889";
+        liff.openWindow({ url, external: false });
       }
 
       /* ===== エラー表示 ===== */
