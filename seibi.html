@@ -687,7 +687,7 @@
 
       /* ========= Loaders ========= */
       async function loadVehiclesAndRender() {
-        // 新API: listVehicles
+        // 新API: listVehicles（← Missing action対策）
         const j = await gasGet({ action: "listVehicles", userId });
         const list = Array.isArray(j?.vehicles) ? j.vehicles : [];
         VEHICLES = list;
@@ -738,8 +738,6 @@
             } 日）`,
           });
         }
-
-        // 任意: 走行距離起点の簡易推奨などを将来追加可能
 
         if (!recs.length) {
           box.innerHTML =
