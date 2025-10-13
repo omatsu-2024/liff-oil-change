@@ -165,8 +165,6 @@
         display: flex;
         gap: 8px;
       }
-
-      /* 日付UI（左アイコン＋どちらでも開く） */
       .date-field {
         display: flex;
         align-items: center;
@@ -201,8 +199,6 @@
         color: #6b7280;
         margin-top: 6px;
       }
-
-      /* モーダル */
       .modal {
         position: fixed;
         inset: 0;
@@ -267,15 +263,12 @@
         background: #fff;
         border-radius: 0 0 16px 16px;
       }
-
-      /* 1ページ時 余白圧縮 */
       .modal-card.shrink {
         bottom: auto;
       }
       .modal-card.shrink .modal-body {
         max-height: 48vh;
       }
-
       .hist {
         padding: 16px 18px;
         border-bottom: 1px solid var(--border);
@@ -374,7 +367,6 @@
       <div class="card">
         <div class="section-title">➕ 整備履歴を追加</div>
 
-        <!-- 整備日 -->
         <label
           style="
             display: block;
@@ -397,7 +389,6 @@
           カレンダーアイコン または 入力欄をタップして日付を選択してください
         </div>
 
-        <!-- 整備種類 -->
         <div style="margin-top: 12px; display: grid; gap: 8px">
           <select
             id="hTypeSelect"
@@ -432,7 +423,6 @@
           />
         </div>
 
-        <!-- 詳細・金額・距離 -->
         <div class="grid" style="display: grid; gap: 8px; margin-top: 8px">
           <input
             id="hDetail"
@@ -569,8 +559,9 @@
           }
           const profile = await liff.getProfile();
           userId = profile.userId;
-          document.getElementById("avatar").textContent =
-            profile.displayName.charAt(0);
+          document.getElementById("avatar").textContent = (
+            profile.displayName || "？"
+          ).charAt(0);
           await loadData();
         } catch (e) {
           console.error(e);
@@ -589,17 +580,35 @@
             throw new Error(result.message || "error");
           const data = result.data;
 
-          document.getElementById("userName").textContent = data.customer.name;
-          document.getElementById(
-            "carInfo"
-          ).textContent = `${data.customer.carModel} (${data.customer.carNumber})`;
+          // ユーザー名
+          document.getElementById("userName").textContent =
+            data.customer?.name || "-";
 
+          // 車情報（carName を優先、なければ従来の carModel）
+          const c = data.customer || {};
+          const carLabel = c.carName || c.carModel || "";
+          const numberLabel = c.carNumber ? `（${c.carNumber}）` : "";
+          const catLabel = c.carCategory ? ` / ${c.carCategory}` : "";
+          const dispLabel = c.displacement ? ` / ${c.displacement}` : "";
+          const firstLabel = c.firstRegistration
+            ? ` / 初度：${c.firstRegistration}`
+            : "";
+          const line = [
+            carLabel + numberLabel + catLabel + dispLabel + firstLabel,
+          ]
+            .join("")
+            .trim();
+          document.getElementById("carInfo").textContent = line || "-";
+
+          // 推奨 & 履歴
           displayRecommendations(data.nextMaintenance);
           HISTORY = Array.isArray(data.history) ? data.history : [];
 
+          // 画面表示
           document.getElementById("loading").style.display = "none";
           document.getElementById("content").style.display = "block";
 
+          // 次回目安
           showNextDate(data.nextMaintenance);
         } catch (e) {
           console.error(e);
@@ -672,21 +681,22 @@
         modalList.innerHTML = slice
           .map(
             (item) => `
-            <div class="hist">
-              <div class="hist-date">${fmtDate(item.date)}</div>
-              <div class="hist-type">${item.type || ""}</div>
-              <div class="hist-detail">${item.detail || ""}</div>
-              <div class="hist-meta">
-                <span class="price">¥${(
-                  Number(item.price) || 0
-                ).toLocaleString()}</span>
-                <span class="km">${
-                  item.mileage
-                    ? Number(item.mileage).toLocaleString() + "km"
-                    : "-"
-                }</span>
-              </div>
-            </div>`
+          <div class="hist">
+            <div class="hist-date">${fmtDate(item.date)}</div>
+            <div class="hist-type">${item.type || ""}</div>
+            <div class="hist-detail">${item.detail || ""}</div>
+            <div class="hist-meta">
+              <span class="price">¥${(
+                Number(item.price) || 0
+              ).toLocaleString()}</span>
+              <span class="km">${
+                item.mileage
+                  ? Number(item.mileage).toLocaleString() + "km"
+                  : "-"
+              }</span>
+            </div>
+          </div>
+        `
           )
           .join("");
 
@@ -747,7 +757,7 @@
             ctz: "Asia/Tokyo",
           }).toString();
           const url = `https://calendar.google.com/calendar/render?${query}`;
-          liff.openWindow({ url, external: true }); // Googleアプリ/ブラウザで開く
+          liff.openWindow({ url, external: true });
         };
       }
 
