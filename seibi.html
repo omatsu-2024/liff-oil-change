@@ -348,6 +348,15 @@
         line-height: 1.8;
         padding: 12px 18px;
       }
+
+      .debug-info {
+        background: #f0f0f0;
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 12px;
+        margin-top: 8px;
+        word-break: break-all;
+      }
     </style>
   </head>
 
@@ -446,13 +455,13 @@
             <option>オイルエレメント交換</option>
             <option>タイヤ交換</option>
             <option>ブレーキフルード交換</option>
-            <option>冷却水（LLC）交換</option>
+            <option>冷却水(LLC)交換</option>
             <option>バッテリー交換</option>
             <option>エアコンフィルター交換</option>
             <option>ワイパーゴム交換</option>
             <option>12ヶ月点検</option>
             <option>車検整備</option>
-            <option value="__other__">その他（自由入力）</option>
+            <option value="__other__">その他(自由入力)</option>
           </select>
           <input
             id="hTypeOther"
@@ -613,6 +622,7 @@
           : `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
       };
 
+      // ★ GET は従来どおり
       async function gasGet(params) {
         const url = new URL(window.GAS_URL);
         Object.entries(params || {}).forEach(([k, v]) =>
@@ -626,29 +636,43 @@
         return res.json();
       }
 
-      // ★ FormData をやめ、x-www-form-urlencoded で送る（プリフライト回避＆e.parameterで確実に受け取れる）
+      // ★ 修正: POSTはJSONで送信（GAS側で確実に受け取れる）
       async function postGAS(obj) {
-        const params = new URLSearchParams();
-        for (const [k, v] of Object.entries(obj)) {
-          params.set(
-            k,
-            typeof v === "object" ? JSON.stringify(v) : String(v ?? "")
-          );
-        }
-        const res = await fetch(window.GAS_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-          },
-          body: params.toString(),
-          credentials: "omit",
-        });
-        const text = await res.text().catch(() => "");
+        console.log("📤 POSTデータ送信:", obj);
+
         try {
-          return JSON.parse(text);
-        } catch {
-          console.warn("GAS raw response:", text);
-          return { ok: false, status: "error", message: "Bad JSON", raw: text };
+          const res = await fetch(window.GAS_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(obj),
+            redirect: "follow",
+          });
+
+          const text = await res.text();
+          console.log("📥 GAS生レスポンス:", text);
+
+          try {
+            const json = JSON.parse(text);
+            console.log("✅ JSONパース成功:", json);
+            return json;
+          } catch (parseErr) {
+            console.error("❌ JSONパースエラー:", parseErr);
+            return {
+              ok: false,
+              status: "error",
+              message: "Invalid JSON response",
+              raw: text,
+            };
+          }
+        } catch (fetchErr) {
+          console.error("❌ Fetchエラー:", fetchErr);
+          return {
+            ok: false,
+            status: "error",
+            message: fetchErr.message,
+          };
         }
       }
 
@@ -668,51 +692,71 @@
           $("#avatar").textContent = displayName ? displayName.charAt(0) : "👤";
           $("#userName").textContent = `${displayName} さん`;
 
+          console.log("🔑 ユーザーID:", userId);
+
           await loadVehiclesAndRender();
           await loadHistoryAndRender();
 
-          maybeShowInspectionAlert(); // 車検アラート
+          maybeShowInspectionAlert();
           $("#loading").style.display = "none";
           $("#content").style.display = "block";
         } catch (e) {
-          console.error(e);
-          showError("LINEとの接続に失敗しました");
+          console.error("初期化エラー:", e);
+          showError("LINEとの接続に失敗しました: " + e.message);
         }
       }
 
       /* ========= Loaders ========= */
       async function loadVehiclesAndRender() {
-        const j = await gasGet({ action: "listVehicles", userId });
-        const list = Array.isArray(j?.vehicles) ? j.vehicles : [];
-        VEHICLES = list;
-        SELECTED = VEHICLES.find((v) => v.isPrimary) || VEHICLES[0] || null;
+        try {
+          console.log("🚗 車両データ取得中...");
+          const j = await gasGet({ action: "listVehicles", userId });
+          console.log("✅ 車両データ取得:", j);
 
-        $("#carInfo").textContent = `${SELECTED?.model || "-"}（${
-          SELECTED?.plate || "-"
-        }）`;
-        renderVehicleModalList();
-        displayRecommendationsFromVehicle(SELECTED);
-        showNextDateFromInspection(SELECTED);
+          const list = Array.isArray(j?.vehicles) ? j.vehicles : [];
+          VEHICLES = list;
+          SELECTED = VEHICLES.find((v) => v.isPrimary) || VEHICLES[0] || null;
+
+          $("#carInfo").textContent = SELECTED
+            ? `${SELECTED.model || "-"}(${SELECTED.plate || "-"})`
+            : "車両未登録";
+
+          renderVehicleModalList();
+          displayRecommendationsFromVehicle(SELECTED);
+          showNextDateFromInspection(SELECTED);
+        } catch (e) {
+          console.error("車両データ取得エラー:", e);
+          toast("車両情報の取得に失敗しました");
+        }
       }
 
       async function loadHistoryAndRender() {
         if (!SELECTED?.vehicleId) {
+          console.log("⚠️ 選択車両なし、履歴取得スキップ");
           HISTORY = [];
           return;
         }
-        const j = await gasGet({
-          action: "listRecords",
-          vehicleId: SELECTED.vehicleId,
-        });
-        HISTORY = Array.isArray(j?.records) ? j.records : [];
+        try {
+          console.log("📋 整備履歴取得中...", SELECTED.vehicleId);
+          const j = await gasGet({
+            action: "listRecords",
+            vehicleId: SELECTED.vehicleId,
+          });
+          console.log("✅ 整備履歴取得:", j);
+
+          HISTORY = Array.isArray(j?.records) ? j.records : [];
+          console.log(`📊 履歴件数: ${HISTORY.length}件`);
+        } catch (e) {
+          console.error("整備履歴取得エラー:", e);
+          HISTORY = [];
+        }
       }
 
       /* ========= Recommendations ========= */
       function displayRecommendationsFromVehicle(v) {
         const box = $("#recommendations");
         if (!v) {
-          box.innerHTML =
-            '<p class="empty">現在、推奨メンテナンスはありません✨</p>';
+          box.innerHTML = '<p class="empty">車両が登録されていません</p>';
           return;
         }
 
@@ -722,9 +766,9 @@
           recs.push({
             type: "車検整備",
             urgency: urgent ? "至急" : "推奨",
-            reason: `次回車検日 ${fmtDate(v.nextInspection)}（残り ${
+            reason: `次回車検日 ${fmtDate(v.nextInspection)}(残り ${
               v.daysToInspection
-            } 日）`,
+            } 日)`,
           });
         }
         box.innerHTML = recs.length
@@ -752,18 +796,18 @@
         nextBtn = $("#nextBtn"),
         pageInfo = $("#pageInfo");
 
-      $("#openHistoryBtn").addEventListener("click", () => {
-        openHistory();
-      });
+      $("#openHistoryBtn").addEventListener("click", openHistory);
+
       async function openHistory() {
         try {
+          console.log("📖 履歴モーダルを開く");
           histPage = 0;
-          await loadHistoryAndRender(); // ★ 開く直前に必ず最新取得
+          await loadHistoryAndRender();
           renderHistoryModal();
           historyModal.classList.add("show");
           historyModal.setAttribute("aria-hidden", "false");
         } catch (e) {
-          console.error(e);
+          console.error("履歴モーダルエラー:", e);
           toast("履歴の取得に失敗しました");
         }
       }
@@ -778,6 +822,19 @@
       }
 
       function renderHistoryModal() {
+        console.log(`📊 履歴レンダリング: 全${HISTORY.length}件`);
+
+        if (HISTORY.length === 0) {
+          modalList.innerHTML = `
+            <div class="empty">
+              <p>整備履歴がまだありません</p>
+              <p style="margin-top:8px;font-size:14px">下のフォームから追加してください</p>
+            </div>
+          `;
+          $("#modalFooter").style.display = "none";
+          return;
+        }
+
         const totalPages = Math.max(
           1,
           Math.ceil(HISTORY.length / HIST_PAGE_SIZE)
@@ -789,6 +846,7 @@
           histPage * HIST_PAGE_SIZE,
           (histPage + 1) * HIST_PAGE_SIZE
         );
+
         modalList.innerHTML = slice
           .map(
             (item) => `
@@ -826,6 +884,7 @@
           card.classList.remove("shrink");
         }
       }
+
       prevBtn.addEventListener("click", () => {
         histPage--;
         renderHistoryModal();
@@ -854,23 +913,23 @@
 
       function renderVehicleModalList() {
         if (!VEHICLES.length) {
-          vehicleListEl.innerHTML = `<div class="vehicle"><div class="v-title">車両情報が登録されていません</div><div class="v-sub">（エルメッセージの車両台帳をご確認ください）</div></div>`;
+          vehicleListEl.innerHTML = `<div class="vehicle"><div class="v-title">車両情報が登録されていません</div><div class="v-sub">(エルメッセージの車両台帳をご確認ください)</div></div>`;
           return;
         }
         vehicleListEl.innerHTML = VEHICLES.map(
           (v, i) => `
           <div class="vehicle">
             <div class="v-title">${i + 1}. ${v.model || "-"}</div>
-            <div class="v-sub">ナンバー：${v.plate || "-"}</div>
-            <div class="v-sub">カテゴリ：${v.category || "-"}</div>
-            <div class="v-sub">排気量：${v.displacementCc ?? "-"} cc</div>
-            <div class="v-sub">初度登録：${
+            <div class="v-sub">ナンバー: ${v.plate || "-"}</div>
+            <div class="v-sub">カテゴリ: ${v.category || "-"}</div>
+            <div class="v-sub">排気量: ${v.displacementCc ?? "-"} cc</div>
+            <div class="v-sub">初度登録: ${
               v.firstRegistration ? fmtDate(v.firstRegistration) : "-"
             }</div>
-            <div class="v-sub">次回車検：${
+            <div class="v-sub">次回車検: ${
               v.nextInspection ? fmtDate(v.nextInspection) : "-"
             }</div>
-            <div class="v-sub">残り日数：${
+            <div class="v-sub">残り日数: ${
               typeof v.daysToInspection === "number"
                 ? v.daysToInspection + "日"
                 : "-"
@@ -890,13 +949,18 @@
           .forEach((r) => {
             r.addEventListener("change", async (e) => {
               const vehicleId = e.target.value;
+              console.log("🔄 メイン車両変更:", vehicleId);
+
               try {
-                const j = await postGAS({
+                const payload = {
                   action: "setPrimaryVehicle",
-                  userId,
-                  vehicleId,
+                  userId: userId,
+                  vehicleId: vehicleId,
                   token: window.POST_TOKEN,
-                });
+                };
+
+                const j = await postGAS(payload);
+
                 if (j && (j.ok === true || j.status === "success")) {
                   toast("メイン車両を更新しました");
                   VEHICLES = VEHICLES.map((v) => ({
@@ -905,19 +969,19 @@
                   }));
                   SELECTED =
                     VEHICLES.find((v) => v.vehicleId === vehicleId) || SELECTED;
-                  $("#carInfo").textContent = `${SELECTED?.model || "-"}（${
+                  $("#carInfo").textContent = `${SELECTED?.model || "-"}(${
                     SELECTED?.plate || "-"
-                  }）`;
+                  })`;
                   displayRecommendationsFromVehicle(SELECTED);
                   showNextDateFromInspection(SELECTED);
                   await loadHistoryAndRender();
                 } else {
                   console.warn("setPrimaryVehicle NG:", j);
-                  const msg = j?.message || j?.raw || "更新に失敗しました";
-                  toast(`通信エラー： ${msg}`);
+                  const msg = j?.message || "更新に失敗しました";
+                  toast(`エラー: ${msg}`);
                 }
               } catch (err) {
-                console.error(err);
+                console.error("メイン車両変更エラー:", err);
                 toast("通信エラー");
               }
             });
@@ -993,22 +1057,29 @@
           return;
         }
 
+        console.log("💾 走行距離保存:", v, "km");
+
         try {
-          const j = await postGAS({
+          const payload = {
             action: "updateMileage",
-            userId,
+            userId: userId,
             vehicleId: SELECTED.vehicleId,
             mileage: v,
             token: window.POST_TOKEN,
-          });
+          };
+
+          const j = await postGAS(payload);
+
           if (j && (j.ok === true || j.status === "success")) {
             toast("保存しました");
+            $("#mileageInput").value = "";
             await loadHistoryAndRender();
           } else {
             console.warn("updateMileage NG:", j);
-            toast(`保存に失敗しました${j?.message ? "：" + j.message : ""}`);
+            toast(`保存に失敗: ${j?.message || "不明なエラー"}`);
           }
-        } catch (_) {
+        } catch (err) {
+          console.error("走行距離保存エラー:", err);
           toast("通信エラー");
         }
       }
@@ -1028,22 +1099,26 @@
 
         const payload = {
           action: "appendHistory",
-          userId,
+          userId: userId,
           vehicleId: SELECTED.vehicleId,
-          date,
+          date: date,
           type: (typeVal || "").trim(),
           detail: $("#hDetail").value.trim(),
           price: Number($("#hPrice").value || 0),
           mileage: Number($("#hMileage").value || 0),
           token: window.POST_TOKEN,
         };
+
         if (!payload.date || !payload.type) {
           toast("整備日と整備項目は必須です");
           return;
         }
 
+        console.log("➕ 整備履歴追加:", payload);
+
         try {
           const j = await postGAS(payload);
+
           if (j && (j.ok === true || j.status === "success")) {
             toast("登録しました");
             ["hDate", "hDetail", "hPrice", "hMileage"].forEach(
@@ -1054,9 +1129,11 @@
             typeOther.style.display = "none";
             await loadHistoryAndRender();
           } else {
-            toast("登録に失敗しました");
+            console.warn("appendHistory NG:", j);
+            toast(`登録失敗: ${j?.message || "不明なエラー"}`);
           }
-        } catch (_) {
+        } catch (err) {
+          console.error("整備履歴追加エラー:", err);
           toast("通信エラー");
         }
       }
