@@ -12,11 +12,11 @@
     ></script>
 
     <script>
-      /* ====== 設定（必要に応じて編集） ====== */
-      window.LIFF_ID = "あなたのLIFF ID";
-      window.GAS_URL = "あなたのGAS WebアプリURL（/exec）";
-      window.POST_TOKEN =
-        "change-me-32chars"; /* GASのPOST_SHARED_TOKENと一致させる */
+      /* ====== 設定 ====== */
+      window.LIFF_ID = "2008228464-Jy1OL86j";
+      window.GAS_URL =
+        "https://script.google.com/macros/s/AKfycbz0EzPRsZ77DFPU8qC555lxya1Zo_KHVRbl_Z32WBKRCIKPb5GCDTgNm7mrhcEUUlDH/exec";
+      window.POST_TOKEN = "change-me-32chars"; // GAS側と同じ
     </script>
 
     <style>
@@ -57,18 +57,23 @@
         gap: 12px;
         margin-bottom: 20px;
       }
+
+      /* ★ アイコンが縦長になるのを防止 */
       .avatar {
-        width: 60px;
+        flex: 0 0 60px; /* 幅を固定し、親の伸縮から守る */
+        width: 60px; /* 念のため明示 */
         height: 60px;
+        aspect-ratio: 1/1; /* 常に正方形（iOS/Android対応ブラウザで有効） */
         border-radius: 50%;
         background: linear-gradient(135deg, #667eea, #764ba2);
-        display: flex;
+        display: inline-flex; /* 文字の中央寄せを安定させる */
         align-items: center;
         justify-content: center;
         color: #fff;
         font-size: 24px;
         font-weight: 700;
       }
+
       .user-info h2 {
         font-size: 20px;
         color: #1e293b;
@@ -78,6 +83,7 @@
         font-size: 14px;
         color: var(--gray);
       }
+
       .section-title {
         font-size: 16px;
         font-weight: 700;
@@ -165,7 +171,7 @@
         gap: 8px;
       }
 
-      /* 日付UI（左アイコン＋どちらでも開く） */
+      /* 日付UI */
       .date-field {
         display: flex;
         align-items: center;
@@ -266,8 +272,6 @@
         background: #fff;
         border-radius: 0 0 16px 16px;
       }
-
-      /* 1ページ時 余白圧縮 */
       .modal-card.shrink {
         bottom: auto;
       }
@@ -327,6 +331,8 @@
             <p id="carInfo">-</p>
           </div>
         </div>
+        <!-- 車両情報モーダル起動 -->
+        <button class="btn ghost" id="openCarBtn">車両情報を見る</button>
       </div>
 
       <!-- 次回メンテ推奨 -->
@@ -373,7 +379,6 @@
       <div class="card">
         <div class="section-title">➕ 整備履歴を追加</div>
 
-        <!-- 整備日 -->
         <label
           style="
             display: block;
@@ -396,7 +401,6 @@
           カレンダーアイコン または 入力欄をタップして日付を選択してください
         </div>
 
-        <!-- 整備種類 -->
         <div style="margin-top: 12px; display: grid; gap: 8px">
           <select
             id="hTypeSelect"
@@ -431,7 +435,6 @@
           />
         </div>
 
-        <!-- 詳細・金額・距離 -->
         <div class="grid" style="display: grid; gap: 8px; margin-top: 8px">
           <input
             id="hDetail"
@@ -475,10 +478,8 @@
         <button class="btn" id="gcalBtn">Googleカレンダーに追加</button>
       </div>
 
-      <!-- 予約ボタン（任意） -->
-      <button class="btn" onclick="openReservation()">
-        📅 次回メンテナンスを予約する
-      </button>
+      <!-- 予約ボタン -->
+      <button class="btn" id="reserveBtn">📅 次回メンテナンスを予約する</button>
     </div>
 
     <!-- エラー -->
@@ -519,11 +520,38 @@
       </div>
     </div>
 
+    <!-- モーダル（車両情報） -->
+    <div id="carModal" class="modal" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title">🚗 車両情報</div>
+          <button class="modal-close" id="closeCarBtn">閉じる</button>
+        </div>
+        <div class="modal-body">
+          <div class="hist">
+            <div class="hist-type" id="carModelText">-</div>
+            <div class="hist-detail" id="carPlateText">-</div>
+            <div class="hist-detail" id="carClassText">-</div>
+            <div class="hist-detail" id="carDisplacementText">-</div>
+            <div class="hist-detail" id="carFirstRegText">-</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script>
       let userId = "";
       let HISTORY = [];
       const HIST_PAGE_SIZE = 10;
       let histPage = 0;
+      let CAR_INFO = {
+        model: "",
+        plate: "",
+        clazz: "",
+        disp: "",
+        firstReg: "",
+      };
 
       /* ===== ユーティリティ ===== */
       const toast = (m) => {
@@ -541,7 +569,7 @@
           : `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
       };
 
-      /* ===== 共通POST（FormDataで送信：iOSプリフライト回避） ===== */
+      /* ===== 共通POST（FormData） ===== */
       async function postGAS(obj) {
         const fd = new FormData();
         for (const [k, v] of Object.entries(obj)) {
@@ -593,6 +621,15 @@
             "carInfo"
           ).textContent = `${data.customer.carModel} (${data.customer.carNumber})`;
 
+          // 車両モーダル用に保持（※顧客情報にある基本項目のみ）
+          CAR_INFO = {
+            model: data.customer.carModel || "-",
+            plate: data.customer.carNumber || "-",
+            clazz: "-", // 拡張したらここへ
+            disp: "-", // 拡張したらここへ
+            firstReg: "-", // 拡張したらここへ
+          };
+
           displayRecommendations(data.nextMaintenance);
           HISTORY = Array.isArray(data.history) ? data.history : [];
 
@@ -631,7 +668,7 @@
       }
 
       /* ===== モーダル（履歴） ===== */
-      const modal = document.getElementById("historyModal");
+      const historyModal = document.getElementById("historyModal");
       const modalList = document.getElementById("modalHistoryList");
       const prevBtn = document.getElementById("prevBtn");
       const nextBtn = document.getElementById("nextBtn");
@@ -642,18 +679,18 @@
         .addEventListener("click", () => {
           histPage = 0;
           renderHistoryModal();
-          modal.classList.add("show");
-          modal.setAttribute("aria-hidden", "false");
+          historyModal.classList.add("show");
+          historyModal.setAttribute("aria-hidden", "false");
         });
       document
         .getElementById("closeHistoryBtn")
-        .addEventListener("click", closeModal);
-      modal
+        .addEventListener("click", closeHistory);
+      historyModal
         .querySelector(".modal-backdrop")
-        .addEventListener("click", closeModal);
-      function closeModal() {
-        modal.classList.remove("show");
-        modal.setAttribute("aria-hidden", "true");
+        .addEventListener("click", closeHistory);
+      function closeHistory() {
+        historyModal.classList.remove("show");
+        historyModal.setAttribute("aria-hidden", "true");
       }
 
       function renderHistoryModal() {
@@ -663,34 +700,35 @@
         );
         if (histPage >= totalPages) histPage = totalPages - 1;
         if (histPage < 0) histPage = 0;
+
         const slice = HISTORY.slice(
           histPage * HIST_PAGE_SIZE,
           (histPage + 1) * HIST_PAGE_SIZE
         );
-
         modalList.innerHTML = slice
           .map(
             (item) => `
-            <div class="hist">
-              <div class="hist-date">${fmtDate(item.date)}</div>
-              <div class="hist-type">${item.type || ""}</div>
-              <div class="hist-detail">${item.detail || ""}</div>
-              <div class="hist-meta">
-                <span class="price">¥${(
-                  Number(item.price) || 0
-                ).toLocaleString()}</span>
-                <span class="km">${
-                  item.mileage
-                    ? Number(item.mileage).toLocaleString() + "km"
-                    : "-"
-                }</span>
-              </div>
-            </div>`
+          <div class="hist">
+            <div class="hist-date">${fmtDate(item.date)}</div>
+            <div class="hist-type">${item.type || ""}</div>
+            <div class="hist-detail">${item.detail || ""}</div>
+            <div class="hist-meta">
+              <span class="price">¥${(
+                Number(item.price) || 0
+              ).toLocaleString()}</span>
+              <span class="km">${
+                item.mileage
+                  ? Number(item.mileage).toLocaleString() + "km"
+                  : "-"
+              }</span>
+            </div>
+          </div>
+        `
           )
           .join("");
 
         const footer = document.getElementById("modalFooter");
-        const card = modal.querySelector(".modal-card");
+        const card = historyModal.querySelector(".modal-card");
         if (totalPages === 1) {
           footer.style.display = "none";
           card.classList.add("shrink");
@@ -710,6 +748,38 @@
         histPage++;
         renderHistoryModal();
       });
+
+      /* ===== モーダル（車両情報） ===== */
+      const carModal = document.getElementById("carModal");
+      document.getElementById("openCarBtn").addEventListener("click", () => {
+        document.getElementById(
+          "carModelText"
+        ).textContent = `車種：${CAR_INFO.model}`;
+        document.getElementById(
+          "carPlateText"
+        ).textContent = `ナンバー：${CAR_INFO.plate}`;
+        document.getElementById(
+          "carClassText"
+        ).textContent = `車種カテゴリ：${CAR_INFO.clazz}`;
+        document.getElementById(
+          "carDisplacementText"
+        ).textContent = `排気量：${CAR_INFO.disp}`;
+        document.getElementById(
+          "carFirstRegText"
+        ).textContent = `初年度登録：${CAR_INFO.firstReg}`;
+        carModal.classList.add("show");
+        carModal.setAttribute("aria-hidden", "false");
+      });
+      document
+        .getElementById("closeCarBtn")
+        .addEventListener("click", () => closeCar());
+      carModal
+        .querySelector(".modal-backdrop")
+        .addEventListener("click", () => closeCar());
+      function closeCar() {
+        carModal.classList.remove("show");
+        carModal.setAttribute("aria-hidden", "true");
+      }
 
       /* ===== 次回目安日 + Googleカレンダー ===== */
       function showNextDate(recs) {
@@ -746,7 +816,7 @@
             ctz: "Asia/Tokyo",
           }).toString();
           const url = `https://calendar.google.com/calendar/render?${query}`;
-          liff.openWindow({ url, external: true }); // Googleアプリ/ブラウザで開く
+          liff.openWindow({ url, external: true });
         };
       }
 
@@ -844,12 +914,14 @@
         }
       }
 
-      /* ===== 予約ページ（任意） ===== */
+      /* ===== 予約ページ（指定URL） ===== */
+      document
+        .getElementById("reserveBtn")
+        .addEventListener("click", openReservation);
       function openReservation() {
-        liff.openWindow({
-          url: "https://lin.ee/your-reserve",
-          external: false,
-        });
+        const url =
+          "https://liff.line.me/2008228464-nMpDkLPK?calendar_salon_id=18905&ts=1760362889";
+        liff.openWindow({ url, external: false });
       }
 
       /* ===== エラー表示 ===== */
