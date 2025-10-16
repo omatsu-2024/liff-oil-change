@@ -51,22 +51,22 @@
         margin-bottom: 16px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       }
+
       .header {
         display: flex;
         align-items: center;
         gap: 12px;
         margin-bottom: 20px;
       }
-
-      /* ★ アイコンが縦長になるのを防止 */
+      /* ★ アイコン縦長対策 */
       .avatar {
-        flex: 0 0 60px; /* 幅を固定し、親の伸縮から守る */
-        width: 60px; /* 念のため明示 */
+        flex: 0 0 60px;
+        width: 60px;
         height: 60px;
-        aspect-ratio: 1/1; /* 常に正方形（iOS/Android対応ブラウザで有効） */
+        aspect-ratio: 1/1;
         border-radius: 50%;
         background: linear-gradient(135deg, #667eea, #764ba2);
-        display: inline-flex; /* 文字の中央寄せを安定させる */
+        display: inline-flex;
         align-items: center;
         justify-content: center;
         color: #fff;
@@ -111,6 +111,7 @@
         border-left-color: var(--danger);
         background: #fef2f2;
       }
+
       .loading {
         text-align: center;
         padding: 40px 20px;
@@ -161,6 +162,7 @@
         background: #e5e7eb;
         color: #111;
       }
+
       input,
       select,
       button {
@@ -311,6 +313,25 @@
       .hist-meta .km {
         color: #6b7280;
       }
+
+      /* 車両リスト用 */
+      .vehicle {
+        padding: 12px 18px;
+        border-bottom: 1px dashed var(--border);
+      }
+      .vehicle:last-child {
+        border-bottom: none;
+      }
+      .v-title {
+        font-weight: 800;
+        color: #111;
+        margin-bottom: 4px;
+      }
+      .v-sub {
+        color: #6b7280;
+        font-size: 14px;
+        line-height: 1.6;
+      }
     </style>
   </head>
   <body>
@@ -331,7 +352,6 @@
             <p id="carInfo">-</p>
           </div>
         </div>
-        <!-- 車両情報モーダル起動 -->
         <button class="btn ghost" id="openCarBtn">車両情報を見る</button>
       </div>
 
@@ -478,7 +498,7 @@
         <button class="btn" id="gcalBtn">Googleカレンダーに追加</button>
       </div>
 
-      <!-- 予約ボタン -->
+      <!-- 予約ボタン（指定URLで遷移） -->
       <button class="btn" id="reserveBtn">📅 次回メンテナンスを予約する</button>
     </div>
 
@@ -520,7 +540,7 @@
       </div>
     </div>
 
-    <!-- モーダル（車両情報） -->
+    <!-- モーダル（車両情報：複数台に対応） -->
     <div id="carModal" class="modal" aria-hidden="true">
       <div class="modal-backdrop"></div>
       <div class="modal-card">
@@ -529,13 +549,7 @@
           <button class="modal-close" id="closeCarBtn">閉じる</button>
         </div>
         <div class="modal-body">
-          <div class="hist">
-            <div class="hist-type" id="carModelText">-</div>
-            <div class="hist-detail" id="carPlateText">-</div>
-            <div class="hist-detail" id="carClassText">-</div>
-            <div class="hist-detail" id="carDisplacementText">-</div>
-            <div class="hist-detail" id="carFirstRegText">-</div>
-          </div>
+          <div id="vehicleList"></div>
         </div>
       </div>
     </div>
@@ -545,13 +559,8 @@
       let HISTORY = [];
       const HIST_PAGE_SIZE = 10;
       let histPage = 0;
-      let CAR_INFO = {
-        model: "",
-        plate: "",
-        clazz: "",
-        disp: "",
-        firstReg: "",
-      };
+      let VEHICLES = []; // GASの vehicles 配列を保持
+      let HEADER_PLATE = ""; // 見出しに使うナンバー
 
       /* ===== ユーティリティ ===== */
       const toast = (m) => {
@@ -616,19 +625,16 @@
             throw new Error(result.message || "error");
           const data = result.data;
 
-          document.getElementById("userName").textContent = data.customer.name;
+          // ヘッダー表示（顧客名＋代表車両）
+          document.getElementById("userName").textContent =
+            data.customer.name || "-";
+          VEHICLES = Array.isArray(data.vehicles) ? data.vehicles : [];
+          const primary = VEHICLES[0] || null;
+          const headModel = primary?.modelName || data.customer.carModel || "-";
+          HEADER_PLATE = data.customer.carNumber || "-";
           document.getElementById(
             "carInfo"
-          ).textContent = `${data.customer.carModel} (${data.customer.carNumber})`;
-
-          // 車両モーダル用に保持（※顧客情報にある基本項目のみ）
-          CAR_INFO = {
-            model: data.customer.carModel || "-",
-            plate: data.customer.carNumber || "-",
-            clazz: "-", // 拡張したらここへ
-            disp: "-", // 拡張したらここへ
-            firstReg: "-", // 拡張したらここへ
-          };
+          ).textContent = `${headModel} (${HEADER_PLATE})`;
 
           displayRecommendations(data.nextMaintenance);
           HISTORY = Array.isArray(data.history) ? data.history : [];
@@ -658,11 +664,11 @@
               ? '<span class="badge" style="background:#fee2e2;color:#991b1b">至急</span>'
               : '<span class="badge" style="background:#fef3c7;color:#92400e">推奨</span>';
             return `<div class="recommendation ${urgent ? "urgent" : ""}">
-                    <div style="display:flex;align-items:center;gap:8px;"><strong>${
-                      r.type
-                    }</strong> ${badge}</div>
-                    <p>${r.reason || ""}</p>
-                  </div>`;
+            <div style="display:flex;align-items:center;gap:8px"><strong>${
+              r.type
+            }</strong> ${badge}</div>
+            <p>${r.reason || ""}</p>
+          </div>`;
           })
           .join("");
       }
@@ -749,33 +755,47 @@
         renderHistoryModal();
       });
 
-      /* ===== モーダル（車両情報） ===== */
+      /* ===== モーダル（車両情報：複数台対応） ===== */
       const carModal = document.getElementById("carModal");
+      const vehicleListEl = document.getElementById("vehicleList");
+
       document.getElementById("openCarBtn").addEventListener("click", () => {
-        document.getElementById(
-          "carModelText"
-        ).textContent = `車種：${CAR_INFO.model}`;
-        document.getElementById(
-          "carPlateText"
-        ).textContent = `ナンバー：${CAR_INFO.plate}`;
-        document.getElementById(
-          "carClassText"
-        ).textContent = `車種カテゴリ：${CAR_INFO.clazz}`;
-        document.getElementById(
-          "carDisplacementText"
-        ).textContent = `排気量：${CAR_INFO.disp}`;
-        document.getElementById(
-          "carFirstRegText"
-        ).textContent = `初年度登録：${CAR_INFO.firstReg}`;
+        if (!VEHICLES.length) {
+          // 旧フィールドのみのときは見出しの情報を簡易表示
+          vehicleListEl.innerHTML = `
+            <div class="vehicle">
+              <div class="v-title">車種：${document
+                .getElementById("carInfo")
+                .textContent.replace(/\s*\(.+\)$/, "")}</div>
+              <div class="v-sub">ナンバー：${HEADER_PLATE}</div>
+              <div class="v-sub">（詳細は未登録です）</div>
+            </div>`;
+        } else {
+          vehicleListEl.innerHTML = VEHICLES.map(
+            (v, i) => `
+            <div class="vehicle">
+              <div class="v-title">${i + 1}. 車種：${v.modelName || "-"}</div>
+              <div class="v-sub">カテゴリ：${v.category || "-"}</div>
+              <div class="v-sub">排気量：${v.displacement || "-"}</div>
+              <div class="v-sub">初年度登録：${v.firstReg || "-"}</div>
+              ${
+                i === 0
+                  ? `<div class="v-sub">ナンバー：${HEADER_PLATE || "-"}</div>`
+                  : ""
+              }
+            </div>
+          `
+          ).join("");
+        }
         carModal.classList.add("show");
         carModal.setAttribute("aria-hidden", "false");
       });
       document
         .getElementById("closeCarBtn")
-        .addEventListener("click", () => closeCar());
+        .addEventListener("click", closeCar);
       carModal
         .querySelector(".modal-backdrop")
-        .addEventListener("click", () => closeCar());
+        .addEventListener("click", closeCar);
       function closeCar() {
         carModal.classList.remove("show");
         carModal.setAttribute("aria-hidden", "true");
@@ -806,8 +826,8 @@
           const y = target.getFullYear(),
             m = pad(target.getMonth() + 1),
             d = pad(target.getDate());
-          const start = `${y}${m}${d}T100000`;
-          const end = `${y}${m}${d}T110000`;
+          const start = `${y}${m}${d}T100000`,
+            end = `${y}${m}${d}T110000`;
           const query = new URLSearchParams({
             action: "TEMPLATE",
             text: "点検の目安日",
@@ -915,14 +935,11 @@
       }
 
       /* ===== 予約ページ（指定URL） ===== */
-      document
-        .getElementById("reserveBtn")
-        .addEventListener("click", openReservation);
-      function openReservation() {
+      document.getElementById("reserveBtn").addEventListener("click", () => {
         const url =
           "https://liff.line.me/2008228464-nMpDkLPK?calendar_salon_id=18905&ts=1760362889";
         liff.openWindow({ url, external: false });
-      }
+      });
 
       /* ===== エラー表示 ===== */
       function showError(msg) {
