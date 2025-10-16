@@ -600,7 +600,6 @@
 
           await loadVehiclesAndRender();
           await loadHistoryAndRender();
-          maybeShowInspectionAlert();
 
           $("#loading").style.display = "none";
           $("#content").style.display = "block";
@@ -666,11 +665,11 @@
                   ? '<span class="badge" style="background:#fee2e2;color:#991b1b">至急</span>'
                   : '<span class="badge" style="background:#fef3c7;color:#92400e">推奨</span>';
                 return `<div class="recommendation ${urgent ? "urgent" : ""}">
-              <div style="display:flex;align-items:center;gap:8px"><strong>${
-                r.type
-              }</strong> ${badge}</div>
-              <p>${r.reason || ""}</p>
-            </div>`;
+                <div style="display:flex;align-items:center;gap:8px"><strong>${
+                  r.type
+                }</strong> ${badge}</div>
+                <p>${r.reason || ""}</p>
+              </div>`;
               })
               .join("")
           : '<p class="empty">現在、推奨メンテナンスはありません✨</p>';
@@ -682,6 +681,7 @@
         prevBtn = $("#prevBtn"),
         nextBtn = $("#nextBtn"),
         pageInfo = $("#pageInfo");
+
       $("#openHistoryBtn").addEventListener("click", () => {
         histPage = 0;
         renderHistoryModal();
@@ -696,6 +696,7 @@
         historyModal.classList.remove("show");
         historyModal.setAttribute("aria-hidden", "true");
       }
+
       function renderHistoryModal() {
         const totalPages = Math.max(
           1,
@@ -703,6 +704,7 @@
         );
         if (histPage >= totalPages) histPage = totalPages - 1;
         if (histPage < 0) histPage = 0;
+
         const slice = HISTORY.slice(
           histPage * HIST_PAGE_SIZE,
           (histPage + 1) * HIST_PAGE_SIZE
@@ -710,27 +712,30 @@
         modalList.innerHTML = slice
           .map(
             (item) => `
-        <div class="hist">
-          <div class="hist-date">${fmtDate(item.date || item.performedAt)}</div>
-          <div class="hist-type">${item.type || item.category || ""}</div>
-          <div class="hist-detail">${item.detail || item.title || ""}</div>
-          <div class="hist-meta">
-            <span class="price">¥${(
-              Number(item.price || item.cost) || 0
-            ).toLocaleString()}</span>
-            <span class="km">${
-              item.mileage ? Number(item.mileage).toLocaleString() + "km" : "-"
-            }</span>
+          <div class="hist">
+            <div class="hist-date">${fmtDate(
+              item.date || item.performedAt
+            )}</div>
+            <div class="hist-type">${item.type || item.category || ""}</div>
+            <div class="hist-detail">${item.detail || item.title || ""}</div>
+            <div class="hist-meta">
+              <span class="price">¥${(
+                Number(item.price || item.cost) || 0
+              ).toLocaleString()}</span>
+              <span class="km">${
+                item.mileage
+                  ? Number(item.mileage).toLocaleString() + "km"
+                  : "-"
+              }</span>
+            </div>
           </div>
-        </div>
-      `
+        `
           )
           .join("");
 
-        const footer = $("#modalFooter"),
-          card = historyModal.querySelector(".modal-card");
+        const footer = $("#modalFooter");
         if (totalPages === 1) {
-          footer.style.display = "none"; // ページャ非表示
+          footer.style.display = "none";
         } else {
           footer.style.display = "flex";
           prevBtn.disabled = histPage === 0;
@@ -771,30 +776,30 @@
         }
         vehicleListEl.innerHTML = VEHICLES.map(
           (v, i) => `
-        <div class="vehicle">
-          <div class="v-title">${i + 1}. ${v.model || "-"}</div>
-          <div class="v-sub">ナンバー：${v.plate || "-"}</div>
-          <div class="v-sub">カテゴリ：${v.category || "-"}</div>
-          <div class="v-sub">排気量：${v.displacementCc ?? "-"} cc</div>
-          <div class="v-sub">初度登録：${
-            v.firstRegistration ? fmtDate(v.firstRegistration) : "-"
-          }</div>
-          <div class="v-sub">次回車検：${
-            v.nextInspection ? fmtDate(v.nextInspection) : "-"
-          }</div>
-          <div class="v-sub">残り日数：${
-            typeof v.daysToInspection === "number"
-              ? v.daysToInspection + "日"
-              : "-"
-          }</div>
-          <label class="v-main">
-            <input type="radio" name="primaryVehicle" value="${v.vehicleId}" ${
-            v.isPrimary ? "checked" : ""
-          } />
-            この車をメイン表示にする
-          </label>
-        </div>
-      `
+          <div class="vehicle">
+            <div class="v-title">${i + 1}. ${v.model || "-"}</div>
+            <div class="v-sub">ナンバー：${v.plate || "-"}</div>
+            <div class="v-sub">カテゴリ：${v.category || "-"}</div>
+            <div class="v-sub">排気量：${v.displacementCc ?? "-"} cc</div>
+            <div class="v-sub">初度登録：${
+              v.firstRegistration ? fmtDate(v.firstRegistration) : "-"
+            }</div>
+            <div class="v-sub">次回車検：${
+              v.nextInspection ? fmtDate(v.nextInspection) : "-"
+            }</div>
+            <div class="v-sub">残り日数：${
+              typeof v.daysToInspection === "number"
+                ? v.daysToInspection + "日"
+                : "-"
+            }</div>
+            <label class="v-main">
+              <input type="radio" name="primaryVehicle" value="${
+                v.vehicleId
+              }" ${v.isPrimary ? "checked" : ""} />
+              この車をメイン表示にする
+            </label>
+          </div>
+        `
         ).join("");
 
         vehicleListEl
@@ -825,7 +830,9 @@
                   await loadHistoryAndRender();
                 } else {
                   console.warn("setPrimaryVehicle NG:", j);
-                  toast("更新に失敗しました");
+                  toast(
+                    j && j.message ? String(j.message) : "更新に失敗しました"
+                  );
                 }
               } catch (err) {
                 console.error(err);
@@ -872,13 +879,12 @@
       }
 
       /* ========= Date / Type UI ========= */
-      $("#dateIcon").addEventListener(
-        "click",
-        () => $("#hDate").showPicker && $("#hDate").showPicker()
-      );
+      $("#dateIcon").addEventListener("click", () => {
+        if ($("#hDate").showPicker) $("#hDate").showPicker();
+      });
       $("#dateField").addEventListener("click", (e) => {
-        if (e.target.id !== "hDate")
-          $("#hDate").showPicker && $("#hDate").showPicker();
+        if (e.target.id !== "hDate" && $("#hDate").showPicker)
+          $("#hDate").showPicker();
       });
       const typeSelect = $("#hTypeSelect"),
         typeOther = $("#hTypeOther");
@@ -913,7 +919,7 @@
             await loadHistoryAndRender();
           } else {
             console.warn("updateMileage NG:", j);
-            toast("保存に失敗しました");
+            toast(j && j.message ? String(j.message) : "保存に失敗しました");
           }
         } catch (e) {
           console.error(e);
@@ -960,7 +966,7 @@
             typeOther.style.display = "none";
             await loadHistoryAndRender();
           } else {
-            toast("登録に失敗しました");
+            toast(j && j.message ? String(j.message) : "登録に失敗しました");
           }
         } catch (e) {
           console.error(e);
@@ -989,24 +995,40 @@
         $("#errorMessage").textContent = msg;
       }
 
-      /* ========= Inspection popup (same as before) ========= */
-      const ALERT_THRESHOLDS = [90, 60, 30, 7];
-      function shouldAlertInspection(v) {
-        if (!v || !v.nextInspection || typeof v.daysToInspection !== "number")
-          return false;
-        const key = `snooze_${v.vehicleId}`,
-          until = localStorage.getItem(key);
-        if (until && Date.now() < Number(until)) return false;
-        return ALERT_THRESHOLDS.some(
-          (d) => v.daysToInspection <= d && v.daysToInspection >= 0
-        );
-      }
-      function openInspectionModal(v) {
-        const modal = $("#historyModal").previousElementSibling; // safe: layout-wise another modal, but we'll skip popup use for now
-        // ここでは既存の仕組みを維持（必要なら実装）
-      }
-      function maybeShowInspectionAlert() {
-        /* 任意: 必要なら有効化 */
+      /* ========= Inspection (任意) ========= */
+      function showNextDateFromInspection(v) {
+        const box = $("#nextBox");
+        if (!v || !v.nextInspection) {
+          box.style.display = "none";
+          return;
+        }
+        const dt = new Date(v.nextInspection);
+        if (isNaN(+dt)) {
+          box.style.display = "none";
+          return;
+        }
+        dt.setDate(dt.getDate() - 14);
+        $("#nextText").textContent = `${fmtDate(dt)} 頃に点検をおすすめします`;
+        box.style.display = "block";
+        $("#gcalBtn").onclick = () => {
+          const pad = (n) => String(n).padStart(2, "0");
+          const y = dt.getFullYear(),
+            m = pad(dt.getMonth() + 1),
+            d = pad(dt.getDate());
+          const start = `${y}${m}${d}T100000`,
+            end = `${y}${m}${d}T110000`;
+          const query = new URLSearchParams({
+            action: "TEMPLATE",
+            text: "点検の目安日",
+            dates: `${start}/${end}`,
+            details: "LINEのマイページから作成",
+            ctz: "Asia/Tokyo",
+          }).toString();
+          liff.openWindow({
+            url: `https://calendar.google.com/calendar/render?${query}`,
+            external: true,
+          });
+        };
       }
     </script>
   </body>
