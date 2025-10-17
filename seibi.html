@@ -10,11 +10,13 @@
       charset="utf-8"
       src="https://static.line-scdn.net/liff/edge/2/sdk.js"
     ></script>
+
     <script>
+      /* ====== 設定 ====== */
       window.LIFF_ID = "2008228464-Jy1OL86j";
       window.GAS_URL =
         "https://script.google.com/macros/s/AKfycbz0EzPRsZ77DFPU8qC555lxya1Zo_KHVRbl_Z32WBKRCIKPb5GCDTgNm7mrhcEUUlDH/exec";
-      window.POST_TOKEN = "change-me-32chars";
+      window.POST_TOKEN = "change-me-32chars"; // GAS側と同じ
     </script>
 
     <style>
@@ -49,14 +51,14 @@
         margin-bottom: 16px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       }
+
       .header {
         display: flex;
         align-items: center;
         gap: 12px;
         margin-bottom: 20px;
       }
-
-      /* アイコン縦長防止 */
+      /* ★ アイコン縦長対策 */
       .avatar {
         flex: 0 0 60px;
         width: 60px;
@@ -81,6 +83,7 @@
         font-size: 14px;
         color: var(--gray);
       }
+
       .section-title {
         font-size: 16px;
         font-weight: 700;
@@ -97,7 +100,6 @@
         font-size: 12px;
         font-weight: 600;
       }
-
       .recommendation {
         background: var(--light);
         border-left: 4px solid var(--warning);
@@ -129,7 +131,6 @@
           transform: rotate(360deg);
         }
       }
-
       .error {
         background: #fee2e2;
         color: #991b1b;
@@ -142,7 +143,6 @@
         padding: 40px 20px;
         color: var(--gray);
       }
-
       .btn {
         display: inline-flex;
         align-items: center;
@@ -314,11 +314,10 @@
         color: #6b7280;
       }
 
+      /* 車両リスト用 */
       .vehicle {
         padding: 12px 18px;
         border-bottom: 1px dashed var(--border);
-        display: grid;
-        gap: 6px;
       }
       .vehicle:last-child {
         border-bottom: none;
@@ -326,20 +325,12 @@
       .v-title {
         font-weight: 800;
         color: #111;
+        margin-bottom: 4px;
       }
       .v-sub {
         color: #6b7280;
         font-size: 14px;
         line-height: 1.6;
-      }
-      .v-main {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-top: 6px;
-      }
-      .v-main input {
-        transform: scale(1.2);
       }
     </style>
   </head>
@@ -352,6 +343,7 @@
 
     <!-- 本文 -->
     <div id="content" class="container" style="display: none">
+      <!-- ヘッダー -->
       <div class="card">
         <div class="header">
           <div class="avatar" id="avatar">👤</div>
@@ -363,16 +355,19 @@
         <button class="btn ghost" id="openCarBtn">車両情報を見る</button>
       </div>
 
+      <!-- 次回メンテ推奨 -->
       <div class="card">
         <div class="section-title">🔧 次回メンテナンス推奨</div>
         <div id="recommendations"></div>
       </div>
 
+      <!-- 整備履歴（モーダル起動ボタン） -->
       <div class="card">
         <div class="section-title">📋 整備履歴</div>
         <button class="btn" id="openHistoryBtn">整備履歴を見る</button>
       </div>
 
+      <!-- 走行距離の更新 -->
       <div class="card">
         <div class="section-title">📏 走行距離の更新</div>
         <div class="row">
@@ -400,8 +395,10 @@
         </p>
       </div>
 
+      <!-- 履歴追加 -->
       <div class="card">
         <div class="section-title">➕ 整備履歴を追加</div>
+
         <label
           style="
             display: block;
@@ -494,12 +491,14 @@
         </div>
       </div>
 
+      <!-- 次回目安日 & Googleカレンダー -->
       <div class="card" id="nextBox" style="display: none">
         <div class="section-title">🗓️ 次回メンテ目安日</div>
         <p id="nextText" style="margin-bottom: 8px"></p>
         <button class="btn" id="gcalBtn">Googleカレンダーに追加</button>
       </div>
 
+      <!-- 予約ボタン（指定URLで遷移） -->
       <button class="btn" id="reserveBtn">📅 次回メンテナンスを予約する</button>
     </div>
 
@@ -511,7 +510,7 @@
       </div>
     </div>
 
-    <!-- 履歴モーダル -->
+    <!-- モーダル（整備履歴） -->
     <div id="historyModal" class="modal" aria-hidden="true">
       <div class="modal-backdrop"></div>
       <div class="modal-card">
@@ -541,7 +540,7 @@
       </div>
     </div>
 
-    <!-- 車両モーダル（既定車切替に対応） -->
+    <!-- モーダル（車両情報：複数台に対応） -->
     <div id="carModal" class="modal" aria-hidden="true">
       <div class="modal-backdrop"></div>
       <div class="modal-card">
@@ -560,11 +559,10 @@
       let HISTORY = [];
       const HIST_PAGE_SIZE = 10;
       let histPage = 0;
+      let VEHICLES = []; // GASの vehicles 配列を保持
+      let HEADER_PLATE = ""; // 見出しに使うナンバー
 
-      let VEHICLES = []; // [{row, category, modelName, displacement, firstReg, isPrimary}]
-      let HEADER_PLATE = ""; // 顧客情報のナンバー表示
-
-      /* helpers */
+      /* ===== ユーティリティ ===== */
       const toast = (m) => {
         const n = document.createElement("div");
         n.textContent = m;
@@ -579,6 +577,8 @@
           ? "-"
           : `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
       };
+
+      /* ===== 共通POST（FormData） ===== */
       async function postGAS(obj) {
         const fd = new FormData();
         for (const [k, v] of Object.entries(obj)) {
@@ -595,7 +595,7 @@
         return res.json();
       }
 
-      /* init */
+      /* ===== LIFF初期化 ===== */
       async function initApp() {
         try {
           await liff.init({ liffId: window.LIFF_ID });
@@ -614,7 +614,7 @@
         }
       }
 
-      /* load */
+      /* ===== データ読み込み ===== */
       async function loadData() {
         try {
           const res = await fetch(
@@ -625,14 +625,13 @@
             throw new Error(result.message || "error");
           const data = result.data;
 
+          // ヘッダー表示（顧客名＋代表車両）
           document.getElementById("userName").textContent =
             data.customer.name || "-";
-          HEADER_PLATE = data.customer.carNumber || "-";
-
           VEHICLES = Array.isArray(data.vehicles) ? data.vehicles : [];
-          const primary =
-            VEHICLES.find((v) => v.isPrimary) || VEHICLES[0] || null;
+          const primary = VEHICLES[0] || null;
           const headModel = primary?.modelName || data.customer.carModel || "-";
+          HEADER_PLATE = data.customer.carNumber || "-";
           document.getElementById(
             "carInfo"
           ).textContent = `${headModel} (${HEADER_PLATE})`;
@@ -650,10 +649,10 @@
         }
       }
 
-      /* recommendations */
+      /* ===== 推奨表示 ===== */
       function displayRecommendations(recs) {
         const box = document.getElementById("recommendations");
-        if (!recs?.length) {
+        if (!recs || !recs.length) {
           box.innerHTML =
             '<p class="empty">現在、推奨メンテナンスはありません✨</p>';
           return;
@@ -674,7 +673,7 @@
           .join("");
       }
 
-      /* history modal */
+      /* ===== モーダル（履歴） ===== */
       const historyModal = document.getElementById("historyModal");
       const modalList = document.getElementById("modalHistoryList");
       const prevBtn = document.getElementById("prevBtn");
@@ -729,7 +728,8 @@
                   : "-"
               }</span>
             </div>
-          </div>`
+          </div>
+        `
           )
           .join("");
 
@@ -755,74 +755,37 @@
         renderHistoryModal();
       });
 
-      /* vehicles modal + primary toggle */
+      /* ===== モーダル（車両情報：複数台対応） ===== */
       const carModal = document.getElementById("carModal");
       const vehicleListEl = document.getElementById("vehicleList");
 
       document.getElementById("openCarBtn").addEventListener("click", () => {
         if (!VEHICLES.length) {
-          vehicleListEl.innerHTML = `<div class="vehicle">
-               <div class="v-title">車種：${document
-                 .getElementById("carInfo")
-                 .textContent.replace(/\s*\(.+\)$/, "")}</div>
-               <div class="v-sub">ナンバー：${HEADER_PLATE}</div>
-               <div class="v-sub">（詳細は未登録です）</div>
-             </div>`;
+          // 旧フィールドのみのときは見出しの情報を簡易表示
+          vehicleListEl.innerHTML = `
+            <div class="vehicle">
+              <div class="v-title">車種：${document
+                .getElementById("carInfo")
+                .textContent.replace(/\s*\(.+\)$/, "")}</div>
+              <div class="v-sub">ナンバー：${HEADER_PLATE}</div>
+              <div class="v-sub">（詳細は未登録です）</div>
+            </div>`;
         } else {
           vehicleListEl.innerHTML = VEHICLES.map(
             (v, i) => `
             <div class="vehicle">
-              <div class="v-title">${i + 1}. ${v.modelName || "-"}</div>
+              <div class="v-title">${i + 1}. 車種：${v.modelName || "-"}</div>
               <div class="v-sub">カテゴリ：${v.category || "-"}</div>
               <div class="v-sub">排気量：${v.displacement || "-"}</div>
               <div class="v-sub">初年度登録：${v.firstReg || "-"}</div>
               ${
                 i === 0
-                  ? `<div class="v-sub">（ナンバー：${
-                      HEADER_PLATE || "-"
-                    }）</div>`
+                  ? `<div class="v-sub">ナンバー：${HEADER_PLATE || "-"}</div>`
                   : ""
               }
-              <label class="v-main">
-                <input type="radio" name="primaryVehicle" value="${v.row}" ${
-              v.isPrimary ? "checked" : ""
-            } />
-                この車をメイン表示にする
-              </label>
-            </div>`
+            </div>
+          `
           ).join("");
-
-          vehicleListEl
-            .querySelectorAll('input[name="primaryVehicle"]')
-            .forEach((r) => {
-              r.addEventListener("change", async (e) => {
-                const row = Number(e.target.value);
-                try {
-                  const j = await postGAS({
-                    action: "setPrimaryVehicle",
-                    userId,
-                    row,
-                    token: window.POST_TOKEN,
-                  });
-                  if (j.status === "success") {
-                    toast("メイン車両を更新しました");
-                    VEHICLES = VEHICLES.map((v) => ({
-                      ...v,
-                      isPrimary: v.row === row,
-                    }));
-                    const selected = VEHICLES.find((v) => v.row === row);
-                    const headModel = selected?.modelName || "-";
-                    document.getElementById(
-                      "carInfo"
-                    ).textContent = `${headModel} (${HEADER_PLATE})`;
-                  } else {
-                    toast("更新に失敗: " + (j.message || ""));
-                  }
-                } catch {
-                  toast("通信エラー");
-                }
-              });
-            });
         }
         carModal.classList.add("show");
         carModal.setAttribute("aria-hidden", "false");
@@ -838,17 +801,19 @@
         carModal.setAttribute("aria-hidden", "true");
       }
 
-      /* next date + Google Calendar */
+      /* ===== 次回目安日 + Googleカレンダー ===== */
       function showNextDate(recs) {
         const box = document.getElementById("nextBox");
-        if (!recs?.length) {
+        if (!recs || !recs.length) {
           box.style.display = "none";
           return;
         }
+
         const today = new Date();
         let target = new Date(today);
         const oil = recs.find((r) => (r.type || "").includes("オイル"));
         target.setDate(today.getDate() + (oil ? 30 : 14));
+
         document.getElementById(
           "nextText"
         ).textContent = `${target.getFullYear()}年${
@@ -875,7 +840,7 @@
         };
       }
 
-      /* date UI */
+      /* ===== 日付UI: アイコン/入力どちらでも開く ===== */
       document
         .getElementById("dateIcon")
         .addEventListener("click", () =>
@@ -886,7 +851,7 @@
           document.getElementById("hDate").showPicker?.();
       });
 
-      /* type other */
+      /* ===== 種類：その他 ===== */
       const typeSelect = document.getElementById("hTypeSelect");
       const typeOther = document.getElementById("hTypeOther");
       typeSelect.addEventListener("change", () => {
@@ -898,7 +863,7 @@
         }
       });
 
-      /* mileage post */
+      /* ===== POST: 走行距離更新 ===== */
       document
         .getElementById("saveMileageBtn")
         .addEventListener("click", saveMileage);
@@ -926,7 +891,7 @@
         }
       }
 
-      /* add history */
+      /* ===== POST: 履歴追加 ===== */
       document
         .getElementById("addHistoryBtn")
         .addEventListener("click", addHistory);
@@ -969,14 +934,14 @@
         }
       }
 
-      /* reserve button */
+      /* ===== 予約ページ（指定URL） ===== */
       document.getElementById("reserveBtn").addEventListener("click", () => {
         const url =
           "https://liff.line.me/2008228464-nMpDkLPK?calendar_salon_id=18905&ts=1760362889";
         liff.openWindow({ url, external: false });
       });
 
-      /* error */
+      /* ===== エラー表示 ===== */
       function showError(msg) {
         document.getElementById("loading").style.display = "none";
         document.getElementById("content").style.display = "none";
