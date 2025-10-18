@@ -25,6 +25,8 @@
         --panel: #fff;
         --border: #e5e7eb;
         --muted: #64748b;
+        --cta1: #5b8cff;
+        --cta2: #7649ff;
       }
       * {
         box-sizing: border-box;
@@ -106,6 +108,24 @@
         color: var(--muted);
         font-size: 12px;
         margin-top: 6px;
+      }
+
+      .input {
+        flex: 1;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .grid2 {
+        display: grid;
+        grid-template-columns: 1fr 240px;
+        gap: 8px;
+        align-items: center;
       }
 
       .modal {
@@ -193,6 +213,7 @@
         font-weight: 800;
       }
 
+      /* 更新中モーダル */
       #busy {
         position: fixed;
         inset: 0;
@@ -231,26 +252,51 @@
           transform: rotate(360deg);
         }
       }
-      .row {
-        display: flex;
-        gap: 8px;
-      }
-      .input {
-        flex: 1;
-        padding: 12px;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-      }
 
-      /* ▼ 固定をやめて単純な最下部配置に変更 */
+      /* ▼ 最下部ボタン：固定せず通常配置 */
       .footer-btns {
         display: grid;
         gap: 12px;
         margin-top: 12px;
       }
+
+      /* ▼ 予約CTAを目立たせる装飾 */
+      .cta {
+        display: block;
+        width: 100%;
+        border: none;
+        border-radius: 14px;
+        cursor: pointer;
+        color: #fff;
+        background: linear-gradient(135deg, var(--cta1), var(--cta2));
+        padding: 18px 16px;
+        box-shadow: 0 10px 20px rgba(91, 140, 255, 0.28);
+        transition: transform 0.08s ease;
+      }
+      .cta:active {
+        transform: translateY(1px);
+      }
+      .cta .lead {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 16px;
+      }
+      .cta .sub {
+        margin-top: 4px;
+        text-align: center;
+        font-size: 12px;
+        opacity: 0.9;
+      }
+      .cta .icon {
+        font-size: 18px;
+      }
     </style>
   </head>
   <body>
+    <!-- 情報更新中 -->
     <div id="busy">
       <div class="glass"></div>
       <div class="box">
@@ -261,6 +307,7 @@
       </div>
     </div>
 
+    <!-- ローディング -->
     <div id="loading" class="container">
       <div
         class="card"
@@ -275,6 +322,7 @@
       </div>
     </div>
 
+    <!-- 本体 -->
     <div id="content" class="container" style="display: none">
       <div class="card">
         <div class="header">
@@ -304,8 +352,11 @@
         </button>
       </div>
 
+      <!-- ▼ 整備履歴の追加：位置調整＆ヒント/未プリセット化 -->
       <div class="card">
         <div style="font-weight: 800">➕ 整備履歴を追加</div>
+
+        <!-- 日付行 -->
         <div class="row" style="margin-top: 10px; align-items: center">
           <div
             class="input"
@@ -322,48 +373,60 @@
             日付
           </button>
         </div>
-        <select id="hTypeSelect" class="input" style="margin-top: 8px">
-          <option value="" disabled selected>整備項目を選択</option>
-          <option>オイル交換</option>
-          <option>オイルエレメント交換</option>
-          <option>タイヤ交換</option>
-          <option>ブレーキフルード交換</option>
-          <option>冷却水（LLC）交換</option>
-          <option>バッテリー交換</option>
-          <option>エアコンフィルター交換</option>
-          <option>ワイパーゴム交換</option>
-          <option>12ヶ月点検</option>
-          <option>車検整備</option>
-          <option value="__other__">その他（自由入力）</option>
-        </select>
+
+        <!-- 項目 / 金額 -->
+        <div class="row" style="margin-top: 8px">
+          <select id="hTypeSelect" class="input" style="min-width: 240px">
+            <option value="" disabled selected>整備項目を選択</option>
+            <option>オイル交換</option>
+            <option>オイルエレメント交換</option>
+            <option>タイヤ交換</option>
+            <option>ブレーキフルード交換</option>
+            <option>冷却水（LLC）交換</option>
+            <option>バッテリー交換</option>
+            <option>エアコンフィルター交換</option>
+            <option>ワイパーゴム交換</option>
+            <option>12ヶ月点検</option>
+            <option>車検整備</option>
+            <option value="__other__">その他（自由入力）</option>
+          </select>
+          <input
+            id="hPrice"
+            class="input"
+            type="number"
+            inputmode="numeric"
+            placeholder="金額(円)"
+          />
+        </div>
+
+        <!-- ▼ “現在の走行距離”を左、入力欄を右に配置 -->
+        <div class="grid2" style="margin-top: 8px">
+          <div id="currMileageHint2" class="muted" style="margin-top: 0">
+            現在の走行距離：- km
+          </div>
+          <input
+            id="hMileage"
+            class="input"
+            type="number"
+            inputmode="numeric"
+            placeholder="走行距離（km）"
+          />
+        </div>
+
+        <!-- その他入力 -->
         <input
           id="hTypeOther"
           class="input"
           placeholder="例: エンジンオイル交換"
           style="display: none; margin-top: 8px"
         />
-        <input
-          id="hPrice"
-          class="input"
-          type="number"
-          inputmode="numeric"
-          placeholder="金額(円)"
-          style="margin-top: 8px"
-        />
-        <input
-          id="hMileage"
-          class="input"
-          type="number"
-          inputmode="numeric"
-          placeholder="整備時走行距離(km)"
-          style="margin-top: 8px"
-        />
-        <div id="currMileageHint2" class="muted">現在の走行距離：- km</div>
-        <button class="btn" id="addHistoryBtn" style="margin-top: 10px">
+
+        <button class="btn" id="addHistoryBtn" style="margin-top: 12px">
           この内容で登録する
         </button>
       </div>
 
+      <!-- 走行距離の更新（こちらはデフォルト値を入れる） -->
       <div class="card">
         <div style="font-weight: 800">📏 走行距離の更新</div>
         <div class="row" style="margin-top: 10px">
@@ -387,15 +450,20 @@
         </div>
       </div>
 
-      <!-- 最下部：固定せず通常配置 -->
+      <!-- 最下部（固定しない） -->
       <div class="footer-btns">
         <div class="card" id="nextBox" style="margin: 0; display: none">
           <div style="font-weight: 800">🗓️ 次回メンテ目安日</div>
           <p id="nextText" style="margin: 6px 0 12px"></p>
           <button class="btn" id="gcalBtn">Googleカレンダーに追加</button>
         </div>
-        <button class="btn" id="reserveBtn">
-          📅 次回メンテナンスを予約する
+
+        <!-- 目立つ予約CTA -->
+        <button class="cta" id="reserveBtn">
+          <div class="lead">
+            <span class="icon">✅</span>次回メンテナンスを予約する
+          </div>
+          <div class="sub">最短30秒で完了・LINEでかんたん予約</div>
         </button>
       </div>
     </div>
@@ -534,12 +602,15 @@
 
         const lastM = Number(CUSTOMER?.lastMileage || 0) || "";
         $("#headerMileage").textContent = lastM || "-";
-        // ▼ 今回追加：入力欄にデフォルト値とヒントを反映
+
+        // 走行距離の更新：デフォルト値を入れる
         $("#mileageInput").value = lastM || "";
-        $("#hMileage").value = lastM || "";
         $("#currMileageHint1").textContent = `現在の走行距離：${
           lastM ? lastM.toLocaleString() : "-"
         } km`;
+
+        // 整備履歴フォーム：デフォルト値は入れない（プレースホルダー表示）
+        $("#hMileage").value = "";
         $("#currMileageHint2").textContent = `現在の走行距離：${
           lastM ? lastM.toLocaleString() : "-"
         } km`;
@@ -700,10 +771,10 @@
         const lastM = Number(CUSTOMER?.lastMileage || 0) || "";
         $("#headerMileage").textContent = lastM || "-";
         $("#mileageInput").value = lastM || "";
-        $("#hMileage").value = lastM || "";
         $("#currMileageHint1").textContent = `現在の走行距離：${
           lastM ? lastM.toLocaleString() : "-"
         } km`;
+        $("#hMileage").value = ""; // 整備履歴の方は未プリセット
         $("#currMileageHint2").textContent = `現在の走行距離：${
           lastM ? lastM.toLocaleString() : "-"
         } km`;
@@ -852,7 +923,7 @@
         }
       });
 
-      /* 予約起動 */
+      /* 予約起動（CTA） */
       $("#reserveBtn").addEventListener("click", () => {
         const url = new URL(window.BOOKING_URL);
         if (SELECTED) {
