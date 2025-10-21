@@ -12,17 +12,17 @@
     ></script>
 
     <script>
-      /* ==== 設定 ==== */
+      /* ==== あなたの設定 ==== */
       window.LIFF_ID = "2008228464-Jy1OL86j";
       window.GAS_URL =
         "https://script.google.com/macros/s/AKfycbz0EzPRsZ77DFPU8qC555lxya1Zo_KHVRbl_Z32WBKRCIKPb5GCDTgNm7mrhcEUUlDH/exec";
       window.POST_TOKEN = "change-me-32chars";
 
-      /* 予約 LIFF（必要に応じてクエリ追加） */
+      /* 予約 LIFF */
       window.BOOKING_BASE =
         "https://liff.line.me/2008228464-nMpDkLPK?calendar_salon_id=18905&ts=1760362889";
 
-      /* 予約ボタン装飾用の画像（GitHub Pages 直リンク） */
+      /* 予約ボタンのロゴ（GitHub Pages 直リンク） */
       window.MAINTENANCE_LOGO_URL =
         "https://omatsu-2024.github.io/liff-oil-change/img/Maintenance_Logo.png";
     </script>
@@ -133,6 +133,9 @@
       .btn.ghost {
         background: #e5e7eb;
         color: #111;
+      }
+      .btn-line {
+        background: #06c755;
       }
       .btn-primary-strong {
         background: var(--primary-strong);
@@ -247,7 +250,7 @@
         color: var(--gray);
       }
 
-      /* 情報更新中 Overlay */
+      /* 情報更新中 */
       .loading-overlay {
         position: fixed;
         inset: 0;
@@ -300,7 +303,7 @@
         width: 56px;
         height: 56px;
         border-radius: 12px;
-        background: #fff url("") center/cover no-repeat;
+        background: #fff center/cover no-repeat;
         flex: 0 0 56px;
         box-shadow: 0 4px 16px rgba(79, 70, 229, 0.25);
       }
@@ -313,12 +316,10 @@
         font-weight: 800;
       }
 
-      /* 最下部配置（固定しない） */
       .sticky-bottom {
         position: static;
       }
 
-      /* 予約ボタン（キャッチコピー付） */
       .reserve-btn {
         display: grid;
         gap: 6px;
@@ -466,7 +467,7 @@
         </button>
       </div>
 
-      <!-- 次回メンテ目安日 + Googleカレンダー -->
+      <!-- 次回メンテ目安日 -->
       <div class="card sticky-bottom" id="nextBox" style="display: none">
         <div class="section-title">📅 次回メンテ目安日</div>
         <p id="nextText" style="margin: 0 0 10px"></p>
@@ -534,16 +535,7 @@
     </div>
 
     <script>
-      /* ====== 状態 / ユーティリティ ====== */
-      let userId = "",
-        displayName = "";
-      let VEHICLES = [],
-        SELECTED = null;
-      let HISTORY = [];
-      const HIST_PAGE_SIZE = 10;
-      let histPage = 0;
-      let HEADER_PLATE = "-";
-
+      /* ================= ユーティリティ ================= */
       const $ = (s, el = document) => el.querySelector(s);
       const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
       const toast = (m) => {
@@ -561,15 +553,92 @@
       };
       const showOverlay = (on) => $("#overlay").classList.toggle("show", !!on);
 
-      // POST to GAS (旧APIの各アクション)
+      // 排気量のフォーマッタ（文字列/くっつき数値に対応）
+      function formatDisplacement(val) {
+        if (val == null) return "-";
+        // 文字列に cc/L が含まれていれば、そのまま（空白は除去）
+        if (typeof val === "string") {
+          if (/cc|ｃｃ|CC|[lLＬ]/.test(val)) return val.replace(/\s+/g, "");
+          const digits = val.replace(/\D/g, "");
+          if (digits.length >= 4)
+            return Number(digits.slice(-4)).toLocaleString() + " cc";
+          const n = Number(val);
+          if (!isNaN(n)) val = n;
+          else return val;
+        }
+        if (typeof val === "number") {
+          // 202000 のような結合値は末尾4桁を使用
+          if (val > 9999) return (val % 10000).toLocaleString() + " cc";
+          return val.toLocaleString() + " cc";
+        }
+        return String(val);
+      }
+
+      // 車検サイクル（クライアント側フォールバック）
+      function getInspectionCycleMonths(category, displacementCc) {
+        const cat = category || "passenger_private";
+        if (cat === "motorcycle") {
+          const cc = Number(displacementCc) || 0;
+          if (cc >= 251) return { initial: 24, repeat: 24 };
+          if (cc >= 126) return { initial: 0, repeat: 0 }; // 126–250cc 車検なし
+          return { initial: 0, repeat: 0 };
+        }
+        if (cat === "commercial_or_truck") return { initial: 12, repeat: 12 };
+        return { initial: 36, repeat: 24 }; // 自家用乗用（デフォルト）
+      }
+      function calcNextInspection(firstRegIso, category, displacementCc) {
+        if (!firstRegIso) return null;
+        const cyc = getInspectionCycleMonths(category, displacementCc);
+        if (!cyc.initial && !cyc.repeat) return null;
+        const first = new Date(firstRegIso);
+        if (isNaN(+first)) return null;
+        let next = new Date(first);
+        next.setMonth(next.getMonth() + cyc.initial);
+        const today = new Date();
+        const step = Math.max(1, cyc.repeat);
+        while (step && next < today) next.setMonth(next.getMonth() + step);
+        return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}-${String(next.getDate()).padStart(2, "0")}`;
+      }
+      function deriveInspection(v) {
+        let next =
+          v?.nextInspection ||
+          calcNextInspection(
+            v?.firstRegistration,
+            v?.category,
+            v?.displacementCc
+          );
+        let days = v?.daysToInspection ?? null;
+        if (next && (days === null || days === undefined)) {
+          const d = new Date(next),
+            t = new Date();
+          if (!isNaN(+d)) days = Math.floor((d - t) / 86400000);
+        }
+        return { next, days };
+      }
+
+      // GAS通信
+      async function gasGet(params) {
+        const url = new URL(window.GAS_URL);
+        Object.entries(params || {}).forEach(([k, v]) =>
+          url.searchParams.set(k, v)
+        );
+        const res = await fetch(url.toString(), {
+          method: "GET",
+          credentials: "omit",
+        });
+        if (!res.ok) throw new Error("GAS GET failed");
+        return res.json();
+      }
       async function postGAS(obj) {
         const fd = new FormData();
-        for (const [k, v] of Object.entries(obj)) {
+        for (const [k, v] of Object.entries(obj))
           fd.append(
             k,
             typeof v === "object" ? JSON.stringify(v) : String(v ?? "")
           );
-        }
         const res = await fetch(window.GAS_URL, {
           method: "POST",
           body: fd,
@@ -578,43 +647,20 @@
         return res.json();
       }
 
-      /* ====== 車検サイクル 計算（LIFF側） ====== */
-      function cycleMonths(category, cc) {
-        const cat = category || "passenger_private";
-        if (cat === "motorcycle") {
-          if (+cc >= 251) return { initial: 24, repeat: 24 };
-          return { initial: 0, repeat: 0 };
-        }
-        if (cat === "commercial_or_truck") return { initial: 12, repeat: 12 };
-        return { initial: 36, repeat: 24 }; // 自家用乗用（デフォルト）
-      }
-      function nextInspectionFrom(firstReg, category, cc) {
-        if (!firstReg) return null;
-        const iso = /^\d{4}-\d{2}-\d{2}$/.test(firstReg)
-          ? firstReg
-          : `${firstReg}-01`;
-        const c = cycleMonths(category, cc);
-        if (!c.initial && !c.repeat) return null;
-        const first = new Date(iso);
-        if (isNaN(+first)) return null;
-        const next = new Date(first);
-        next.setMonth(next.getMonth() + c.initial);
-        const today = new Date();
-        const step = Math.max(1, c.repeat);
-        while (step && next < today) {
-          next.setMonth(next.getMonth() + step);
-        }
-        return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(
-          2,
-          "0"
-        )}-${String(next.getDate()).padStart(2, "0")}`;
-      }
+      /* ================= 状態 ================= */
+      let userId = "",
+        displayName = "";
+      let VEHICLES = [],
+        SELECTED = null;
+      let HISTORY = [];
+      const HIST_PAGE_SIZE = 10;
+      let histPage = 0;
 
-      /* ====== 初期化 ====== */
+      /* ================= 初期化 ================= */
       window.addEventListener("DOMContentLoaded", init);
       async function init() {
         try {
-          // 予約ボタンのロゴ
+          // 予約ロゴ
           $(
             "#ctaLogo"
           ).style.backgroundImage = `url('${window.MAINTENANCE_LOGO_URL}')`;
@@ -630,138 +676,94 @@
           $("#avatar").textContent = displayName ? displayName[0] : "👤";
           $("#userName").textContent = `${displayName} さん`;
 
-          await loadData(); // 旧APIで一括取得→描画
+          await loadVehiclesAndRender();
+          await loadHistoryForSelected();
+          renderRecommendationsFromVehicle(SELECTED);
+          showNextDateFromInspection(SELECTED);
         } catch (e) {
           console.error(e);
           toast("LINEとの接続に失敗しました");
         }
       }
 
-      /* ====== 旧APIの doGet?userId=... で一括取得 ====== */
-      async function loadData() {
-        showOverlay(true);
-        try {
-          const res = await fetch(
-            `${window.GAS_URL}?userId=${encodeURIComponent(userId)}`
-          );
-          const j = await res.json();
-          if (j.status !== "success") throw new Error(j.message || "error");
+      async function loadVehiclesAndRender() {
+        const j = await gasGet({ action: "listVehicles", userId });
+        const list = Array.isArray(j && j.vehicles) ? j.vehicles : [];
+        VEHICLES = list.filter(
+          (v) =>
+            v && (v.userId === userId || String(v.userId) === String(userId))
+        );
+        SELECTED = VEHICLES.find((v) => v.isPrimary) || VEHICLES[0] || null;
 
-          const data = j.data || {};
-          HEADER_PLATE = data.customer?.carNumber || "-";
+        const plateText = SELECTED?.plate || "-";
+        $("#carInfo").textContent = `${SELECTED?.model || "-"}（${plateText}）`;
 
-          // 車両 → 内部形式に正規化
-          VEHICLES = (data.vehicles || []).map((v) => ({
-            vehicleId: String(v.row),
-            isPrimary: !!v.isPrimary,
-            model: v.modelName || "",
-            plate: "", // ヘッダ表示は customer 側のナンバーを使う
-            category: v.category || "passenger_private",
-            displacementCc:
-              String(v.displacement || "").replace(/[^\d]/g, "") || 0,
-            firstRegistration: v.firstReg
-              ? /^\d{4}-\d{2}-\d{2}$/.test(v.firstReg)
-                ? v.firstReg
-                : `${v.firstReg}-01`
-              : null,
-          }));
-          SELECTED = VEHICLES.find((v) => v.isPrimary) || VEHICLES[0] || null;
+        const nowKm = Number(SELECTED?.mileage || 0);
+        $("#mileageInput").value = nowKm ? String(nowKm) : "";
+        $("#nowMileageHint").textContent = `現在の走行距離： ${
+          nowKm ? nowKm.toLocaleString() : "-"
+        } km`;
 
-          // ヘッダの車名/ナンバー
-          const headModel = SELECTED?.model || data.customer?.carModel || "-";
-          $("#carInfo").textContent = `${headModel}（${HEADER_PLATE}）`;
-
-          // 距離（顧客情報の最新距離）
-          const nowKm = Number(data.customer?.lastMileage || 0);
-          $("#mileageInput").value = nowKm ? String(nowKm) : "";
-          $("#nowMileageHint").textContent = `現在の走行距離： ${
-            nowKm ? nowKm.toLocaleString() : "-"
-          } km`;
-
-          // 履歴
-          HISTORY = Array.isArray(data.history) ? data.history : [];
-
-          // 推奨（サーバ返却）
-          renderRecommendations(data.nextMaintenance || []);
-
-          // 目安日（LIFF側：初度登録から算出）
-          showNextDateFromSelected();
-
-          // 車両モーダルの一覧
-          renderVehicleModalList();
-        } catch (e) {
-          console.error(e);
-          toast("データの取得に失敗しました");
-        } finally {
-          showOverlay(false);
-        }
+        renderVehicleModalList();
       }
 
-      function renderRecommendations(recs) {
+      async function loadHistoryForSelected() {
+        if (!SELECTED?.vehicleId) {
+          HISTORY = [];
+          return;
+        }
+        const j = await gasGet({
+          action: "listRecords",
+          vehicleId: SELECTED.vehicleId,
+        });
+        HISTORY = Array.isArray(j && j.records) ? j.records : [];
+      }
+
+      /* ================= 推奨メンテ ================= */
+      function renderRecommendationsFromVehicle(v) {
         const box = $("#recommendations");
-        if (!recs.length) {
+        if (!v) {
           box.innerHTML = `<p class="muted">現在、推奨メンテナンスはありません✨</p>`;
           return;
         }
-        box.innerHTML = recs
-          .map((r) => {
-            const urgent = r.urgency === "至急";
-            const badge = urgent
-              ? '<span class="hint-badge" style="background:#fee2e2;color:#991b1b">至急</span>'
-              : '<span class="hint-badge" style="background:#fef3c7;color:#92400e">推奨</span>';
-            return `<div class="card" style="margin:10px 0;padding:14px">
-            <div style="display:flex;gap:10px;align-items:center;font-weight:900">${
-              r.type || ""
-            } ${badge}</div>
-            <div style="margin-top:6px">${r.reason || ""}</div>
-          </div>`;
-          })
-          .join("");
-      }
 
-      /* ====== 次回メンテ目安（LIFF側計算） ====== */
-      function showNextDateFromSelected() {
-        const v = SELECTED;
-        const box = $("#nextBox");
-        const next = nextInspectionFrom(
-          v?.firstRegistration,
-          v?.category,
-          v?.displacementCc
-        );
-        if (!next) {
-          box.style.display = "none";
-          return;
-        }
-        const suggest = new Date(next);
-        suggest.setDate(suggest.getDate() - 14);
-        $("#nextText").textContent = `${fmtDateJa(
-          suggest
-        )} 頃に点検をおすすめします`;
-        box.style.display = "block";
-
-        $("#gcalBtn").onclick = () => {
-          const pad = (n) => String(n).padStart(2, "0");
-          const d = suggest;
-          const y = d.getFullYear(),
-            m = pad(d.getMonth() + 1),
-            dd = pad(d.getDate());
-          const start = `${y}${m}${dd}T100000`,
-            end = `${y}${m}${dd}T110000`;
-          const q = new URLSearchParams({
-            action: "TEMPLATE",
-            text: "点検の目安日",
-            dates: `${start}/${end}`,
-            details: "LINEのマイページから作成",
-            ctz: "Asia/Tokyo",
-          }).toString();
-          liff.openWindow({
-            url: `https://calendar.google.com/calendar/render?${q}`,
-            external: true,
+        const { next, days } = deriveInspection(v);
+        const recs = [];
+        if (next != null && days != null && !isNaN(days)) {
+          const urgent = days <= 30;
+          recs.push({
+            type: "車検整備",
+            urgency: urgent ? "至急" : "推奨",
+            reason: `次回車検日 ${fmtDateJa(next)}（残り ${days} 日）`,
           });
-        };
+        }
+        const m = new Date().getMonth() + 1;
+        if (m >= 10 || m <= 3)
+          recs.push({
+            type: "スタッドレスタイヤ交換",
+            urgency: "推奨",
+            reason: "冬季のため",
+          });
+
+        box.innerHTML = recs.length
+          ? recs
+              .map((r) => {
+                const badge =
+                  r.urgency === "至急"
+                    ? '<span class="hint-badge" style="background:#fee2e2;color:#991b1b">至急</span>'
+                    : '<span class="hint-badge" style="background:#fef3c7;color:#92400e">推奨</span>';
+                return `<div class="card" style="margin:10px 0;padding:14px">
+                        <div style="display:flex;gap:10px;align-items:center;font-weight:900">${
+                          r.type
+                        } ${badge}</div>
+                        <div style="margin-top:6px">${r.reason || ""}</div>
+                      </div>`;
+              })
+              .join("")
+          : `<p class="muted">現在、推奨メンテナンスはありません✨</p>`;
       }
 
-      /* ====== 履歴モーダル ====== */
+      /* ================= 履歴モーダル ================= */
       const historyModal = $("#historyModal"),
         modalList = $("#modalHistoryList");
       const prevBtn = $("#prevBtn"),
@@ -798,18 +800,19 @@
           .map(
             (it) => `
           <div class="hist">
-            <div class="hist-date">${fmtDateJa(it.date)}</div>
-            <div class="hist-type">${it.type || ""}</div>
-            <div class="hist-detail">${it.detail || ""}</div>
+            <div class="hist-date">${fmtDateJa(it.date || it.performedAt)}</div>
+            <div class="hist-type">${it.type || it.category || ""}</div>
+            <div class="hist-detail">${it.detail || it.title || ""}</div>
             <div class="hist-meta">
               <span class="price">¥${(
-                Number(it.price) || 0
+                Number(it.price || it.cost) || 0
               ).toLocaleString()}</span>
               <span class="km">${
                 it.mileage ? Number(it.mileage).toLocaleString() + "km" : "-"
               }</span>
             </div>
-          </div>`
+          </div>
+        `
           )
           .join("");
         const footer = $("#modalFooter");
@@ -831,7 +834,7 @@
         renderHistoryModal();
       });
 
-      /* ====== 車両モーダル + 既定車切替（旧API setPrimaryVehicle） ====== */
+      /* ================= 車両モーダル + 既定車切替 ================= */
       const carModal = $("#carModal"),
         vehicleListEl = $("#vehicleList");
       $("#openCarBtn").addEventListener("click", () => {
@@ -851,43 +854,66 @@
           vehicleListEl.innerHTML = `<div class="hist">車両情報が登録されていません</div>`;
           return;
         }
-        vehicleListEl.innerHTML = VEHICLES.map(
-          (v, i) => `
-          <div class="hist" style="border-bottom:1px dashed var(--border)">
-            <div class="hist-type">${i + 1}. ${v.model || "-"}</div>
-            <div class="hist-detail">ナンバー：${
-              i === 0 ? HEADER_PLATE || "-" : "-"
-            }</div>
-            <div class="hist-detail">カテゴリ：${v.category || "-"}</div>
-            <div class="hist-detail">排気量：${v.displacementCc || 0} cc</div>
-            <div class="hist-detail">初度登録：${
-              v.firstRegistration ? fmtDateJa(v.firstRegistration) : "-"
-            }</div>
-            <label class="row" style="margin-top:8px;gap:10px;">
-              <input type="radio" name="primaryVehicle" value="${
-                v.vehicleId
-              }" ${v.isPrimary ? "checked" : ""}>
-              この車をメイン表示にする
-            </label>
-          </div>`
-        ).join("");
+        vehicleListEl.innerHTML = VEHICLES.map((v, i) => {
+          const ins = deriveInspection(v);
+          return `
+            <div class="hist" style="border-bottom:1px dashed var(--border)">
+              <div class="hist-type">${i + 1}. ${v.model || "-"}</div>
+              <div class="hist-detail">ナンバー：${v.plate || "-"}</div>
+              <div class="hist-detail">カテゴリ：${v.category || "-"}</div>
+              <div class="hist-detail">排気量：${formatDisplacement(
+                v.displacementCc ?? v.displacement
+              )}</div>
+              <div class="hist-detail">初度登録：${
+                v.firstRegistration ? fmtDateJa(v.firstRegistration) : "-"
+              }</div>
+              <div class="hist-detail">次回車検：${
+                ins.next ? fmtDateJa(ins.next) : "-"
+              }</div>
+              <div class="hist-detail">残り日数：${
+                ins.days != null && !isNaN(ins.days) ? ins.days + "日" : "-"
+              }</div>
+              <label class="row" style="margin-top:8px;gap:10px;">
+                <input type="radio" name="primaryVehicle" value="${
+                  v.vehicleId
+                }" ${v.isPrimary ? "checked" : ""}>
+                この車をメイン表示にする
+              </label>
+            </div>`;
+        }).join("");
 
         vehicleListEl
           .querySelectorAll('input[name="primaryVehicle"]')
           .forEach((r) => {
             r.addEventListener("change", async (e) => {
-              const row = Number(e.target.value);
+              const vehicleId = e.target.value;
               try {
                 showOverlay(true);
                 const j = await postGAS({
                   action: "setPrimaryVehicle",
                   userId,
-                  row,
+                  vehicleId,
                   token: window.POST_TOKEN,
                 });
-                if (j.status === "success") {
+                if (j && (j.ok === true || j.status === "success")) {
                   toast("メイン車両を更新しました");
-                  await loadData();
+                  VEHICLES = VEHICLES.map((v) => ({
+                    ...v,
+                    isPrimary: v.vehicleId === vehicleId,
+                  }));
+                  SELECTED =
+                    VEHICLES.find((v) => v.vehicleId === vehicleId) || SELECTED;
+                  $("#carInfo").textContent = `${SELECTED?.model || "-"}（${
+                    SELECTED?.plate || "-"
+                  }）`;
+                  renderRecommendationsFromVehicle(SELECTED);
+                  showNextDateFromInspection(SELECTED);
+                  await loadHistoryForSelected();
+                  const nowKm = Number(SELECTED?.mileage || 0);
+                  $("#mileageInput").value = nowKm ? String(nowKm) : "";
+                  $("#nowMileageHint").textContent = `現在の走行距離： ${
+                    nowKm ? nowKm.toLocaleString() : "-"
+                  } km`;
                 } else {
                   toast("更新に失敗しました");
                 }
@@ -901,7 +927,48 @@
           });
       }
 
-      /* ====== 入力UI ====== */
+      /* ================= 次回目安 + Googleカレンダー ================= */
+      function showNextDateFromInspection(v) {
+        const box = $("#nextBox");
+        const { next } = deriveInspection(v || {});
+        if (!next) {
+          box.style.display = "none";
+          return;
+        }
+        const dt = new Date(next);
+        if (isNaN(+dt)) {
+          box.style.display = "none";
+          return;
+        }
+        const recommend = new Date(dt);
+        recommend.setDate(recommend.getDate() - 14);
+        $("#nextText").textContent = `${fmtDateJa(
+          recommend
+        )} 頃に点検をおすすめします`;
+        box.style.display = "block";
+
+        $("#gcalBtn").onclick = () => {
+          const pad = (n) => String(n).padStart(2, "0");
+          const y = recommend.getFullYear(),
+            m = pad(recommend.getMonth() + 1),
+            d = pad(recommend.getDate());
+          const start = `${y}${m}${d}T100000`,
+            end = `${y}${m}${d}T110000`;
+          const query = new URLSearchParams({
+            action: "TEMPLATE",
+            text: "点検の目安日",
+            dates: `${start}/${end}`,
+            details: "LINEのマイページから作成",
+            ctz: "Asia/Tokyo",
+          }).toString();
+          liff.openWindow({
+            url: `https://calendar.google.com/calendar/render?${query}`,
+            external: true,
+          });
+        };
+      }
+
+      /* ================= 入力UI ================= */
       $("#dateBtn").addEventListener("click", () => $("#hDate").showPicker?.());
       const typeSelect = $("#hTypeSelect"),
         typeOther = $("#hTypeOther");
@@ -911,11 +978,15 @@
         if (on) typeOther.focus();
       });
 
-      /* ====== 距離保存（旧API updateMileage: userId+mileage） ====== */
+      /* ================= 距離保存 ================= */
       $("#saveMileageBtn").addEventListener("click", async () => {
         const v = Number($("#mileageInput").value || 0);
         if (!v) {
           toast("走行距離を入力してください");
+          return;
+        }
+        if (!SELECTED?.vehicleId) {
+          toast("車両が見つかりません");
           return;
         }
         try {
@@ -923,12 +994,16 @@
           const j = await postGAS({
             action: "updateMileage",
             userId,
+            vehicleId: SELECTED.vehicleId,
             mileage: v,
             token: window.POST_TOKEN,
           });
-          if (j.status === "success") {
+          if (j && (j.ok === true || j.status === "success")) {
             toast("保存しました");
-            await loadData();
+            await loadVehiclesAndRender();
+            await loadHistoryForSelected();
+            renderRecommendationsFromVehicle(SELECTED);
+            showNextDateFromInspection(SELECTED);
           } else {
             toast("保存に失敗しました");
           }
@@ -940,8 +1015,12 @@
         }
       });
 
-      /* ====== 履歴追加（旧API appendHistory） ====== */
+      /* ================= 履歴追加 ================= */
       $("#addHistoryBtn").addEventListener("click", async () => {
+        if (!SELECTED?.vehicleId) {
+          toast("車両が見つかりません");
+          return;
+        }
         const date = $("#hDate").value;
         const tv =
           typeSelect.value === "__other__"
@@ -950,6 +1029,7 @@
         const payload = {
           action: "appendHistory",
           userId,
+          vehicleId: SELECTED.vehicleId,
           date,
           type: (tv || "").trim(),
           detail:
@@ -967,14 +1047,14 @@
         try {
           showOverlay(true);
           const j = await postGAS(payload);
-          if (j.status === "success") {
+          if (j && (j.ok === true || j.status === "success")) {
             toast("登録しました");
             ["hDate", "hTypeOther", "hPrice", "hMileage"].forEach(
               (id) => ($("#" + id).value = "")
             );
             typeSelect.value = "";
             $("#hTypeOther").style.display = "none";
-            await loadData(); // 履歴/推奨等すべて再計算
+            await loadHistoryForSelected();
           } else {
             toast("登録に失敗しました");
           }
@@ -986,12 +1066,12 @@
         }
       });
 
-      /* ====== 予約 ====== */
+      /* ================= 予約 ================= */
       $("#reserveBtn").addEventListener("click", () => {
         const url = new URL(window.BOOKING_BASE);
         if (SELECTED) {
           url.searchParams.set("vehicle_id", SELECTED.vehicleId);
-          if (HEADER_PLATE) url.searchParams.set("plate", HEADER_PLATE);
+          if (SELECTED.plate) url.searchParams.set("plate", SELECTED.plate);
           if (SELECTED.model) url.searchParams.set("model", SELECTED.model);
         }
         liff.openWindow({ url: url.toString(), external: false });
