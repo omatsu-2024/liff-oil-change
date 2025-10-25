@@ -97,7 +97,6 @@
         color: var(--gray);
         font-size: 14px;
       }
-
       .section-title {
         font-weight: 800;
         font-size: 18px;
@@ -570,7 +569,6 @@
         if (isNaN(+d)) return "-";
         return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
       };
-
       const showOverlay = (on, msg) => {
         const ov = $("#overlay"),
           label = $("#overlayMsg");
@@ -618,16 +616,36 @@
           ).style.backgroundImage = `url('${window.MAINTENANCE_LOGO_URL}')`;
 
           await liff.init({ liffId: window.LIFF_ID });
+
           if (!liff.isLoggedIn()) {
-            liff.login();
+            liff.login({ redirectUri: location.href });
             return;
           }
 
-          const profile = await liff.getProfile();
-          userId = profile.userId;
-          displayName = profile.displayName || "";
+          // プロフィール取得（失敗は許容）
+          let profile = null;
+          try {
+            profile = await liff.getProfile();
+          } catch (_) {}
+
+          // userId を優先的に profile から、無ければ ID トークンの sub で補完
+          userId = profile?.userId || "";
+          if (!userId && typeof liff.getDecodedIDToken === "function") {
+            const decoded = liff.getDecodedIDToken();
+            if (decoded?.sub) userId = decoded.sub;
+          }
+          if (!userId) {
+            toast(
+              "ユーザーIDが取得できません。LIFFのスコープ（openid, profile）を確認してください。"
+            );
+            return;
+          }
+
+          displayName = profile?.displayName || "";
           $("#avatar").textContent = displayName ? displayName[0] : "👤";
-          $("#userName").textContent = `${displayName} さん`;
+          $("#userName").textContent = displayName
+            ? `${displayName} さん`
+            : "さん";
 
           showOverlay(true, "車両情報を読み込み中…");
           await loadVehiclesAndRender();
@@ -674,12 +692,6 @@
           vehicleId: SELECTED.vehicleId,
         });
         HISTORY = Array.isArray(j && j.records) ? j.records : [];
-        // 既存データ救護（vehicleModelが無い古い履歴向け・任意の簡易補完）
-        HISTORY.forEach((h) => {
-          if (!h.vehicleModel && SELECTED?.model) {
-            /* そのまま */
-          }
-        });
       }
 
       /* ============== 推奨メンテ ============== */
@@ -720,11 +732,11 @@
                     ? '<span class="hint-badge" style="background:#fee2e2;color:#991b1b">至急</span>'
                     : '<span class="hint-badge" style="background:#fef3c7;color:#92400e">推奨</span>';
                 return `<div class="card" style="margin:10px 0;padding:14px">
-              <div style="display:flex;gap:10px;align-items:center;font-weight:900">${
-                r.type
-              } ${badge}</div>
-              <div style="margin-top:6px">${r.reason || ""}</div>
-            </div>`;
+                <div style="display:flex;gap:10px;align-items:center;font-weight:900">${
+                  r.type
+                } ${badge}</div>
+                <div style="margin-top:6px">${r.reason || ""}</div>
+              </div>`;
               })
               .join("")
           : `<p class="muted">現在、推奨メンテナンスはありません✨</p>`;
@@ -766,24 +778,26 @@
         );
         modalList.innerHTML = slice
           .map((it) => {
-            const vName = it.vehicleModel || it.model || it.vehicle || "-"; // ← 保存された車名を優先
+            const vName = it.vehicleModel || it.model || it.vehicle || "-"; // 保存された車名を優先
             return `
-          <div class="hist">
-            <div class="hist-date">${fmtDateJa(it.date || it.performedAt)}</div>
-            <div class="hist-title-row">
-              <div class="hist-type">${it.type || it.category || ""}</div>
-              <div class="veh-badge">${vName}</div>
-            </div>
-            <div class="hist-detail">${it.detail || it.title || ""}</div>
-            <div class="hist-meta">
-              <span class="price">¥${(
-                Number(it.price || it.cost) || 0
-              ).toLocaleString()}</span>
-              <span class="km">${
-                it.mileage ? Number(it.mileage).toLocaleString() + "km" : "-"
-              }</span>
-            </div>
-          </div>`;
+            <div class="hist">
+              <div class="hist-date">${fmtDateJa(
+                it.date || it.performedAt
+              )}</div>
+              <div class="hist-title-row">
+                <div class="hist-type">${it.type || it.category || ""}</div>
+                <div class="veh-badge">${vName}</div>
+              </div>
+              <div class="hist-detail">${it.detail || it.title || ""}</div>
+              <div class="hist-meta">
+                <span class="price">¥${(
+                  Number(it.price || it.cost) || 0
+                ).toLocaleString()}</span>
+                <span class="km">${
+                  it.mileage ? Number(it.mileage).toLocaleString() + "km" : "-"
+                }</span>
+              </div>
+            </div>`;
           })
           .join("");
 
@@ -828,30 +842,30 @@
         }
         vehicleListEl.innerHTML = VEHICLES.map(
           (v, i) => `
-        <div class="hist" style="border-bottom:1px dashed var(--border)">
-          <div class="hist-type">${i + 1}. ${v.model || "-"}</div>
-          <div class="hist-detail">ナンバー：${v.plate || "-"}</div>
-          <div class="hist-detail">カテゴリ：${v.category || "-"}</div>
-          <div class="hist-detail">排気量：${v.displacementCc ?? "-"} cc</div>
-          <div class="hist-detail">初度登録：${
-            v.firstRegistration ? fmtDateJa(v.firstRegistration) : "-"
-          }</div>
-          <div class="hist-detail">次回車検：${
-            v.nextInspection ? fmtDateJa(v.nextInspection) : "-"
-          }</div>
-          <div class="hist-detail">残り日数：${
-            typeof v.daysToInspection === "number"
-              ? v.daysToInspection + "日"
-              : "-"
-          }</div>
-          <label class="row" style="margin-top:8px;gap:10px;">
-            <input type="radio" name="primaryVehicle" value="${v.vehicleId}" ${
-            v.isPrimary ? "checked" : ""
-          }>
-            この車をメイン表示にする
-          </label>
-        </div>
-      `
+          <div class="hist" style="border-bottom:1px dashed var(--border)">
+            <div class="hist-type">${i + 1}. ${v.model || "-"}</div>
+            <div class="hist-detail">ナンバー：${v.plate || "-"}</div>
+            <div class="hist-detail">カテゴリ：${v.category || "-"}</div>
+            <div class="hist-detail">排気量：${v.displacementCc ?? "-"} cc</div>
+            <div class="hist-detail">初度登録：${
+              v.firstRegistration ? fmtDateJa(v.firstRegistration) : "-"
+            }</div>
+            <div class="hist-detail">次回車検：${
+              v.nextInspection ? fmtDateJa(v.nextInspection) : "-"
+            }</div>
+            <div class="hist-detail">残り日数：${
+              typeof v.daysToInspection === "number"
+                ? v.daysToInspection + "日"
+                : "-"
+            }</div>
+            <label class="row" style="margin-top:8px;gap:10px;">
+              <input type="radio" name="primaryVehicle" value="${
+                v.vehicleId
+              }" ${v.isPrimary ? "checked" : ""}>
+              この車をメイン表示にする
+            </label>
+          </div>
+        `
         ).join("");
 
         vehicleListEl
@@ -992,7 +1006,7 @@
         }
       });
 
-      /* ============== 履歴追加（★ vehicleModel を一緒に保存） ============== */
+      /* ============== 履歴追加（vehicleModel を一緒に保存） ============== */
       $("#addHistoryBtn").addEventListener("click", async () => {
         if (!SELECTED?.vehicleId) {
           toast("車両が見つかりません");
@@ -1015,7 +1029,7 @@
               : "",
           price: Number($("#hPrice").value || 0),
           mileage: Number($("#hMileage").value || 0),
-          vehicleModel: SELECTED?.model || "", // ← ここが重要！
+          vehicleModel: SELECTED?.model || "",
           token: window.POST_TOKEN,
         };
         if (!payload.date || !payload.type) {
