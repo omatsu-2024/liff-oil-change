@@ -11,14 +11,18 @@
       charset="utf-8"
     ></script>
 
-    <!-- ===== あなたの設定 ===== -->
     <script>
+      /* ==== あなたの設定 ==== */
       window.LIFF_ID = "2008228464-Jy1OL86j";
       window.GAS_URL =
         "https://script.google.com/macros/s/AKfycbz0EzPRsZ77DFPU8qC555lxya1Zo_KHVRbl_Z32WBKRCIKPb5GCDTgNm7mrhcEUUlDH/exec";
       window.POST_TOKEN = "change-me-32chars";
+
+      /* 予約 LIFF */
       window.BOOKING_BASE =
         "https://liff.line.me/2008228464-nMpDkLPK?calendar_salon_id=18905&ts=1760362889";
+
+      /* 予約ボタン/初回ポップアップのロゴ */
       window.MAINTENANCE_LOGO_URL =
         "https://omatsu-2024.github.io/liff-oil-change/img/Maintenance_Logo.png";
     </script>
@@ -28,14 +32,12 @@
         --primary: #4f46e5;
         --primary-strong: #4338ca;
         --accent: #7c3aed;
-        --warning: #f59e0b;
-        --danger: #ef4444;
         --gray: #64748b;
         --muted: #94a3b8;
-        --light: #f8fafc;
         --border: #e5e7eb;
-        --card: #ffffff;
         --ink: #0f172a;
+        --card: #fff;
+        --back: #f8fafc;
       }
       * {
         box-sizing: border-box;
@@ -48,7 +50,7 @@
           "Noto Sans JP", sans-serif;
         color: var(--ink);
         background: radial-gradient(
-          1000px 400px at 50% -200px,
+          1100px 520px at 50% -260px,
           #8b5cf6 0%,
           #5b4ae6 40%,
           #5741db 60%,
@@ -57,7 +59,7 @@
         min-height: 100vh;
       }
       .container {
-        max-width: 720px;
+        max-width: 740px;
         margin: 0 auto;
         padding: 18px 14px 120px;
       }
@@ -66,7 +68,7 @@
         border-radius: 18px;
         padding: 18px;
         margin: 14px 0;
-        box-shadow: 0 10px 18px rgba(15, 23, 42, 0.1);
+        box-shadow: 0 10px 18px rgba(15, 23, 42, 0.12);
       }
       .header {
         display: flex;
@@ -80,13 +82,13 @@
         border-radius: 50%;
         display: grid;
         place-items: center;
+        background: linear-gradient(135deg, #6366f1, #7c3aed);
         color: #fff;
         font-weight: 800;
         font-size: 24px;
-        background: linear-gradient(135deg, #6366f1, #7c3aed);
       }
       h2 {
-        margin: 0 0 6px;
+        margin: 0 0 4px;
         font-size: 22px;
       }
       .sub {
@@ -95,35 +97,35 @@
       }
 
       .section-title {
-        font-weight: 800;
+        font-weight: 900;
         font-size: 18px;
         display: flex;
-        align-items: center;
         gap: 10px;
+        align-items: center;
         margin-bottom: 10px;
       }
       .muted {
         color: var(--muted);
         font-size: 13px;
       }
-      .hint-badge {
+      .badge {
         display: inline-block;
         padding: 6px 10px;
-        background: #eef2ff;
-        color: #3730a3;
         border-radius: 999px;
         font-weight: 800;
-        font-size: 13px;
+        font-size: 12px;
+        background: #eef2ff;
+        color: #3730a3;
       }
 
       .btn {
+        width: 100%;
         appearance: none;
         border: none;
-        width: 100%;
-        padding: 14px 16px;
-        font-weight: 800;
-        font-size: 16px;
         border-radius: 12px;
+        padding: 14px 16px;
+        font-weight: 900;
+        font-size: 16px;
         color: #fff;
         background: var(--primary);
         display: inline-flex;
@@ -143,12 +145,11 @@
         background: #e5e7eb;
         color: #111;
       }
-      .btn-line {
-        background: #06c755;
+      .btn.pill {
+        border-radius: 14px;
       }
       .btn-strong {
-        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-        box-shadow: 0 8px 18px rgba(79, 70, 229, 0.35);
+        background: var(--primary-strong);
       }
 
       .field {
@@ -164,7 +165,59 @@
         align-items: center;
       }
 
-      /* Modal */
+      /* CTA */
+      .cta-card {
+        background: #f5f4ff;
+        border-radius: 18px;
+        padding: 18px;
+        display: grid;
+        gap: 12px;
+        border: 2px dashed #c7c3ff;
+      }
+      .cta-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .cta-logo {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        background: #fff center/cover no-repeat;
+        box-shadow: 0 4px 16px rgba(79, 70, 229, 0.25);
+      }
+      .cta-title {
+        font-size: 20px;
+        font-weight: 900;
+      }
+      .cta-copy {
+        color: #4f46e5;
+        font-weight: 800;
+      }
+      .reserve-btn {
+        display: grid;
+        gap: 6px;
+        justify-items: center;
+        padding: 20px;
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        border-radius: 16px;
+        color: #fff;
+        font-weight: 900;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 10px 24px rgba(79, 70, 229, 0.35);
+        font-size: 18px;
+      }
+      .reserve-btn .copy {
+        font-size: 13px;
+        opacity: 0.95;
+        letter-spacing: 0.04em;
+      }
+      .reserve-btn .main {
+        font-size: 18px;
+      }
+
+      /* モーダル（共通） */
       .modal {
         position: fixed;
         inset: 0;
@@ -185,7 +238,7 @@
         position: relative;
         background: #fff;
         border-radius: 16px;
-        width: min(760px, 95vw);
+        width: min(780px, 95vw);
         max-height: 88vh;
         display: flex;
         flex-direction: column;
@@ -215,6 +268,8 @@
         padding: 12px;
         border-top: 1px solid var(--border);
       }
+
+      /* 履歴リスト */
       .hist {
         padding: 14px 16px;
         border-bottom: 1px solid var(--border);
@@ -262,7 +317,7 @@
         color: var(--gray);
       }
 
-      /* Loading Overlay */
+      /* オーバーレイ */
       .loading-overlay {
         position: fixed;
         inset: 0;
@@ -278,19 +333,19 @@
         color: #fff;
         border-radius: 12px;
         padding: 12px 16px;
-        box-shadow: 0 10px 26px rgba(0, 0, 0, 0.25);
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        font-weight: 800;
+        font-weight: 900;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.28);
       }
       .spinner {
-        width: 20px;
-        height: 20px;
+        width: 18px;
+        height: 18px;
+        margin-right: 8px;
         border-radius: 50%;
         border: 3px solid #e5e7eb;
         border-top-color: var(--primary);
         animation: spin 0.9s linear infinite;
+        display: inline-block;
+        vertical-align: middle;
       }
       @keyframes spin {
         to {
@@ -298,157 +353,100 @@
         }
       }
 
-      /* 予約 CTA（大型） */
-      .cta-card {
-        background: #f5f4ff;
-        border-radius: 22px;
-        padding: 22px;
-        display: grid;
-        gap: 14px;
-        border: 2px dashed #c7c3ff;
-      }
-      .cta-row {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-      }
-      .cta-logo {
-        width: 64px;
-        height: 64px;
-        border-radius: 14px;
-        background: #fff url("") center/cover no-repeat;
-        flex: 0 0 64px;
-        box-shadow: 0 6px 18px rgba(79, 70, 229, 0.25);
-      }
-      .cta-title {
-        font-size: 22px;
-        font-weight: 900;
-      }
-      .cta-copy {
-        color: #4f46e5;
-        font-weight: 800;
-      }
-      .reserve-btn {
-        display: grid;
-        gap: 6px;
-        justify-items: center;
-        padding: 20px 18px;
-        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-        border-radius: 16px;
-        color: #fff;
-        font-weight: 900;
-        border: none;
-        cursor: pointer;
-        box-shadow: 0 12px 24px rgba(79, 70, 229, 0.35);
-        font-size: 18px;
-      }
-      .reserve-btn .copy {
-        font-size: 13px;
-        opacity: 0.92;
-        letter-spacing: 0.04em;
-      }
-      .reserve-btn .main {
-        font-size: 20px;
-      }
-
-      /* 初回ポップアップ */
+      /* 初回ガイド・モーダル */
       .intro-card {
+        position: relative;
         background: #fff;
         border-radius: 16px;
-        max-width: 640px;
-        width: min(92vw, 640px);
-        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
-        overflow: hidden;
+        width: min(780px, 95vw);
+        max-width: 760px;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
       }
-      .intro-head {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        padding: 14px 16px;
+      .intro-header {
+        padding: 16px 18px;
         border-bottom: 1px solid var(--border);
         font-weight: 900;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
       .intro-body {
-        padding: 16px;
+        padding: 14px 18px;
+        display: grid;
+        gap: 14px;
       }
       .intro-row {
         display: flex;
-        gap: 14px;
         align-items: center;
+        gap: 14px;
       }
       .intro-img {
         width: 64px;
         height: 64px;
         border-radius: 14px;
-        background: #fff url("") center/cover no-repeat;
-        flex: 0 0 64px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        background: #fff center/cover no-repeat;
+        box-shadow: 0 6px 18px rgba(79, 70, 229, 0.25);
       }
       .intro-actions {
         display: flex;
-        gap: 12px;
-        align-items: center;
         justify-content: space-between;
-        margin-top: 12px;
-      }
-      .intro-close {
-        background: #e5e7eb;
-        border: none;
-        border-radius: 10px;
-        padding: 10px 14px;
-        font-weight: 800;
-        cursor: pointer;
-      }
-      .intro-primary {
-        background: var(--primary);
-        color: #fff;
-        border: none;
-        border-radius: 10px;
-        padding: 12px 16px;
-        font-weight: 900;
-        cursor: pointer;
-      }
-      .intro-check {
-        display: flex;
-        gap: 8px;
         align-items: center;
-        color: #374151;
+        padding: 12px 18px;
+        border-top: 1px solid var(--border);
+      }
+      .intro-note {
+        color: #1e293b;
+        line-height: 1.8;
+      }
+      .intro-noagain {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #111;
         font-weight: 700;
       }
     </style>
   </head>
   <body>
-    <!-- ローディング -->
+    <!-- 読込中 -->
     <div id="overlay" class="loading-overlay" aria-hidden="true">
       <div class="loading-box">
-        <div class="spinner"></div>
-        <div id="overlayMsg">情報更新中…</div>
+        <span class="spinner"></span><span id="overlayMsg">読み込み中…</span>
       </div>
     </div>
 
-    <!-- 初回説明ポップアップ -->
+    <!-- 初回ガイド -->
     <div id="introModal" class="modal" aria-hidden="true">
       <div class="backdrop"></div>
       <div class="intro-card">
-        <div class="intro-head">ℹ️ ご利用ガイド</div>
+        <div class="intro-header">🛈 ご利用ガイド</div>
         <div class="intro-body">
-          <p style="margin: 0 0 10px; font-weight: 700; color: #111">
+          <p class="intro-note">
             このページではあなたの大切なお車のメンテナンス情報を管理し、点検・整備の時期をお知らせできます。<br />
-            あなたの愛車の情報は、下記の<strong>オンライン整備予約</strong>から登録してください。
+            あなたの愛車の情報は、下記の「オンライン整備予約」から登録してください。
           </p>
           <div class="intro-row">
             <div id="introImg" class="intro-img"></div>
-            <button id="introReserve" class="intro-primary">
-              📅 オンライン整備予約へ
+            <button
+              id="introReserve"
+              class="reserve-btn"
+              style="width: 100%; max-width: 420px"
+            >
+              <div class="copy">かんたん・24時間受付</div>
+              <div class="main">📅 オンライン整備予約へ</div>
             </button>
           </div>
-          <div class="intro-actions">
-            <label class="intro-check">
-              <input id="introNoAgain" type="checkbox" />
-              次回から表示しない
-            </label>
-            <button id="introClose" class="intro-close">閉じる</button>
-          </div>
+          <label class="intro-noagain"
+            ><input type="checkbox" id="introNoAgain" />
+            次回から表示しない</label
+          >
+        </div>
+        <div class="intro-actions">
+          <div class="muted">いつでも下の予約ボタンから登録できます</div>
+          <button id="introClose" class="btn pill ghost" style="width: auto">
+            閉じる
+          </button>
         </div>
       </div>
     </div>
@@ -475,6 +473,15 @@
         <div id="recommendations"><p class="muted">読み込み中…</p></div>
       </div>
 
+      <!-- 次回メンテ目安日 + Googleカレンダー -->
+      <div class="card" id="nextBox" style="display: none">
+        <div class="section-title">📅 次回メンテ目安日</div>
+        <p id="nextText" style="margin: 0 0 10px"></p>
+        <button class="btn pill btn-strong" id="gcalBtn" style="width: auto">
+          Googleカレンダーに追加
+        </button>
+      </div>
+
       <!-- 履歴 -->
       <div class="card">
         <div class="section-title">📋 整備履歴</div>
@@ -497,9 +504,7 @@
           </button>
         </div>
         <div style="margin-top: 8px">
-          <span class="hint-badge"
-            >現在の走行距離を入れると推奨タイミングが賢くなります</span
-          >
+          <span class="badge">最新の距離を入れると推奨が賢くなります</span>
         </div>
         <div class="muted" id="nowMileageHint" style="margin: 8px 4px 0">
           現在の走行距離： -
@@ -558,7 +563,7 @@
             class="field"
             type="number"
             inputmode="numeric"
-            placeholder="走行距離(km)"
+            placeholder="整備時走行距離(km)"
           />
         </div>
         <button class="btn" id="addHistoryBtn" style="margin-top: 12px">
@@ -566,14 +571,7 @@
         </button>
       </div>
 
-      <!-- 次回メンテ目安日 + Googleカレンダー -->
-      <div class="card" id="nextBox" style="display: none">
-        <div class="section-title">📅 次回メンテ目安日</div>
-        <p id="nextText" style="margin: 0 0 10px"></p>
-        <button class="btn" id="gcalBtn">Googleカレンダーに追加</button>
-      </div>
-
-      <!-- 予約 CTA（大型＆強コピー） -->
+      <!-- 予約 CTA -->
       <div class="card">
         <div class="cta-card">
           <div class="cta-row">
@@ -581,12 +579,12 @@
             <div>
               <div class="cta-title">次回メンテナンスを予約する</div>
               <div class="cta-copy">
-                “最短1分で完了” あなたのクルマに、ずっと安心を。
+                “最短1分で完了”　あなたのクルマに、安心のケアを。
               </div>
             </div>
           </div>
           <button id="reserveBtn" class="reserve-btn">
-            <div class="copy">24時間いつでも・今すぐ予約</div>
+            <div class="copy">車種・ナンバーの登録で通知もバッチリ</div>
             <div class="main">📆 次回メンテナンスを予約する</div>
           </button>
         </div>
@@ -634,25 +632,21 @@
     </div>
 
     <script>
-      /* ========= Utils ========= */
+      /* ================== ユーティリティ ================== */
       const $ = (s, el = document) => el.querySelector(s);
       const toast = (m) => {
         const n = document.createElement("div");
         n.textContent = m;
         n.style.cssText =
-          "position:fixed;left:50%;top:16px;transform:translateX(-50%);background:rgba(16,185,129,.95);color:#fff;padding:10px 14px;border-radius:999px;font-weight:700;z-index:9999";
+          "position:fixed;left:50%;top:16px;transform:translateX(-50%);background:rgba(16,185,129,.96);color:#fff;padding:10px 14px;border-radius:999px;font-weight:800;z-index:10001";
         document.body.appendChild(n);
-        setTimeout(() => n.remove(), 2000);
+        setTimeout(() => n.remove(), 2200);
       };
-      const getQueryParam = (k) =>
-        new URLSearchParams(location.search).get(k) || "";
       const fmtDateJa = (s) => {
         const d = new Date(s);
-        return isNaN(+d)
-          ? "-"
-          : `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+        if (isNaN(+d)) return "-";
+        return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
       };
-
       const showOverlay = (on, msg) => {
         const ov = $("#overlay"),
           label = $("#overlayMsg");
@@ -660,7 +654,29 @@
         ov.classList.toggle("show", !!on);
         ov.setAttribute("aria-hidden", on ? "false" : "true");
       };
+      const getQueryParam = (k) =>
+        new URLSearchParams(location.search).get(k) || "";
 
+      // 2500cc / 2.5L → 数値(cc)
+      function toCc(displacement) {
+        if (displacement == null) return null;
+        const s = String(displacement);
+        const m1 = s.match(/(\d{3,5})\s*cc/i);
+        if (m1) return Number(m1[1]);
+        const m2 = s.match(/([\d.]+)\s*l/i);
+        if (m2) return Math.round(parseFloat(m2[1]) * 1000);
+        const n = Number(s.replace(/[^\d.]/g, ""));
+        return isNaN(n) ? null : n;
+      }
+      function normalizeFirstReg(x) {
+        if (!x) return null;
+        let s = String(x).trim();
+        if (/^\d{4}-\d{2}$/.test(s)) s += "-01";
+        if (/^\d{4}\/\d{2}$/.test(s)) s = s.replace("/", "-") + "-01";
+        return s;
+      }
+
+      // GAS
       async function gasGet(params) {
         const url = new URL(window.GAS_URL);
         Object.entries(params || {}).forEach(([k, v]) =>
@@ -688,26 +704,7 @@
         return res.json();
       }
 
-      // 排気量 -> cc
-      function toCc(displacement) {
-        if (displacement == null) return null;
-        const s = String(displacement);
-        const m1 = s.match(/(\d{3,5})\s*cc/i);
-        if (m1) return Number(m1[1]);
-        const m2 = s.match(/([\d\.]+)\s*l/i);
-        if (m2) return Math.round(parseFloat(m2[1]) * 1000);
-        const n = Number(s.replace(/[^\d.]/g, ""));
-        return isNaN(n) ? null : n;
-      }
-      function normalizeFirstReg(x) {
-        if (!x) return null;
-        let s = String(x).trim();
-        if (/^\d{4}-\d{2}$/.test(s)) s += "-01";
-        if (/^\d{4}\/\d{2}$/.test(s)) s = s.replace("/", "-") + "-01";
-        return s;
-      }
-
-      /* ========= State ========= */
+      /* ================== 状態 ================== */
       let userId = "",
         displayName = "";
       let VEHICLES = [],
@@ -716,91 +713,7 @@
       const HIST_PAGE_SIZE = 10;
       let histPage = 0;
 
-      /* ========= Init ========= */
-      window.addEventListener("DOMContentLoaded", init);
-      async function init() {
-        try {
-          // 画像適用
-          if (window.MAINTENANCE_LOGO_URL) {
-            $(
-              "#ctaLogo"
-            ).style.backgroundImage = `url('${window.MAINTENANCE_LOGO_URL}')`;
-            $(
-              "#introImg"
-            ).style.backgroundImage = `url('${window.MAINTENANCE_LOGO_URL}')`;
-          }
-
-          await liff.init({
-            liffId: window.LIFF_ID,
-            withLoginOnExternalBrowser: true,
-          });
-          if (!liff.isLoggedIn()) {
-            liff.login({ redirectUri: location.href });
-            return;
-          }
-
-          const profileOk = await liff.getProfile().catch(() => null);
-          userId =
-            profileOk?.userId ||
-            (liff.getDecodedIDToken?.() || {}).sub ||
-            localStorage.getItem("liff_uid_cache") ||
-            getQueryParam("uid") ||
-            getQueryParam("userId") ||
-            "";
-          displayName = profileOk?.displayName || "";
-          if (!userId) {
-            alert(
-              "ユーザーIDが取得できませんでした。\nLINEアプリ内で開くか、LIFFの権限（openid, profile）を有効にしてください。"
-            );
-            return;
-          }
-          try {
-            localStorage.setItem("liff_uid_cache", userId);
-          } catch (_) {}
-
-          if (displayName) $("#avatar").textContent = displayName.charAt(0);
-          $("#userName").textContent = `${displayName || ""} さん`;
-
-          // 初回案内ポップアップ
-          const introKey = "intro_dismissed_v1";
-          if (!localStorage.getItem(introKey)) {
-            openIntro();
-            $("#introClose").onclick = closeIntro;
-            $("#introReserve").onclick = () => {
-              closeIntro();
-              openBooking();
-            };
-            $("#introNoAgain").addEventListener("change", (e) => {
-              if (e.target.checked) localStorage.setItem(introKey, "1");
-              else localStorage.removeItem(introKey);
-            });
-          }
-
-          showOverlay(true, "車両情報を読み込み中…");
-          await loadVehiclesAndRender();
-          await loadHistoryForSelected();
-          renderRecommendationsFromVehicle(SELECTED);
-          showNextDateFromInspection(SELECTED); // カード＋カレンダー
-        } catch (e) {
-          console.error(e);
-          toast("初期化に失敗しました");
-        } finally {
-          showOverlay(false);
-        }
-      }
-
-      function openIntro() {
-        const m = $("#introModal");
-        m.classList.add("show");
-        m.setAttribute("aria-hidden", "false");
-      }
-      function closeIntro() {
-        const m = $("#introModal");
-        m.classList.remove("show");
-        m.setAttribute("aria-hidden", "true");
-      }
-
-      /* ========= Load & Normalize ========= */
+      /* ================== 正規化 ================== */
       function normalizeVehicles(rawList) {
         const list = Array.isArray(rawList) ? rawList : [];
         return list.map((v, i) => {
@@ -834,22 +747,107 @@
         });
       }
 
+      /* ================== 初期化 ================== */
+      window.addEventListener("DOMContentLoaded", init);
+      async function init() {
+        try {
+          if (window.MAINTENANCE_LOGO_URL) {
+            $(
+              "#ctaLogo"
+            ).style.backgroundImage = `url('${window.MAINTENANCE_LOGO_URL}')`;
+            $(
+              "#introImg"
+            ).style.backgroundImage = `url('${window.MAINTENANCE_LOGO_URL}')`;
+          }
+
+          await liff.init({
+            liffId: window.LIFF_ID,
+            withLoginOnExternalBrowser: true,
+          });
+          if (!liff.isLoggedIn()) {
+            liff.login({ redirectUri: location.href });
+            return;
+          }
+
+          const profileOk = await liff.getProfile().catch(() => null);
+          userId =
+            profileOk?.userId ||
+            (liff.getDecodedIDToken?.() || {}).sub ||
+            localStorage.getItem("liff_uid_cache") ||
+            getQueryParam("uid") ||
+            getQueryParam("userId") ||
+            "";
+          displayName = profileOk?.displayName || "";
+          if (!userId) {
+            alert(
+              "ユーザーIDが取得できませんでした。\nLINE アプリ内で開くか、LIFFの権限（openid, profile）を有効にしてください。"
+            );
+            return;
+          }
+          try {
+            localStorage.setItem("liff_uid_cache", userId);
+          } catch (_) {}
+
+          if (displayName) $("#avatar").textContent = displayName.charAt(0);
+          $("#userName").textContent = `${displayName || ""} さん`;
+
+          showOverlay(true, "車両情報を読み込み中…");
+          await loadVehiclesAndRender();
+          await loadHistoryForSelected();
+          renderRecommendationsFromVehicle(SELECTED);
+          showNextDateFromInspection(SELECTED);
+        } catch (e) {
+          console.error(e);
+          toast("初期化に失敗しました");
+        } finally {
+          showOverlay(false);
+          const introKey = "intro_dismissed_v1";
+          if (!localStorage.getItem(introKey)) {
+            openIntro();
+            $("#introClose").onclick = closeIntro;
+            $("#introReserve").onclick = () => {
+              closeIntro();
+              openBooking();
+            };
+            $("#introNoAgain").addEventListener("change", (e) => {
+              if (e.target.checked) localStorage.setItem(introKey, "1");
+              else localStorage.removeItem(introKey);
+            });
+          }
+        }
+      }
+
+      /* ================== 読み込み・フォールバック ================== */
       async function loadVehiclesAndRender() {
-        let j = await gasGet({ action: "listVehicles", userId }).catch(
-          () => null
-        );
-        if (!j || (!j.vehicles && j.data && j.data.vehicles)) {
-          j = j || {};
-          if (!j.vehicles && j.data && j.data.vehicles)
-            j.vehicles = j.data.vehicles;
+        let j = null,
+          vehiclesRaw = [],
+          bundle = null;
+
+        // 第一段: listVehicles
+        try {
+          j = await gasGet({ action: "listVehicles", userId });
+          if (j && Array.isArray(j.vehicles) && j.vehicles.length)
+            vehiclesRaw = j.vehicles;
+        } catch (_) {}
+
+        // 第二段: ?userId= の一括レスポンス
+        if (!vehiclesRaw.length) {
+          try {
+            bundle = await gasGet({ userId });
+            if (
+              bundle?.status === "success" &&
+              Array.isArray(bundle.data?.vehicles)
+            ) {
+              vehiclesRaw = bundle.data.vehicles;
+            }
+          } catch (_) {}
         }
 
-        const raw = (j && j.vehicles) || [];
-        let normalized = normalizeVehicles(raw);
+        let normalized = normalizeVehicles(vehiclesRaw);
 
-        // fallback: 顧客レコードがある場合
-        if (!normalized.length && j && j.data && j.data.customer) {
-          const c = j.data.customer;
+        // 第三段: まだ無ければ customer から仮生成
+        if (!normalized.length && bundle?.data?.customer) {
+          const c = bundle.data.customer;
           normalized = normalizeVehicles([
             {
               vehicleId: "main",
@@ -891,44 +889,47 @@
         HISTORY = (j && j.records) || (j && j.data && j.data.history) || [];
       }
 
-      /* ========= Recommendations ========= */
+      /* ================== 推奨メンテ ================== */
       function renderRecommendationsFromVehicle(v) {
         const box = $("#recommendations");
         $("#recTarget").textContent = `対象車両：${v?.model || "-"}`;
 
+        if (!v) {
+          box.innerHTML = `<p class="muted">現在、推奨メンテナンスはありません✨</p>`;
+          return;
+        }
+
         const recs = [];
         // 車検
         if (
-          typeof v?.daysToInspection === "number" &&
+          typeof v.daysToInspection === "number" &&
           v.daysToInspection >= 0 &&
           v.nextInspection
         ) {
+          const urgent = v.daysToInspection <= 30;
           recs.push({
             type: "車検整備",
-            urgency: v.daysToInspection <= 30 ? "至急" : "推奨",
-            reason: `次回車検日 ${fmtDateJa(v.nextInspection)}（残り ${
-              v.daysToInspection
-            } 日）`,
+            urgency: urgent ? "至急" : "推奨",
+            reason: `次回車検日 ${v.nextInspection}（残り ${v.daysToInspection} 日）`,
             _nextInspection: v.nextInspection,
           });
         }
-        // 季節タイヤ
+        // 季節
         const m = new Date().getMonth() + 1;
-        if (m >= 10 || m <= 3) {
+        if (m >= 10 || m <= 3)
           recs.push({
             type: "スタッドレスタイヤ交換",
             urgency: "推奨",
             reason: "冬季のため",
           });
-        }
 
         box.innerHTML = recs.length
           ? recs
               .map((r) => {
                 const badge =
                   r.urgency === "至急"
-                    ? '<span class="hint-badge" style="background:#fee2e2;color:#991b1b">至急</span>'
-                    : '<span class="hint-badge" style="background:#fef3c7;color:#92400e">推奨</span>';
+                    ? '<span class="badge" style="background:#fee2e2;color:#991b1b">至急</span>'
+                    : '<span class="badge" style="background:#fef3c7;color:#92400e">推奨</span>';
                 return `<div class="card" style="margin:10px 0;padding:14px">
           <div style="display:flex;gap:10px;align-items:center;font-weight:900">${
             r.type
@@ -937,14 +938,14 @@
         </div>`;
               })
               .join("")
-          : '<p class="muted">現在、推奨メンテナンスはありません✨</p>';
+          : `<p class="muted">現在、推奨メンテナンスはありません✨</p>`;
 
-        // 車検がある時は nextBox も更新
-        const firstInspection = recs.find(
+        // 次回カードの更新（ここでも）
+        const item = recs.find(
           (r) => r.type === "車検整備" && r._nextInspection
         );
-        if (firstInspection) {
-          const dt = new Date(firstInspection._nextInspection);
+        if (item) {
+          const dt = new Date(item._nextInspection);
           if (!isNaN(+dt)) {
             dt.setDate(dt.getDate() - 14);
             $("#nextText").textContent = `${fmtDateJa(
@@ -958,7 +959,7 @@
                 d = pad(dt.getDate());
               const start = `${y}${m}${d}T100000`,
                 end = `${y}${m}${d}T110000`;
-              const query = new URLSearchParams({
+              const q = new URLSearchParams({
                 action: "TEMPLATE",
                 text: "点検の目安日",
                 dates: `${start}/${end}`,
@@ -966,7 +967,7 @@
                 ctz: "Asia/Tokyo",
               }).toString();
               liff.openWindow({
-                url: `https://calendar.google.com/calendar/render?${query}`,
+                url: `https://calendar.google.com/calendar/render?${q}`,
                 external: true,
               });
             };
@@ -976,7 +977,44 @@
         }
       }
 
-      /* ========= History Modal ========= */
+      function showNextDateFromInspection(v) {
+        const box = $("#nextBox");
+        if (!v || !v.nextInspection) {
+          box.style.display = "none";
+          return;
+        }
+        const dt = new Date(v.nextInspection);
+        if (isNaN(+dt)) {
+          box.style.display = "none";
+          return;
+        }
+        dt.setDate(dt.getDate() - 14);
+        $("#nextText").textContent = `${fmtDateJa(
+          dt
+        )} 頃に点検をおすすめします`;
+        box.style.display = "block";
+        $("#gcalBtn").onclick = () => {
+          const pad = (n) => String(n).padStart(2, "0");
+          const y = dt.getFullYear(),
+            m = pad(dt.getMonth() + 1),
+            d = pad(dt.getDate());
+          const start = `${y}${m}${d}T100000`,
+            end = `${y}${m}${d}T110000`;
+          const q = new URLSearchParams({
+            action: "TEMPLATE",
+            text: "点検の目安日",
+            dates: `${start}/${end}`,
+            details: "LINEのマイページから作成",
+            ctz: "Asia/Tokyo",
+          }).toString();
+          liff.openWindow({
+            url: `https://calendar.google.com/calendar/render?${q}`,
+            external: true,
+          });
+        };
+      }
+
+      /* ================== 履歴モーダル ================== */
       const historyModal = $("#historyModal"),
         modalList = $("#modalHistoryList");
       const prevBtn = $("#prevBtn"),
@@ -996,13 +1034,13 @@
         historyModal.classList.remove("show");
         historyModal.setAttribute("aria-hidden", "true");
       }
-
       function renderHistoryModal() {
         const totalPages = Math.max(
           1,
           Math.ceil(HISTORY.length / HIST_PAGE_SIZE)
         );
-        histPage = Math.min(Math.max(histPage, 0), totalPages - 1);
+        if (histPage >= totalPages) histPage = totalPages - 1;
+        if (histPage < 0) histPage = 0;
         const slice = HISTORY.slice(
           histPage * HIST_PAGE_SIZE,
           (histPage + 1) * HIST_PAGE_SIZE
@@ -1017,18 +1055,15 @@
             <div class="veh-badge">${vName}</div>
           </div>
           <div class="hist-detail">${it.detail || it.title || ""}</div>
-          <div class="hist-meta">
-            <span class="price">¥${(
-              Number(it.price || it.cost) || 0
-            ).toLocaleString()}</span>
+          <div class="hist-meta"><span class="price">¥${(
+            Number(it.price || it.cost) || 0
+          ).toLocaleString()}</span>
             <span class="km">${
               it.mileage ? Number(it.mileage).toLocaleString() + "km" : "-"
-            }</span>
-          </div>
+            }</span></div>
         </div>`;
           })
           .join("");
-
         const footer = $("#modalFooter");
         if (totalPages === 1) {
           footer.style.display = "none";
@@ -1048,7 +1083,7 @@
         renderHistoryModal();
       });
 
-      /* ========= Vehicle Modal ========= */
+      /* ================== 車両モーダル ================== */
       const carModal = $("#carModal"),
         vehicleListEl = $("#vehicleList");
       $("#openCarBtn").addEventListener("click", () => {
@@ -1071,14 +1106,7 @@
         vehicleListEl.innerHTML = VEHICLES.map(
           (v, i) => `
         <div class="hist" style="border-bottom:1px dashed var(--border)">
-          <div class="hist-title-row" style="align-items:flex-end">
-            <div class="hist-type">${i + 1}. ${v.model || "-"}</div>
-            ${
-              v.isPrimary
-                ? '<span class="veh-badge" style="background:#dcfce7;border-color:#86efac;color:#065f46">車両選択中</span>'
-                : ""
-            }
-          </div>
+          <div class="hist-type">${i + 1}. ${v.model || "-"}</div>
           <div class="hist-detail">ナンバー：${v.plate || "-"}</div>
           <div class="hist-detail">カテゴリ：${v.category || "-"}</div>
           <div class="hist-detail">排気量：${v.displacementCc ?? "-"} cc</div>
@@ -1097,7 +1125,11 @@
             <input type="radio" name="primaryVehicle" value="${v.vehicleId}" ${
             v.isPrimary ? "checked" : ""
           }>
-            この車をメイン表示にする
+            この車をメイン表示にする ${
+              v.isPrimary
+                ? '<span class="badge" style="margin-left:6px;background:#dcfce7;color:#166534">車両選択中</span>'
+                : ""
+            }
           </label>
         </div>
       `
@@ -1142,7 +1174,7 @@
                     nowKm ? nowKm.toLocaleString() : "-"
                   } km`;
 
-                  renderVehicleModalList(); // バッジ更新
+                  renderVehicleModalList(); // バッジ「車両選択中」を即時反映
                 } else {
                   toast("更新に失敗しました");
                 }
@@ -1156,45 +1188,19 @@
           });
       }
 
-      /* ========= Next date + Google Calendar ========= */
-      function showNextDateFromInspection(v) {
-        const box = $("#nextBox");
-        if (!v || !v.nextInspection) {
-          box.style.display = "none";
-          return;
+      /* ================== Googleカレンダー & 予約 ================== */
+      function openBooking() {
+        const url = new URL(window.BOOKING_BASE);
+        if (SELECTED) {
+          url.searchParams.set("vehicle_id", SELECTED.vehicleId);
+          if (SELECTED.plate) url.searchParams.set("plate", SELECTED.plate);
+          if (SELECTED.model) url.searchParams.set("model", SELECTED.model);
         }
-        const dt = new Date(v.nextInspection);
-        if (isNaN(+dt)) {
-          box.style.display = "none";
-          return;
-        }
-        dt.setDate(dt.getDate() - 14);
-        $("#nextText").textContent = `${fmtDateJa(
-          dt
-        )} 頃に点検をおすすめします`;
-        box.style.display = "block";
-        $("#gcalBtn").onclick = () => {
-          const pad = (n) => String(n).padStart(2, "0");
-          const y = dt.getFullYear(),
-            m = pad(dt.getMonth() + 1),
-            d = pad(dt.getDate());
-          const start = `${y}${m}${d}T100000`,
-            end = `${y}${m}${d}T110000`;
-          const query = new URLSearchParams({
-            action: "TEMPLATE",
-            text: "点検の目安日",
-            dates: `${start}/${end}`,
-            details: "LINEのマイページから作成",
-            ctz: "Asia/Tokyo",
-          }).toString();
-          liff.openWindow({
-            url: `https://calendar.google.com/calendar/render?${query}`,
-            external: true,
-          });
-        };
+        liff.openWindow({ url: url.toString(), external: false });
       }
+      $("#reserveBtn").addEventListener("click", openBooking);
 
-      /* ========= Inputs ========= */
+      /* ================== 入力UI: 日付・タイプ ================== */
       $("#dateBtn").addEventListener("click", () => $("#hDate").showPicker?.());
       const typeSelect = $("#hTypeSelect"),
         typeOther = $("#hTypeOther");
@@ -1204,7 +1210,7 @@
         if (on) typeOther.focus();
       });
 
-      /* ========= 保存系 ========= */
+      /* ================== 走行距離保存 ================== */
       $("#saveMileageBtn").addEventListener("click", async () => {
         const v = Number($("#mileageInput").value || 0);
         if (!v) {
@@ -1242,6 +1248,7 @@
         }
       });
 
+      /* ================== 履歴追加（車両名も保存） ================== */
       $("#addHistoryBtn").addEventListener("click", async () => {
         if (!SELECTED?.vehicleId) {
           toast("車両が見つかりません");
@@ -1264,7 +1271,7 @@
               : "",
           price: Number($("#hPrice").value || 0),
           mileage: Number($("#hMileage").value || 0),
-          vehicleModel: SELECTED?.model || "", // ← 履歴に車両名を固定保存
+          vehicleModel: SELECTED?.model || "",
           token: window.POST_TOKEN,
         };
         if (!payload.date || !payload.type) {
@@ -1293,17 +1300,20 @@
         }
       });
 
-      /* ========= Reserve ========= */
-      function openBooking() {
-        const url = new URL(window.BOOKING_BASE);
-        if (SELECTED) {
-          url.searchParams.set("vehicle_id", SELECTED.vehicleId);
-          if (SELECTED.plate) url.searchParams.set("plate", SELECTED.plate);
-          if (SELECTED.model) url.searchParams.set("model", SELECTED.model);
-        }
-        liff.openWindow({ url: url.toString(), external: false });
+      /* ================== 初回ガイド開閉 ================== */
+      function openIntro() {
+        const m = $("#introModal");
+        m.classList.add("show");
+        m.setAttribute("aria-hidden", "false");
       }
-      $("#reserveBtn").addEventListener("click", openBooking);
+      function closeIntro() {
+        const m = $("#introModal");
+        m.classList.remove("show");
+        m.setAttribute("aria-hidden", "true");
+        // 念のためオーバーレイも消す
+        $("#overlay").classList.remove("show");
+        $("#overlay").setAttribute("aria-hidden", "true");
+      }
     </script>
   </body>
 </html>
