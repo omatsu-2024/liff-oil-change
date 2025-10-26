@@ -36,6 +36,7 @@
         --bg-grad-2: #5b4ae6;
         --bg-grad-3: #5741db;
         --bg-grad-4: #4b3bc7;
+        --danger: #ef4444;
       }
       * {
         box-sizing: border-box;
@@ -159,6 +160,9 @@
       .btn.ghost {
         background: #e5e7eb;
         color: #111;
+      }
+      .btn.warn {
+        background: var(--danger);
       }
       .field {
         width: 100%;
@@ -347,6 +351,28 @@
       .reserve-btn .main {
         font-size: 18px;
       }
+
+      /* 初回ポップアップ */
+      .intro-img {
+        width: 64px;
+        height: 64px;
+        border-radius: 12px;
+        box-shadow: 0 6px 18px rgba(79, 70, 229, 0.25);
+        background: #fff center/cover no-repeat;
+        margin-right: 10px;
+      }
+      .intro-body {
+        padding: 14px 16px;
+        display: grid;
+        gap: 12px;
+      }
+      .intro-check {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #374151;
+        font-weight: 700;
+      }
     </style>
   </head>
   <body>
@@ -411,11 +437,7 @@
         </div>
       </div>
 
-      <!-- 履歴追加（省略する場合はこのカードをコメントアウト）
-    ・・・必要ならここに追加フォーム・・・
-    -->
-
-      <!-- 次回メンテ目安日 + Googleカレンダー -->
+      <!-- 次回メンテ目安日 + Googleカレンダー（元の位置に復活） -->
       <div class="card" id="nextBox" style="display: none">
         <div class="section-title">📅 次回メンテ目安日</div>
         <p id="nextText" style="margin: 0 0 10px"></p>
@@ -482,6 +504,46 @@
       </div>
     </div>
 
+    <!-- 初回利用ポップアップ -->
+    <div id="introModal" class="modal" aria-hidden="true">
+      <div class="backdrop"></div>
+      <div class="modal-card" style="max-width: 640px">
+        <div class="modal-header">
+          <div class="modal-title">ℹ️ はじめに</div>
+          <button class="btn ghost" id="introCloseTop" style="width: auto">
+            閉じる
+          </button>
+        </div>
+        <div class="intro-body">
+          <div style="display: flex; align-items: center">
+            <div id="introLogo" class="intro-img"></div>
+            <div style="font-weight: 800; line-height: 1.5">
+              このページではあなたの大切なお車のメンテナンス情報を管理したり、点検・整備の時期をお知らせできます。<br />
+              あなたの愛車の情報は、下記の<span
+                style="text-decoration: underline"
+                >オンライン整備予約</span
+              >から登録してください。
+            </div>
+          </div>
+          <button id="introReserveBtn" class="btn" style="margin-top: 6px">
+            📆 オンライン整備予約を開く
+          </button>
+          <label class="intro-check">
+            <input id="introNoShow" type="checkbox" />
+            次回から表示しない
+          </label>
+        </div>
+        <div class="modal-footer">
+          <button class="btn ghost" id="introCloseBottom" style="width: auto">
+            今は閉じる
+          </button>
+          <button class="btn warn" id="introCloseAndSave" style="width: auto">
+            チェックを保存して閉じる
+          </button>
+        </div>
+      </div>
+    </div>
+
     <script>
       /* ============== ヘルパー ============== */
       const $ = (s, el = document) => el.querySelector(s);
@@ -538,10 +600,10 @@
       /* ============== 状態 ============== */
       let userId = "",
         displayName = "";
-      let CUSTOMER = null;
-      let VEHICLES = [],
-        SELECTED = null;
-      let HISTORY = [];
+      let CUSTOMER = null,
+        VEHICLES = [],
+        SELECTED = null,
+        HISTORY = [];
       const HIST_PAGE_SIZE = 10;
       let histPage = 0;
 
@@ -551,6 +613,9 @@
         try {
           $(
             "#ctaLogo"
+          ).style.backgroundImage = `url('${window.MAINTENANCE_LOGO_URL}')`;
+          $(
+            "#introLogo"
           ).style.backgroundImage = `url('${window.MAINTENANCE_LOGO_URL}')`;
 
           await liff.init({
@@ -567,7 +632,7 @@
             profileOk?.userId ||
             (liff.getDecodedIDToken?.() || {}).sub ||
             localStorage.getItem("liff_uid_cache") ||
-            getQueryParam("userId") || // ★ 追加：?userId=
+            getQueryParam("userId") ||
             getQueryParam("uid") ||
             "";
           displayName = profileOk?.displayName || "";
@@ -586,10 +651,13 @@
           $("#userName").textContent = `${displayName || ""} さん`;
 
           showOverlay(true, "車両情報を読み込み中…");
-          await loadVehiclesAndRender(); // 一括GETで顧客/車両/履歴を取得
+          await loadVehiclesAndRender();
           await loadHistoryForSelected();
           renderRecommendationsFromVehicle(SELECTED);
           showNextDateFromInspection(SELECTED);
+
+          // 初回ポップアップ
+          maybeShowIntro();
         } catch (e) {
           console.error(e);
           toast("初期化に失敗しました");
@@ -631,7 +699,7 @@
       }
 
       async function loadVehiclesAndRender() {
-        const j = await gasGet({ userId }); // ★ 一括GET
+        const j = await gasGet({ userId });
         if (j.status === "error") throw new Error(j.message || "error");
         const data = j.data || {};
         CUSTOMER = data.customer || null;
@@ -853,7 +921,7 @@
           .querySelectorAll('input[name="primaryVehicle"]')
           .forEach((r) => {
             r.addEventListener("change", async (e) => {
-              const row = Number(e.target.value); // ★ row を送る
+              const row = Number(e.target.value);
               try {
                 showOverlay(true, "車両情報を更新中…");
                 const j = await postGAS({
@@ -881,7 +949,7 @@
           });
       }
 
-      /* ============== 次回目安 + Googleカレンダー ============== */
+      /* ============== 次回目安 + Googleカレンダー（復活） ============== */
       function showNextDateFromInspection(v) {
         const box = $("#nextBox");
         if (!v || !v.nextInspection) {
@@ -953,6 +1021,50 @@
         const url = new URL(window.BOOKING_BASE);
         liff.openWindow({ url: url.toString(), external: false });
       });
+
+      /* ============== 初回ポップアップ ============== */
+      function openIntro() {
+        const m = $("#introModal");
+        m.classList.add("show");
+        m.setAttribute("aria-hidden", "false");
+      }
+      function closeIntro() {
+        const m = $("#introModal");
+        m.classList.remove("show");
+        m.setAttribute("aria-hidden", "true");
+      }
+
+      function maybeShowIntro() {
+        try {
+          const hide = localStorage.getItem("intro_hide_v1") === "1";
+          if (!hide) openIntro();
+        } catch (_) {
+          openIntro();
+        }
+      }
+      // ボタン・チェック挙動
+      $("#introReserveBtn").addEventListener("click", () => {
+        const url = new URL(window.BOOKING_BASE);
+        liff.openWindow({ url: url.toString(), external: false });
+      });
+      $("#introCloseTop").addEventListener("click", closeIntro);
+      $("#introCloseBottom").addEventListener("click", closeIntro);
+      $("#introCloseAndSave").addEventListener("click", () => {
+        if ($("#introNoShow").checked) {
+          try {
+            localStorage.setItem("intro_hide_v1", "1");
+          } catch (_) {}
+        } else {
+          try {
+            localStorage.removeItem("intro_hide_v1");
+          } catch (_) {}
+        }
+        closeIntro();
+      });
+      // 背景タップで閉じる
+      $("#introModal")
+        .querySelector(".backdrop")
+        .addEventListener("click", closeIntro);
     </script>
   </body>
 </html>
