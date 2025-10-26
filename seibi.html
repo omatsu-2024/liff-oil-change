@@ -5,11 +5,14 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>整備履歴 マイページ</title>
 
+    <!-- LIFF SDK -->
     <script
       src="https://static.line-scdn.net/liff/edge/2/sdk.js"
       charset="utf-8"
     ></script>
+
     <script>
+      /* ==== 設定 ==== */
       window.LIFF_ID = "2008228464-Jy1OL86j";
       window.GAS_URL =
         "https://script.google.com/macros/s/AKfycbz0EzPRsZ77DFPU8qC555lxya1Zo_KHVRbl_Z32WBKRCIKPb5GCDTgNm7mrhcEUUlDH/exec";
@@ -218,7 +221,7 @@
         position: absolute;
         inset: 0;
         background: rgba(0, 0, 0, 0.25);
-      }
+      } /* ←暗さを軽減 */
       .modal-card {
         position: relative;
         background: #fff;
@@ -342,7 +345,7 @@
         font-size: 18px;
       }
 
-      /* 初回ガイド */
+      /* 初回ガイド（中央寄せ/自然な改行） */
       .intro-card {
         background: #fff;
         border-radius: 16px;
@@ -626,6 +629,7 @@
     </div>
 
     <script>
+      /* ========= Helpers ========= */
       const $ = (s, el = document) => el.querySelector(s);
       const toast = (m) => {
         const n = document.createElement("div");
@@ -673,7 +677,7 @@
         Object.entries(params || {}).forEach(([k, v]) =>
           url.searchParams.set(k, v)
         );
-        const r = await fetch(url, { method: "GET" });
+        const r = await fetch(url, { method: "GET", credentials: "omit" });
         if (!r.ok) throw new Error("GAS GET failed");
         return r.json();
       }
@@ -684,10 +688,15 @@
             k,
             typeof v === "object" ? JSON.stringify(v) : String(v ?? "")
           );
-        const r = await fetch(window.GAS_URL, { method: "POST", body: fd });
+        const r = await fetch(window.GAS_URL, {
+          method: "POST",
+          body: fd,
+          credentials: "omit",
+        });
         return r.json();
       }
 
+      /* ========= State ========= */
       let userId = "",
         displayName = "";
       let VEHICLES = [],
@@ -696,6 +705,7 @@
       const HIST_PAGE_SIZE = 10;
       let histPage = 0;
 
+      /* ========= userId 解決（強化版） ========= */
       async function resolveUserId() {
         try {
           const p = await liff.getProfile().catch(() => null);
@@ -705,17 +715,89 @@
           const t = liff.getDecodedIDToken?.();
           if (t?.sub) return { id: t.sub, name: "" };
         } catch {}
-        const c = localStorage.getItem("liff_uid_cache");
-        if (c) return { id: c, name: "" };
-        const q = qp("uid") || qp("userId") || qp("u");
-        if (q) return { id: q, name: "" };
-        return { id: "", name: "" };
+        const cand =
+          qp("uid") ||
+          qp("userId") ||
+          qp("u") ||
+          localStorage.getItem("liff_uid_cache");
+        return { id: cand || "", name: "" };
       }
 
+      /* ========= 初期化（userId 無くてもゲスト表示可） ========= */
+      window.addEventListener("DOMContentLoaded", init);
+      async function init() {
+        try {
+          if (window.MAINTENANCE_LOGO_URL) {
+            $(
+              "#ctaLogo"
+            ).style.backgroundImage = `url('${window.MAINTENANCE_LOGO_URL}')`;
+            const il = $("#introImg");
+            if (il)
+              il.style.backgroundImage = `url('${window.MAINTENANCE_LOGO_URL}')`;
+          }
+          await liff.init({
+            liffId: window.LIFF_ID,
+            withLoginOnExternalBrowser: true,
+          });
+
+          const u = await resolveUserId();
+          userId = u.id;
+          displayName = u.name;
+          if (userId) {
+            try {
+              localStorage.setItem("liff_uid_cache", userId);
+            } catch {}
+          }
+
+          if (displayName) $("#avatar").textContent = displayName.charAt(0);
+          $("#userName").textContent = `${displayName || ""} さん`;
+
+          showOverlay(
+            true,
+            userId ? "車両情報を読み込み中…" : "情報を読み込み中…"
+          );
+          await loadVehiclesAndRender(); // ← userId 有無で内部分岐
+          await loadHistoryForSelected();
+          renderRecommendationsFromVehicle(SELECTED);
+          showNextDateFromInspection(SELECTED);
+        } catch (e) {
+          console.error(e);
+          toast("初期化に失敗しました");
+        } finally {
+          showOverlay(false);
+          const introKey = "intro_dismissed_v1";
+          if (!localStorage.getItem(introKey)) {
+            const m = $("#introModal");
+            if (m) {
+              m.classList.add("show");
+              m.setAttribute("aria-hidden", "false");
+            }
+          }
+          $("#introClose").onclick = () => {
+            const m = $("#introModal");
+            m.classList.remove("show");
+            m.setAttribute("aria-hidden", "true");
+          };
+          $("#introReserve").onclick = () => {
+            const m = $("#introModal");
+            m.classList.remove("show");
+            m.setAttribute("aria-hidden", "true");
+            openBooking();
+          };
+          $("#introNoAgain").addEventListener("change", (e) => {
+            const k = "intro_dismissed_v1";
+            if (e.target.checked) localStorage.setItem(k, "1");
+            else localStorage.removeItem(k);
+          });
+        }
+      }
+
+      /* ========= データ取得（フォールバック付き） ========= */
       function normalizeVehicles(raw) {
         const list = Array.isArray(raw) ? raw : [];
         return list.map((v, i) => ({
           vehicleId: v.vehicleId ?? v.id ?? String(v.row ?? i + 1),
+          row: v.row,
           model:
             v.model ??
             v.modelName ??
@@ -736,86 +818,32 @@
         }));
       }
 
-      let introOpened = false;
-
-      window.addEventListener("DOMContentLoaded", init);
-      async function init() {
-        try {
-          if (window.MAINTENANCE_LOGO_URL) {
-            $(
-              "#ctaLogo"
-            ).style.backgroundImage = `url('${window.MAINTENANCE_LOGO_URL}')`;
-            $(
-              "#introImg"
-            ).style.backgroundImage = `url('${window.MAINTENANCE_LOGO_URL}')`;
-          }
-          await liff.init({
-            liffId: window.LIFF_ID,
-            withLoginOnExternalBrowser: true,
-          });
-
-          const u = await resolveUserId();
-          userId = u.id;
-          displayName = u.name;
-          if (!userId) {
-            liff.login({ redirectUri: location.href });
-            return;
-          }
-          try {
-            localStorage.setItem("liff_uid_cache", userId);
-          } catch {}
-
-          if (displayName) $("#avatar").textContent = displayName.charAt(0);
-          $("#userName").textContent = `${displayName || ""} さん`;
-
-          showOverlay(true, "車両情報を読み込み中…");
-          await loadVehiclesAndRender();
-          await loadHistoryForSelected();
-          renderRecommendationsFromVehicle(SELECTED);
-          showNextDateFromInspection(SELECTED);
-        } catch (e) {
-          console.error(e);
-          toast("初期化に失敗しました");
-        } finally {
-          showOverlay(false);
-          const introKey = "intro_dismissed_v1";
-          if (!localStorage.getItem(introKey) && !introOpened) {
-            openIntro();
-          }
-          $("#introClose").onclick = closeIntro;
-          $("#introReserve").onclick = () => {
-            closeIntro();
-            openBooking();
-          };
-          $("#introNoAgain").addEventListener("change", (e) => {
-            if (e.target.checked) localStorage.setItem(introKey, "1");
-            else localStorage.removeItem(introKey);
-          });
-        }
-      }
-
       async function loadVehiclesAndRender() {
-        let vehiclesRaw = [],
-          bundle = null;
-        try {
-          const j = await gasGet({ action: "listVehicles", userId });
-          if (Array.isArray(j?.vehicles) && j.vehicles.length)
-            vehiclesRaw = j.vehicles;
-        } catch {}
-        if (!vehiclesRaw.length) {
+        let vehiclesRaw = [];
+        let bundle = null;
+
+        if (userId) {
           try {
-            bundle = await gasGet({ userId });
-            if (
-              bundle?.status === "success" &&
-              Array.isArray(bundle.data?.vehicles)
-            )
-              vehiclesRaw = bundle.data.vehicles;
+            const j = await gasGet({ action: "listVehicles", userId });
+            if (Array.isArray(j?.vehicles)) vehiclesRaw = j.vehicles;
+          } catch {}
+          if (!vehiclesRaw.length) {
+            try {
+              bundle = await gasGet({ userId });
+            } catch {}
+          }
+        } else {
+          try {
+            bundle = await gasGet({});
           } catch {}
         }
-        let normalized = normalizeVehicles(vehiclesRaw);
-        if (!normalized.length && bundle?.data?.customer) {
+
+        if (!vehiclesRaw.length && bundle?.data?.vehicles) {
+          vehiclesRaw = bundle.data.vehicles;
+        }
+        if (!vehiclesRaw.length && bundle?.data?.customer) {
           const c = bundle.data.customer;
-          normalized = normalizeVehicles([
+          vehiclesRaw = [
             {
               vehicleId: "main",
               modelName: c.carModel,
@@ -825,17 +853,22 @@
               isPrimary: true,
               lastMileage: c.lastMileage,
             },
-          ]);
+          ];
         }
-        VEHICLES = normalized;
+
+        VEHICLES = normalizeVehicles(vehiclesRaw);
         SELECTED = VEHICLES.find((v) => v.isPrimary) || VEHICLES[0] || null;
 
-        $("#carInfo").textContent = `${SELECTED?.model || "-"}（${
-          SELECTED?.plate || "-"
-        }）`;
-        $("#recTarget").textContent = `対象車両：${SELECTED?.model || "-"}`;
+        const headModel =
+          SELECTED?.model || bundle?.data?.customer?.carModel || "-";
+        const headPlate =
+          SELECTED?.plate || bundle?.data?.customer?.carNumber || "-";
+        $("#carInfo").textContent = `${headModel}（${headPlate}）`;
+        $("#recTarget").textContent = `対象車両：${headModel}`;
 
-        const nowKm = Number(SELECTED?.mileage || 0);
+        const nowKm = Number(
+          SELECTED?.mileage ?? bundle?.data?.customer?.lastMileage ?? 0
+        );
         $("#mileageInput").value = nowKm ? String(nowKm) : "";
         $("#nowMileageHint").textContent = `現在の走行距離： ${
           nowKm ? nowKm.toLocaleString() : "-"
@@ -856,6 +889,7 @@
         HISTORY = (j && j.records) || (j && j.data && j.data.history) || [];
       }
 
+      /* ========= 推奨メンテ / カレンダー ========= */
       function renderRecommendationsFromVehicle(v) {
         const box = $("#recommendations");
         $("#recTarget").textContent = `対象車両：${v?.model || "-"}`;
@@ -975,6 +1009,7 @@
         };
       }
 
+      /* ========= 履歴モーダル ========= */
       const historyModal = $("#historyModal"),
         modalList = $("#modalHistoryList");
       const prevBtn = $("#prevBtn"),
@@ -1040,6 +1075,7 @@
         renderHistoryModal();
       });
 
+      /* ========= 車両モーダル ========= */
       const carModal = $("#carModal"),
         vehicleListEl = $("#vehicleList");
       $("#openCarBtn").addEventListener("click", () => {
@@ -1062,7 +1098,13 @@
         vehicleListEl.innerHTML = VEHICLES.map(
           (v, i) => `
         <div class="hist" style="border-bottom:1px dashed var(--border)">
-          <div class="hist-type">${i + 1}. ${v.model || "-"}</div>
+          <div class="hist-type" style="display:flex;align-items:center;gap:6px;">
+            ${i + 1}. ${v.model || "-"} ${
+            v.isPrimary
+              ? '<span class="badge" style="margin-left:6px;background:#dcfce7;color:#166534">車両選択中</span>'
+              : ""
+          }
+          </div>
           <div class="hist-detail">ナンバー：${v.plate || "-"}</div>
           <div class="hist-detail">カテゴリ：${v.category || "-"}</div>
           <div class="hist-detail">排気量：${v.displacementCc ?? "-"} cc</div>
@@ -1081,11 +1123,7 @@
             <input type="radio" name="primaryVehicle" value="${v.vehicleId}" ${
             v.isPrimary ? "checked" : ""
           }>
-            この車をメイン表示にする ${
-              v.isPrimary
-                ? '<span class="badge" style="margin-left:6px;background:#dcfce7;color:#166534">車両選択中</span>'
-                : ""
-            }
+            この車をメイン表示にする
           </label>
         </div>`
         ).join("");
@@ -1139,6 +1177,7 @@
           });
       }
 
+      /* ========= 予約 / 入力系 ========= */
       function openBooking() {
         const url = new URL(window.BOOKING_BASE);
         if (SELECTED) {
@@ -1246,19 +1285,6 @@
           showOverlay(false);
         }
       });
-
-      function openIntro() {
-        if (introOpened) return;
-        introOpened = true;
-        const m = $("#introModal");
-        m.classList.add("show");
-        m.setAttribute("aria-hidden", "false");
-      }
-      function closeIntro() {
-        const m = $("#introModal");
-        m.classList.remove("show");
-        m.setAttribute("aria-hidden", "true");
-      }
     </script>
   </body>
 </html>
