@@ -819,8 +819,9 @@
           return null;
         });
         console.log("listRecords response:", j);
-        HISTORY = (j && j.records) || (j && j.data && j.data.history) || [];
-        console.log("HISTORY:", HISTORY);
+        // ★GASの応答形式に合わせて修正: j.data.records
+        HISTORY = j?.data?.records || j?.data?.history || j?.records || [];
+        console.log("HISTORY:", HISTORY, "length:", HISTORY.length);
       }
 
       /* ========= 推奨メンテ / カレンダー ========= */
@@ -911,6 +912,15 @@
       }
 
       function renderHistoryModal() {
+        // ★履歴が空の場合のメッセージ
+        if (!HISTORY || HISTORY.length === 0) {
+          modalList.innerHTML =
+            '<div class="hist"><p class="muted">整備履歴がありません</p></div>';
+          const footer = $("#modalFooter");
+          footer.style.display = "none";
+          return;
+        }
+
         const totalPages = Math.max(
           1,
           Math.ceil(HISTORY.length / HIST_PAGE_SIZE)
@@ -1043,12 +1053,19 @@
                   vehicleId,
                   token: window.POST_TOKEN,
                 });
-                if (j && (j.ok === true || j.status === "success")) {
+                if (
+                  j &&
+                  (j.ok === true ||
+                    j.status === "success" ||
+                    j.data?.ok === true)
+                ) {
                   toast("メイン車両を更新しました");
                   // ★完全にデータを再取得
                   await loadVehiclesAndRender();
                   await loadHistoryForSelected();
                   showNextDateFromInspection(SELECTED);
+                  // ★モーダルを閉じる
+                  closeCar();
                 } else {
                   toast("更新に失敗しました");
                 }
