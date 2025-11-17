@@ -779,8 +779,8 @@
 
         VEHICLES = normalizeVehicles(vehiclesRaw);
         SELECTED = VEHICLES.find((v) => v.isPrimary) || VEHICLES[0] || null;
-        console.log("VEHICLES:", VEHICLES);
-        console.log("SELECTED:", SELECTED);
+        console.log("🚙 VEHICLES更新:", VEHICLES.length, "台");
+        console.log("⭐ SELECTED更新:", SELECTED);
 
         const headModel =
           SELECTED?.model || bundle?.data?.customer?.carModel || "-";
@@ -987,6 +987,10 @@
       }
 
       function renderVehicleModalList() {
+        console.log(
+          "🔄 renderVehicleModalList() 実行中。VEHICLES:",
+          VEHICLES.length
+        );
         if (!VEHICLES.length) {
           vehicleListEl.innerHTML = `<div class="hist">車両情報が登録されていません</div>`;
           return;
@@ -1045,6 +1049,7 @@
           .forEach((r) => {
             r.addEventListener("change", async (e) => {
               const vehicleId = e.target.value;
+              console.log("🚗 メイン車両切り替え開始:", vehicleId);
               try {
                 showOverlay(true, "車両情報を更新中…");
                 const j = await postGAS({
@@ -1053,24 +1058,32 @@
                   vehicleId,
                   token: window.POST_TOKEN,
                 });
+                console.log("📡 GAS応答:", j);
+
                 if (
                   j &&
                   (j.ok === true ||
                     j.status === "success" ||
                     j.data?.ok === true)
                 ) {
+                  console.log("✅ メイン車両更新成功");
                   toast("メイン車両を更新しました");
+
                   // ★完全にデータを再取得
+                  console.log("🔄 データ再取得開始...");
                   await loadVehiclesAndRender();
                   await loadHistoryForSelected();
                   showNextDateFromInspection(SELECTED);
-                  // ★モーダルを閉じる
-                  closeCar();
+                  console.log("✅ データ再取得完了。SELECTED:", SELECTED);
+
+                  // ★少し待ってからモーダルを閉じる（ユーザーが変更を確認できるように）
+                  setTimeout(() => closeCar(), 800);
                 } else {
+                  console.error("❌ 更新失敗:", j);
                   toast("更新に失敗しました");
                 }
               } catch (err) {
-                console.error(err);
+                console.error("❌ エラー:", err);
                 toast("通信エラー");
               } finally {
                 showOverlay(false);
