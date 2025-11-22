@@ -637,7 +637,6 @@
         return r.json();
       }
 
-      // ★修正: POSTリクエストをFormData形式に変更
       async function postGAS(obj) {
         const fd = new FormData();
         for (const [k, v] of Object.entries(obj)) {
@@ -656,6 +655,7 @@
 
       function normalizeVehicles(raw) {
         const list = Array.isArray(raw) ? raw : [];
+        console.log("normalizeVehicles入力:", list.length + "台");
         return list.map((v, i) => ({
           vehicleId: v.vehicleId ?? v.id ?? String(v.row ?? i + 1),
           row: v.row,
@@ -751,28 +751,26 @@
           try {
             bundle = await gasGet({ userId });
             console.log("bundle response:", bundle);
+            console.log("bundle keys:", Object.keys(bundle));
             BUNDLE = bundle;
           } catch (e) {
             console.error("bundle error:", e);
           }
 
-          if (bundle?.vehicles) {
+          // ★修正: 直接vehiclesを取得
+          if (Array.isArray(bundle?.vehicles)) {
             vehiclesRaw = bundle.vehicles;
-          } else if (bundle?.data?.vehicles) {
+            console.log("bundle.vehicles取得:", vehiclesRaw.length + "台");
+          } else if (Array.isArray(bundle?.data?.vehicles)) {
             vehiclesRaw = bundle.data.vehicles;
+            console.log("bundle.data.vehicles取得:", vehiclesRaw.length + "台");
           } else {
-            try {
-              const j = await gasGet({ action: "listVehicles", userId });
-              console.log("listVehicles response:", j);
-              if (Array.isArray(j?.vehicles)) vehiclesRaw = j.vehicles;
-            } catch (e) {
-              console.error("listVehicles error:", e);
-            }
+            console.log("bundle構造が想定外:", JSON.stringify(bundle));
           }
         }
 
-        if (!vehiclesRaw.length && bundle?.data?.customer) {
-          const c = bundle.data.customer;
+        if (!vehiclesRaw.length && bundle?.customer) {
+          const c = bundle.customer;
           vehiclesRaw = [
             {
               vehicleId: "main",
@@ -782,6 +780,7 @@
               lastMileage: c.lastMileage,
             },
           ];
+          console.log("フォールバック車両を作成");
         }
 
         VEHICLES = normalizeVehicles(vehiclesRaw);
@@ -789,15 +788,13 @@
         console.log("VEHICLES:", VEHICLES);
         console.log("SELECTED:", SELECTED);
 
-        const headModel =
-          SELECTED?.model || bundle?.data?.customer?.carModel || "-";
-        const headPlate =
-          SELECTED?.plate || bundle?.data?.customer?.carNumber || "-";
+        const headModel = SELECTED?.model || bundle?.customer?.carModel || "-";
+        const headPlate = SELECTED?.plate || bundle?.customer?.carNumber || "-";
         $("#carInfo").textContent = `${headModel}（${headPlate}）`;
         $("#recTarget").textContent = `対象車両：${headModel}`;
 
         const nowKm = Number(
-          SELECTED?.mileage ?? bundle?.data?.customer?.lastMileage ?? 0
+          SELECTED?.mileage ?? bundle?.customer?.lastMileage ?? 0
         );
         $("#mileageInput").value = nowKm ? String(nowKm) : "";
         $("#nowMileageHint").textContent = `現在の走行距離： ${
@@ -834,6 +831,8 @@
 
         const recs =
           BUNDLE?.recommendations || BUNDLE?.data?.nextMaintenance || [];
+        console.log("推奨メンテナンス数:", recs.length);
+
         if (!recs.length) {
           box.innerHTML = `<p class="muted">現在、推奨メンテナンスはありません✨</p>`;
           return;
@@ -1048,7 +1047,6 @@
             r.addEventListener("change", async (e) => {
               const vehicleId = e.target.value;
 
-              // ★デバッグ: POSTするデータをログ出力
               console.log("=== 車両切り替えPOSTリクエスト ===");
               console.log("userId:", userId);
               console.log("vehicleId:", vehicleId);
