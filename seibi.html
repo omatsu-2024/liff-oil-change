@@ -598,7 +598,7 @@
       let VEHICLES = [],
         SELECTED = null,
         HISTORY = [];
-      let BUNDLE = null; // ★GASから取得した完全なデータを保存
+      let BUNDLE = null;
       const HIST_PAGE_SIZE = 10;
       let histPage = 0;
 
@@ -637,11 +637,18 @@
         return r.json();
       }
 
+      // ★修正: POSTリクエストをFormData形式に変更
       async function postGAS(obj) {
+        const fd = new FormData();
+        for (const [k, v] of Object.entries(obj)) {
+          fd.append(
+            k,
+            typeof v === "object" ? JSON.stringify(v) : String(v ?? "")
+          );
+        }
         const r = await fetch(window.GAS_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(obj),
+          body: fd,
           credentials: "omit",
         });
         return r.json();
@@ -741,16 +748,14 @@
         let bundle = null;
 
         if (userId) {
-          // ★常にbundleデータを取得（推奨メンテナンス情報を含む）
           try {
             bundle = await gasGet({ userId });
             console.log("bundle response:", bundle);
-            BUNDLE = bundle; // ★グローバルに保存
+            BUNDLE = bundle;
           } catch (e) {
             console.error("bundle error:", e);
           }
 
-          // 車両情報の取得
           if (bundle?.vehicles) {
             vehiclesRaw = bundle.vehicles;
           } else if (bundle?.data?.vehicles) {
@@ -791,7 +796,6 @@
         $("#carInfo").textContent = `${headModel}（${headPlate}）`;
         $("#recTarget").textContent = `対象車両：${headModel}`;
 
-        // ★現在の走行距離を表示
         const nowKm = Number(
           SELECTED?.mileage ?? bundle?.data?.customer?.lastMileage ?? 0
         );
@@ -800,9 +804,7 @@
           nowKm ? nowKm.toLocaleString() : "-"
         } km`;
 
-        // ★推奨メンテナンス情報を表示
         renderRecommendations();
-
         renderVehicleModalList();
       }
 
@@ -821,7 +823,6 @@
           return null;
         });
         console.log("listRecords response:", j);
-        // ★GASの応答形式に合わせて修正: j.data.records
         HISTORY = j?.data?.records || j?.data?.history || j?.records || [];
         console.log("HISTORY:", HISTORY, "length:", HISTORY.length);
       }
@@ -831,7 +832,6 @@
         const box = $("#recommendations");
         $("#recTarget").textContent = `対象車両：${SELECTED?.model || "-"}`;
 
-        // ★BUNDLEから直接取得（非同期不要）
         const recs =
           BUNDLE?.recommendations || BUNDLE?.data?.nextMaintenance || [];
         if (!recs.length) {
@@ -915,7 +915,6 @@
       }
 
       function renderHistoryModal() {
-        // ★履歴が空の場合のメッセージ
         if (!HISTORY || HISTORY.length === 0) {
           modalList.innerHTML =
             '<div class="hist"><p class="muted">整備履歴がありません</p></div>';
@@ -1048,14 +1047,23 @@
           .forEach((r) => {
             r.addEventListener("change", async (e) => {
               const vehicleId = e.target.value;
+
+              // ★デバッグ: POSTするデータをログ出力
+              console.log("=== 車両切り替えPOSTリクエスト ===");
+              console.log("userId:", userId);
+              console.log("vehicleId:", vehicleId);
+              console.log("token:", window.POST_TOKEN);
+
               try {
                 showOverlay(true, "車両情報を更新中…");
                 const j = await postGAS({
                   action: "setPrimary",
-                  userId,
-                  vehicleId,
+                  userId: userId,
+                  vehicleId: vehicleId,
                   token: window.POST_TOKEN,
                 });
+                console.log("POSTレスポンス:", j);
+
                 if (
                   j &&
                   (j.success === true ||
@@ -1064,18 +1072,17 @@
                     j.data?.ok === true)
                 ) {
                   toast("メイン車両を更新しました");
-                  // ★完全にデータを再取得
                   await loadVehiclesAndRender();
                   await loadHistoryForSelected();
                   showNextDateFromInspection(SELECTED);
-                  // ★モーダルを閉じる
                   closeCar();
                 } else {
-                  toast("更新に失敗しました");
+                  console.error("更新失敗:", j);
+                  toast("更新に失敗しました: " + (j.error || "不明なエラー"));
                 }
               } catch (err) {
-                console.error(err);
-                toast("通信エラー");
+                console.error("通信エラー:", err);
+                toast("通信エラー: " + err.message);
               } finally {
                 showOverlay(false);
               }
@@ -1187,7 +1194,6 @@
             typeSelect.value = "";
             $("#hTypeOther").style.display = "none";
             await loadHistoryForSelected();
-            // 推奨メンテナンスを再取得
             await loadVehiclesAndRender();
           } else {
             toast("登録に失敗しました");
