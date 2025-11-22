@@ -4,7 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>整備履歴マイページ</title>
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script
+      charset="utf-8"
+      src="https://static.line-scdn.net/liff/edge/2/sdk.js"
+    ></script>
     <style>
       * {
         margin: 0;
@@ -21,155 +24,309 @@
       }
 
       .container {
-        max-width: 800px;
+        max-width: 600px;
         margin: 0 auto;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
       }
 
       .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px 20px;
+        text-align: center;
+      }
+
+      .logo {
+        width: 120px;
+        height: 120px;
+        margin: 0 auto 15px;
         background: white;
-        border-radius: 16px;
-        padding: 24px;
-        margin-bottom: 20px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      }
-
-      .customer-info h1 {
-        font-size: 24px;
-        margin-bottom: 16px;
-        color: #333;
-      }
-
-      .info-grid {
-        display: grid;
-        gap: 12px;
-      }
-
-      .info-item {
+        border-radius: 50%;
         display: flex;
         align-items: center;
-        padding: 12px;
-        background: #f7f7f7;
-        border-radius: 8px;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       }
 
-      .info-item .label {
-        font-weight: 600;
-        color: #666;
-        min-width: 100px;
+      .logo img {
+        width: 80%;
+        height: 80%;
+        object-fit: contain;
       }
 
-      .info-item .value {
-        color: #333;
+      .header h1 {
+        font-size: 24px;
+        margin-bottom: 5px;
+      }
+
+      .header p {
+        font-size: 14px;
+        opacity: 0.9;
+      }
+
+      .content {
+        padding: 20px;
       }
 
       .vehicle-card {
-        background: white;
-        border-radius: 16px;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        border-radius: 15px;
         padding: 20px;
-        margin-bottom: 16px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        cursor: pointer;
-        transition: transform 0.2s;
-      }
-
-      .vehicle-card:hover {
-        transform: translateY(-2px);
-      }
-
-      .vehicle-card.active {
-        border: 3px solid #667eea;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       }
 
       .vehicle-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 12px;
+        margin-bottom: 15px;
       }
 
       .vehicle-name {
-        font-size: 20px;
+        font-size: 22px;
         font-weight: bold;
-        color: #333;
+        color: #2d3748;
       }
 
-      .primary-badge {
+      .change-vehicle-btn {
+        background: white;
+        border: 2px solid #667eea;
+        color: #667eea;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .change-vehicle-btn:hover {
         background: #667eea;
         color: white;
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 12px;
+      }
+
+      .vehicle-info {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-bottom: 15px;
+      }
+
+      .info-item {
+        background: white;
+        padding: 12px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+
+      .info-label {
+        font-size: 11px;
+        color: #718096;
+        margin-bottom: 4px;
         font-weight: 600;
       }
 
-      .vehicle-details {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 8px;
+      .info-value {
+        font-size: 16px;
+        color: #2d3748;
+        font-weight: bold;
+      }
+
+      .inspection-status {
+        background: white;
+        padding: 15px;
+        border-radius: 10px;
         margin-top: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       }
 
-      .detail-item {
+      .inspection-status.urgent {
+        background: #fff5f5;
+        border-left: 4px solid #f56565;
+      }
+
+      .inspection-status.warning {
+        background: #fffaf0;
+        border-left: 4px solid #ed8936;
+      }
+
+      .inspection-status.ok {
+        background: #f0fff4;
+        border-left: 4px solid #48bb78;
+      }
+
+      .status-title {
+        font-size: 13px;
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #2d3748;
+      }
+
+      .status-message {
         font-size: 14px;
-        color: #666;
+        color: #4a5568;
+        line-height: 1.5;
       }
 
-      .detail-item strong {
-        color: #333;
-      }
-
-      .maintenance-card {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        border-radius: 16px;
+      .maintenance-recommendations {
+        background: #f7fafc;
+        border-radius: 15px;
         padding: 20px;
         margin-bottom: 20px;
-        color: white;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       }
 
-      .maintenance-card h3 {
+      .section-title {
         font-size: 18px;
-        margin-bottom: 8px;
+        font-weight: bold;
+        color: #2d3748;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+      }
+
+      .section-title::before {
+        content: "🔧";
+        margin-right: 8px;
+        font-size: 20px;
+      }
+
+      .recommendation-item {
+        background: white;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border-left: 4px solid #667eea;
+      }
+
+      .recommendation-item.urgent {
+        border-left-color: #f56565;
+        background: #fff5f5;
+      }
+
+      .recommendation-item.warning {
+        border-left-color: #ed8936;
+        background: #fffaf0;
+      }
+
+      .recommendation-title {
+        font-size: 15px;
+        font-weight: bold;
+        color: #2d3748;
+        margin-bottom: 5px;
+      }
+
+      .recommendation-message {
+        font-size: 13px;
+        color: #4a5568;
+        line-height: 1.5;
       }
 
       .history-section {
-        background: white;
-        border-radius: 16px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      }
-
-      .history-section h2 {
-        font-size: 20px;
-        margin-bottom: 16px;
-        color: #333;
+        margin-top: 20px;
       }
 
       .history-item {
-        border-left: 4px solid #667eea;
-        padding: 12px;
-        margin-bottom: 12px;
-        background: #f7f7f7;
-        border-radius: 0 8px 8px 0;
+        background: white;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border-left: 4px solid #48bb78;
       }
 
       .history-date {
-        font-weight: 600;
-        color: #667eea;
-        margin-bottom: 4px;
+        font-size: 13px;
+        color: #718096;
+        margin-bottom: 5px;
       }
 
-      .history-type {
-        font-size: 16px;
-        font-weight: 600;
-        color: #333;
-        margin-bottom: 4px;
-      }
-
-      .history-detail {
+      .history-content {
         font-size: 14px;
-        color: #666;
+        color: #2d3748;
+        font-weight: 600;
+        margin-bottom: 5px;
+      }
+
+      .history-mileage {
+        font-size: 12px;
+        color: #4a5568;
+      }
+
+      .action-buttons {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .btn {
+        padding: 15px;
+        border: none;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-align: center;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      }
+
+      .btn-secondary {
+        background: white;
+        color: #667eea;
+        border: 2px solid #667eea;
+      }
+
+      .btn-secondary:hover {
+        background: #f7fafc;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 40px 20px;
+        color: #718096;
+      }
+
+      .loading::after {
+        content: "...";
+        animation: dots 1.5s steps(4, end) infinite;
+      }
+
+      @keyframes dots {
+        0%,
+        20% {
+          content: ".";
+        }
+        40% {
+          content: "..";
+        }
+        60%,
+        100% {
+          content: "...";
+        }
+      }
+
+      .error {
+        background: #fff5f5;
+        color: #c53030;
+        padding: 20px;
+        border-radius: 10px;
+        margin: 20px;
+        border-left: 4px solid #f56565;
       }
 
       .modal {
@@ -181,589 +338,538 @@
         height: 100%;
         background: rgba(0, 0, 0, 0.5);
         z-index: 1000;
-        padding: 20px;
-        overflow-y: auto;
-      }
-
-      .modal.show {
-        display: flex;
         align-items: center;
         justify-content: center;
       }
 
+      .modal.show {
+        display: flex;
+      }
+
       .modal-content {
         background: white;
-        border-radius: 16px;
-        padding: 24px;
-        max-width: 600px;
-        width: 100%;
-        max-height: 90vh;
+        border-radius: 15px;
+        padding: 25px;
+        max-width: 90%;
+        max-height: 80vh;
         overflow-y: auto;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
       }
 
       .modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-      }
-
-      .modal-title {
-        font-size: 24px;
+        font-size: 20px;
         font-weight: bold;
-        color: #333;
+        margin-bottom: 20px;
+        color: #2d3748;
+        border-bottom: 2px solid #e2e8f0;
+        padding-bottom: 10px;
       }
 
-      .close-btn {
-        background: #f0f0f0;
-        border: none;
-        border-radius: 8px;
-        padding: 8px 16px;
+      .vehicle-option {
+        background: #f7fafc;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 10px;
         cursor: pointer;
-        font-size: 14px;
+        border: 2px solid transparent;
+        transition: all 0.3s;
       }
 
-      .vehicle-list-item {
-        padding: 16px;
-        border: 2px solid #e0e0e0;
-        border-radius: 12px;
-        margin-bottom: 12px;
-      }
-
-      .vehicle-list-item.selected {
+      .vehicle-option:hover {
         border-color: #667eea;
-        background: #f0f4ff;
+        background: #edf2f7;
       }
 
-      .switch-btn {
-        margin-top: 12px;
-        padding: 10px 20px;
-        background: #667eea;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 14px;
-        width: 100%;
+      .vehicle-option.selected {
+        border-color: #667eea;
+        background: #e6f2ff;
       }
 
-      .switch-btn:disabled {
-        background: #ccc;
-        cursor: not-allowed;
+      .vehicle-option-name {
+        font-size: 16px;
+        font-weight: bold;
+        color: #2d3748;
+        margin-bottom: 5px;
       }
 
-      .loading {
+      .vehicle-option-info {
+        font-size: 13px;
+        color: #718096;
+      }
+
+      .modal-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .modal-actions .btn {
+        flex: 1;
+      }
+
+      .cta-section {
+        margin-top: 20px;
+        padding: 20px;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        border-radius: 15px;
         text-align: center;
-        padding: 40px;
         color: white;
       }
 
-      .error {
-        background: #ff5252;
-        color: white;
-        padding: 16px;
-        border-radius: 8px;
-        margin-bottom: 16px;
+      .cta-title {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 10px;
       }
 
-      .toast {
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #333;
-        color: white;
-        padding: 12px 24px;
-        border-radius: 8px;
-        z-index: 2000;
-        display: none;
+      .cta-message {
+        font-size: 14px;
+        margin-bottom: 15px;
+        opacity: 0.95;
       }
 
-      .toast.show {
-        display: block;
-        animation: fadeIn 0.3s, fadeOut 0.3s 2.7s;
+      .cta-button {
+        background: white;
+        color: #f5576c;
+        padding: 12px 30px;
+        border-radius: 25px;
+        font-size: 16px;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-block;
+        text-decoration: none;
       }
 
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-        }
-        to {
-          opacity: 1;
-        }
-      }
-
-      @keyframes fadeOut {
-        from {
-          opacity: 1;
-        }
-        to {
-          opacity: 0;
-        }
+      .cta-button:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <div id="loading" class="loading">
-        <h2>読み込み中...</h2>
+      <div class="header">
+        <div class="logo">
+          <img
+            id="logoImg"
+            src="https://omatsu-2024.github.io/liff-oil-change/img/Maintenance_Logo.png"
+            alt="整備ロゴ"
+          />
+        </div>
+        <h1>整備履歴マイページ</h1>
+        <p id="customerName">お客様の整備情報</p>
       </div>
 
-      <div id="error" class="error" style="display: none"></div>
-
-      <div id="content" style="display: none">
-        <!-- 顧客情報 -->
-        <div class="header">
-          <div class="customer-info">
-            <h1>🚗 マイページ</h1>
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="label">お名前</span>
-                <span class="value" id="customerName">-</span>
-              </div>
-              <div class="info-item">
-                <span class="label">電話番号</span>
-                <span class="value" id="customerPhone">-</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 次回メンテナンス推奨 -->
-        <div
-          id="maintenanceCard"
-          class="maintenance-card"
-          style="display: none"
-        >
-          <h3 id="maintenanceType">-</h3>
-          <p id="maintenanceMessage">-</p>
-        </div>
-
-        <!-- 車両情報 -->
-        <div id="vehiclesContainer"></div>
-
-        <!-- 整備履歴 -->
-        <div class="history-section">
-          <h2>📋 整備履歴</h2>
-          <div id="historyContainer">
-            <p style="color: #999">履歴がありません</p>
-          </div>
-        </div>
+      <div id="app" class="content">
+        <div class="loading">データを読み込み中</div>
       </div>
     </div>
 
-    <!-- 車両情報モーダル -->
+    <!-- 車両選択モーダル -->
     <div id="vehicleModal" class="modal">
       <div class="modal-content">
-        <div class="modal-header">
-          <h2 class="modal-title">🚙 車両情報</h2>
-          <button class="close-btn" onclick="closeModal()">閉じる</button>
+        <div class="modal-header">🚗 車両を選択</div>
+        <div id="vehicleList"></div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" onclick="closeVehicleModal()">
+            キャンセル
+          </button>
+          <button class="btn btn-primary" onclick="switchVehicle()">
+            切り替える
+          </button>
         </div>
-        <div id="vehicleModalList"></div>
       </div>
     </div>
 
-    <!-- トーストメッセージ -->
-    <div id="toast" class="toast"></div>
-
     <script>
-      // ========================================
+      // 設定
+      const CONFIG = {
+        LIFF_ID: "2008228464-Jy1OL86j",
+        GAS_URL:
+          "https://script.google.com/macros/s/AKfycbz0EzPRsZ77DFPU8qC555lxya1Zo_KHVRbl_Z32WBKRCIKPb5GCDTgNm7mrhcEUUlDH/exec",
+        POST_TOKEN: "change-me-32chars",
+        BOOKING_URL:
+          "https://liff.line.me/2008228464-nMpDkLPK?calendar_salon_id=18905&ts=1760362889",
+      };
+
       // グローバル変数
-      // ========================================
-      const GAS_URL =
-        "https://script.google.com/macros/s/AKfycbz0EzPRsZ77DFPU8qC555lxya1Zo_KHVRbl_Z32WBKRCIKPb5GCDTgNm7mrhcEUUlDH/exec";
-      let VEHICLES = [];
-      let HISTORY = [];
-      let SELECTED_VEHICLE = null;
-      let CUSTOMER = null;
+      let userData = null;
+      let allVehicles = [];
+      let selectedVehicleId = null;
 
-      // ========================================
-      // 初期化
-      // ========================================
-      console.log("=== 初期化開始 ===");
-
-      liff
-        .init({
-          liffId: "2006595301-8mrpx0bY",
-        })
-        .then(() => {
-          console.log("LIFF初期化完了");
+      // LIFF初期化
+      window.onload = async function () {
+        try {
+          console.log("LIFF初期化開始...");
+          await liff.init({ liffId: CONFIG.LIFF_ID });
+          console.log("LIFF初期化成功");
 
           if (!liff.isLoggedIn()) {
-            console.log("ログインしていません");
+            console.log("未ログイン - ログイン画面へリダイレクト");
             liff.login();
             return;
           }
 
-          return liff.getProfile();
-        })
-        .then((profile) => {
-          if (!profile) return;
+          const profile = await liff.getProfile();
+          console.log("ユーザープロファイル取得:", profile);
 
-          const userId = profile.userId;
-          const displayName = profile.displayName;
-
-          console.log("userId:", userId);
-          console.log("displayName:", displayName);
-
-          return loadData(userId);
-        })
-        .then(() => {
-          console.log("=== 初期化完了 ===");
-          hideLoading();
-        })
-        .catch((error) => {
+          await loadData(profile.userId);
+        } catch (error) {
           console.error("初期化エラー:", error);
           showError("初期化に失敗しました: " + error.message);
-          hideLoading();
-        });
+        }
+      };
 
-      // ========================================
       // データ読み込み
-      // ========================================
       async function loadData(userId) {
-        console.log("車両情報を読み込み中...");
-
-        const url = `${GAS_URL}?userId=${encodeURIComponent(userId)}`;
-        console.log("Request URL:", url);
-
         try {
-          const response = await fetch(url);
-          console.log("Response status:", response.status);
+          console.log("データ読み込み開始:", userId);
+          const response = await fetch(
+            `${CONFIG.GAS_URL}?userId=${encodeURIComponent(userId)}`
+          );
 
           if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error(`HTTPエラー: ${response.status}`);
           }
 
-          const result = await response.json();
-          console.log("bundle response:", result);
+          const data = await response.json();
+          console.log("取得データ:", data);
 
-          if (result.error) {
-            throw new Error(result.error);
+          if (data.error) {
+            throw new Error(data.error);
           }
 
-          const data = result.data || result;
-          CUSTOMER = data.customer;
-          VEHICLES = data.vehicles || [];
-          HISTORY = data.history || [];
+          userData = data;
+          allVehicles = data.vehicles || [];
 
-          console.log("🚙 VEHICLES:", VEHICLES.length, "台");
-          console.log("📋 HISTORY:", HISTORY.length, "件");
+          if (allVehicles.length === 0) {
+            showError("登録されている車両が見つかりません");
+            return;
+          }
 
-          renderCustomerInfo(data.customer);
-          renderVehicles();
-          renderNextMaintenance(data.nextMaintenance);
-
-          SELECTED_VEHICLE = VEHICLES.find((v) => v.isPrimary) || VEHICLES[0];
-          console.log("⭐ SELECTED:", SELECTED_VEHICLE);
-
-          renderHistory();
-
-          document.getElementById("content").style.display = "block";
+          renderContent();
         } catch (error) {
           console.error("データ読み込みエラー:", error);
-          throw error;
+          showError("データの読み込みに失敗しました: " + error.message);
         }
       }
 
-      // ========================================
-      // 顧客情報表示
-      // ========================================
-      function renderCustomerInfo(customer) {
-        if (!customer) return;
+      // コンテンツ描画
+      function renderContent() {
+        const mainVehicle =
+          allVehicles.find((v) => v.isPrimary) || allVehicles[0];
 
         document.getElementById("customerName").textContent =
-          customer.name || "-";
-        document.getElementById("customerPhone").textContent =
-          customer.phone || "-";
+          userData.customerName || "お客様";
+
+        const app = document.getElementById("app");
+        app.innerHTML = `
+                ${renderVehicleCard(mainVehicle)}
+                ${renderRecommendations(mainVehicle)}
+                ${renderHistory(mainVehicle)}
+                ${renderCTA()}
+                ${renderActionButtons()}
+            `;
       }
 
-      // ========================================
-      // 車両情報表示
-      // ========================================
-      function renderVehicles() {
-        const container = document.getElementById("vehiclesContainer");
-        container.innerHTML = "";
+      // 車両カード描画
+      function renderVehicleCard(vehicle) {
+        const inspectionStatus = getInspectionStatus(vehicle);
+        const currentMileage =
+          vehicle.currentMileage || vehicle.nowMileage || "未登録";
 
-        if (VEHICLES.length === 0) {
-          container.innerHTML =
-            '<p style="color: white; text-align: center;">車両情報がありません</p>';
-          return;
-        }
-
-        VEHICLES.forEach((vehicle) => {
-          const card = document.createElement("div");
-          card.className = "vehicle-card";
-          if (vehicle.isPrimary) {
-            card.classList.add("active");
-          }
-
-          card.innerHTML = `
-          <div class="vehicle-header">
-            <span class="vehicle-name">${vehicle.model || "-"}</span>
-            ${
-              vehicle.isPrimary
-                ? '<span class="primary-badge">車両選択中</span>'
-                : ""
-            }
-          </div>
-          <div class="vehicle-details">
-            <div class="detail-item"><strong>カテゴリ:</strong> ${
-              vehicle.category || "-"
-            }</div>
-            <div class="detail-item"><strong>排気量:</strong> ${
-              vehicle.displacement || "-"
-            }</div>
-            <div class="detail-item"><strong>初年度登録:</strong> ${
-              vehicle.firstRegistration || "-"
-            }</div>
-            <div class="detail-item"><strong>次回車検:</strong> ${
-              vehicle.nextInspection || "-"
-            }</div>
-            <div class="detail-item"><strong>残り日数:</strong> ${
-              vehicle.daysUntilInspection !== null
-                ? vehicle.daysUntilInspection + "日"
-                : "-"
-            }</div>
-            <div class="detail-item"><strong>走行距離:</strong> ${
-              vehicle.mileage || 0
-            }km</div>
-          </div>
-        `;
-
-          card.addEventListener("click", () => {
-            openVehicleModal();
-          });
-
-          container.appendChild(card);
-        });
+        return `
+                <div class="vehicle-card">
+                    <div class="vehicle-header">
+                        <div class="vehicle-name">${vehicle.vehicleName}</div>
+                        ${
+                          allVehicles.length > 1
+                            ? '<button class="change-vehicle-btn" onclick="openVehicleModal()">車両変更</button>'
+                            : ""
+                        }
+                    </div>
+                    <div class="vehicle-info">
+                        <div class="info-item">
+                            <div class="info-label">排気量</div>
+                            <div class="info-value">${
+                              vehicle.displacement || "-"
+                            }</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">初年度登録</div>
+                            <div class="info-value">${
+                              vehicle.firstRegistration || "-"
+                            }</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">次回車検日</div>
+                            <div class="info-value">${
+                              vehicle.nextInspectionDate || "-"
+                            }</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">車検まで</div>
+                            <div class="info-value">${
+                              vehicle.daysUntilInspection || "-"
+                            }日</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">現在の走行距離</div>
+                            <div class="info-value">${currentMileage}km</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">ナンバー</div>
+                            <div class="info-value">${
+                              vehicle.plateNumber || "-"
+                            }</div>
+                        </div>
+                    </div>
+                    <div class="inspection-status ${inspectionStatus.class}">
+                        <div class="status-title">${
+                          inspectionStatus.title
+                        }</div>
+                        <div class="status-message">${
+                          inspectionStatus.message
+                        }</div>
+                    </div>
+                </div>
+            `;
       }
 
-      // ========================================
-      // 次回メンテナンス表示
-      // ========================================
-      function renderNextMaintenance(maintenance) {
-        const card = document.getElementById("maintenanceCard");
-
-        if (!maintenance) {
-          card.style.display = "none";
-          return;
+      // 車検ステータス判定
+      function getInspectionStatus(vehicle) {
+        const days = vehicle.daysUntilInspection;
+        if (days <= 7) {
+          return {
+            class: "urgent",
+            title: "🚨 車検が迫っています",
+            message: `車検まで残り${days}日です。早急にご予約ください。`,
+          };
+        } else if (days <= 30) {
+          return {
+            class: "warning",
+            title: "⚠️ 車検が近づいています",
+            message: `車検まで残り${days}日です。お早めのご予約をおすすめします。`,
+          };
         }
-
-        card.style.display = "block";
-        document.getElementById("maintenanceType").textContent =
-          maintenance.type || "-";
-        document.getElementById("maintenanceMessage").textContent =
-          maintenance.message || "-";
+        return {
+          class: "ok",
+          title: "✅ 車検まで余裕があります",
+          message: `次回車検まで${days}日あります。`,
+        };
       }
 
-      // ========================================
-      // 整備履歴表示
-      // ========================================
-      function renderHistory() {
-        const container = document.getElementById("historyContainer");
+      // メンテナンス推奨描画
+      function renderRecommendations(vehicle) {
+        const recommendations = vehicle.recommendations || [];
 
-        if (!SELECTED_VEHICLE) {
-          container.innerHTML =
-            '<p style="color: #999;">車両が選択されていません</p>';
-          return;
+        if (recommendations.length === 0) {
+          return "";
         }
 
-        const vehicleHistory = HISTORY.filter(
-          (h) => h.vehicleId === SELECTED_VEHICLE.vehicleId
-        );
+        const items = recommendations
+          .map(
+            (rec) => `
+                <div class="recommendation-item ${rec.urgency || ""}">
+                    <div class="recommendation-title">${rec.type}</div>
+                    <div class="recommendation-message">${rec.message}</div>
+                </div>
+            `
+          )
+          .join("");
 
-        if (vehicleHistory.length === 0) {
-          container.innerHTML =
-            '<p style="color: #999;">整備履歴がありません</p>';
-          return;
-        }
-
-        container.innerHTML = "";
-        vehicleHistory.forEach((item) => {
-          const historyItem = document.createElement("div");
-          historyItem.className = "history-item";
-          historyItem.innerHTML = `
-          <div class="history-date">${item.date || "-"}</div>
-          <div class="history-type">${item.type || "-"}</div>
-          <div class="history-detail">${item.detail || "-"}</div>
-          <div class="history-detail">走行距離: ${
-            item.mileage || 0
-          }km / 費用: ¥${(item.cost || 0).toLocaleString()}</div>
-        `;
-          container.appendChild(historyItem);
-        });
+        return `
+                <div class="maintenance-recommendations">
+                    <div class="section-title">メンテナンス推奨</div>
+                    ${items}
+                </div>
+            `;
       }
 
-      // ========================================
-      // 車両情報モーダル
-      // ========================================
+      // 整備履歴描画
+      function renderHistory(vehicle) {
+        const history = (vehicle.history || []).slice(0, 5);
+
+        if (history.length === 0) {
+          return `
+                    <div class="history-section">
+                        <div class="section-title">📝 整備履歴</div>
+                        <div class="info-item">
+                            <div class="info-value" style="text-align: center; padding: 20px;">
+                                整備履歴がありません
+                            </div>
+                        </div>
+                    </div>
+                `;
+        }
+
+        const items = history
+          .map(
+            (h) => `
+                <div class="history-item">
+                    <div class="history-date">${h.date}</div>
+                    <div class="history-content">${h.content}</div>
+                    <div class="history-mileage">走行距離: ${
+                      h.mileage || "-"
+                    }km</div>
+                </div>
+            `
+          )
+          .join("");
+
+        return `
+                <div class="history-section">
+                    <div class="section-title">📝 整備履歴（最新5件）</div>
+                    ${items}
+                </div>
+            `;
+      }
+
+      // CTA描画
+      function renderCTA() {
+        return `
+                <div class="cta-section">
+                    <div class="cta-title">🎉 今すぐご予約</div>
+                    <div class="cta-message">オンライン予約でスムーズに整備を受けられます</div>
+                    <a href="${CONFIG.BOOKING_URL}" class="cta-button">予約する</a>
+                </div>
+            `;
+      }
+
+      // アクションボタン描画
+      function renderActionButtons() {
+        return `
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="updateMileage()">📊 走行距離を更新</button>
+                    <button class="btn btn-secondary" onclick="addHistory()">📝 整備履歴を追加</button>
+                </div>
+            `;
+      }
+
+      // 車両選択モーダルを開く
       function openVehicleModal() {
-        const modal = document.getElementById("vehicleModal");
-        const modalList = document.getElementById("vehicleModalList");
+        const mainVehicle =
+          allVehicles.find((v) => v.isPrimary) || allVehicles[0];
+        selectedVehicleId = mainVehicle.vehicleId;
 
-        modalList.innerHTML = "";
-
-        VEHICLES.forEach((vehicle) => {
-          const item = document.createElement("div");
-          item.className = "vehicle-list-item";
-          if (vehicle.vehicleId === SELECTED_VEHICLE?.vehicleId) {
-            item.classList.add("selected");
-          }
-
-          const isCurrentPrimary = vehicle.isPrimary;
-
-          item.innerHTML = `
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <strong style="font-size: 18px;">${vehicle.model || "-"}</strong>
-            ${
-              isCurrentPrimary
-                ? '<span class="primary-badge">メイン車両</span>'
-                : ""
+        const list = allVehicles
+          .map(
+            (v) => `
+                <div class="vehicle-option ${
+                  v.vehicleId === selectedVehicleId ? "selected" : ""
+                }" 
+                     onclick="selectVehicle('${v.vehicleId}')">
+                    <div class="vehicle-option-name">
+                        ${v.isPrimary ? "⭐ " : ""}${v.vehicleName}
+                    </div>
+                    <div class="vehicle-option-info">
+                        ${v.displacement || "-"} | 次回車検: ${
+              v.nextInspectionDate || "-"
             }
-          </div>
-          <div style="font-size: 14px; color: #666;">
-            <div>排気量: ${vehicle.displacement || "-"}</div>
-            <div>初度登録: ${vehicle.firstRegistration || "-"}</div>
-            <div>次回車検: ${vehicle.nextInspection || "-"}</div>
-            <div>残り日数: ${
-              vehicle.daysUntilInspection !== null
-                ? vehicle.daysUntilInspection + "日"
-                : "-"
-            }</div>
-            <div>走行距離: ${vehicle.mileage || 0}km</div>
-          </div>
-          <button class="switch-btn" 
-                  onclick="switchVehicle('${vehicle.vehicleId}')" 
-                  ${isCurrentPrimary ? "disabled" : ""}>
-            ${
-              isCurrentPrimary
-                ? "メイン車両に設定済み"
-                : "この車をメイン表示にする"
-            }
-          </button>
-        `;
+                    </div>
+                </div>
+            `
+          )
+          .join("");
 
-          modalList.appendChild(item);
-        });
-
-        modal.classList.add("show");
+        document.getElementById("vehicleList").innerHTML = list;
+        document.getElementById("vehicleModal").classList.add("show");
       }
 
-      function closeModal() {
+      // 車両選択モーダルを閉じる
+      function closeVehicleModal() {
         document.getElementById("vehicleModal").classList.remove("show");
       }
 
-      // ========================================
-      // メイン車両切り替え
-      // ========================================
-      async function switchVehicle(vehicleId) {
-        console.log("🚗 メイン車両切り替え開始:", vehicleId);
-
-        try {
-          showToast("切り替え中...");
-
-          // GASにPOSTリクエストを送信
-          const result = await postGAS("setPrimary", {
-            vehicleId: vehicleId,
-            customer: CUSTOMER,
-          });
-
-          console.log("切り替え結果:", result);
-
-          if (result.success) {
-            // ローカルのデータを更新
-            VEHICLES.forEach((v) => {
-              v.isPrimary = v.vehicleId === vehicleId;
-            });
-
-            SELECTED_VEHICLE = VEHICLES.find((v) => v.vehicleId === vehicleId);
-
-            // 表示を更新
-            renderVehicles();
-            renderHistory();
-
-            showToast("✅ メイン車両を変更しました");
-
-            setTimeout(() => {
-              closeModal();
-            }, 800);
-          } else {
-            throw new Error("切り替えに失敗しました");
-          }
-        } catch (error) {
-          console.error("❌ エラー:", error);
-          showToast("❌ 更新に失敗しました");
-        }
+      // 車両を選択
+      function selectVehicle(vehicleId) {
+        selectedVehicleId = vehicleId;
+        document.querySelectorAll(".vehicle-option").forEach((option) => {
+          option.classList.remove("selected");
+        });
+        event.target.closest(".vehicle-option").classList.add("selected");
       }
 
-      // ========================================
-      // GASへのPOSTリクエスト
-      // ========================================
-      async function postGAS(action, data) {
-        const url = GAS_URL;
+      // 車両切り替え実行
+      async function switchVehicle() {
+        if (!selectedVehicleId) {
+          alert("車両を選択してください");
+          return;
+        }
 
-        console.log("POST送信:", url);
-        console.log("  action:", action);
-        console.log("  data:", data);
+        const mainVehicle =
+          allVehicles.find((v) => v.isPrimary) || allVehicles[0];
+        if (selectedVehicleId === mainVehicle.vehicleId) {
+          closeVehicleModal();
+          return;
+        }
 
         try {
-          const response = await fetch(url, {
+          const profile = await liff.getProfile();
+          const response = await fetch(CONFIG.GAS_URL, {
             method: "POST",
             headers: {
-              "Content-Type": "text/plain", // GASではtext/plainを推奨
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              action: action,
-              ...data,
+              action: "setPrimary",
+              userId: profile.userId,
+              vehicleId: selectedVehicleId,
+              token: CONFIG.POST_TOKEN,
             }),
-            redirect: "follow",
           });
 
-          console.log("Response status:", response.status);
-
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-
           const result = await response.json();
-          console.log("POST response:", result);
 
-          if (result.error) {
-            throw new Error(result.error);
+          if (result.success) {
+            console.log("メイン車両切り替え成功");
+            closeVehicleModal();
+            await loadData(profile.userId);
+          } else {
+            throw new Error(result.error || "切り替えに失敗しました");
           }
-
-          return result;
         } catch (error) {
-          console.error("POST エラー:", error);
-          throw error;
+          console.error("車両切り替えエラー:", error);
+          alert("車両の切り替えに失敗しました: " + error.message);
         }
       }
 
-      // ========================================
-      // トースト表示
-      // ========================================
-      function showToast(message) {
-        const toast = document.getElementById("toast");
-        toast.textContent = message;
-        toast.classList.add("show");
+      // 走行距離更新
+      function updateMileage() {
+        const mainVehicle =
+          allVehicles.find((v) => v.isPrimary) || allVehicles[0];
+        const currentMileage =
+          mainVehicle.currentMileage || mainVehicle.nowMileage || 0;
+        const newMileage = prompt(
+          `現在の走行距離を入力してください\n（現在: ${currentMileage}km）`,
+          currentMileage
+        );
 
-        setTimeout(() => {
-          toast.classList.remove("show");
-        }, 3000);
+        if (newMileage && !isNaN(newMileage)) {
+          alert(`走行距離を${newMileage}kmに更新しました`);
+          // 実際の更新処理はここに実装
+        }
       }
 
-      // ========================================
-      // ローディング表示/非表示
-      // ========================================
-      function hideLoading() {
-        document.getElementById("loading").style.display = "none";
+      // 整備履歴追加
+      function addHistory() {
+        const content = prompt("整備内容を入力してください");
+        if (content) {
+          alert("整備履歴を追加しました: " + content);
+          // 実際の追加処理はここに実装
+        }
       }
 
+      // エラー表示
       function showError(message) {
-        const errorDiv = document.getElementById("error");
-        errorDiv.textContent = message;
-        errorDiv.style.display = "block";
+        document.getElementById("app").innerHTML = `
+                <div class="error">
+                    <strong>エラー</strong><br>
+                    ${message}
+                </div>
+            `;
       }
     </script>
   </body>
