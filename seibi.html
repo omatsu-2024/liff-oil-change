@@ -1351,35 +1351,50 @@
       $("#saveMileageBtn").addEventListener("click", saveMileage);
       async function saveMileage() {
         const v = Number($("#mileageInput").value || 0);
+        console.log("[saveMileage] 入力値:", v);
         if (!v) {
           toast("走行距離を入力してください");
           return;
         }
         try {
           showOverlay(true, "走行距離を保存中…");
+          console.log("[saveMileage] API呼び出し中...", { userId, mileage: v });
           const j = await postGAS({
             action: "updateMileage",
             userId,
             mileage: v,
             token: window.POST_TOKEN,
           });
+          console.log("[saveMileage] APIレスポンス:", j);
           if (j.status === "success") {
             toast("保存しました");
             // 即座に表示を更新（ローカル状態）
-            $(
-              "#nowMileageHint"
-            ).textContent = `現在の走行距離： ${v.toLocaleString()} km`;
+            const hintEl = $("#nowMileageHint");
+            console.log("[saveMileage] 要素取得:", hintEl);
+            if (hintEl) {
+              hintEl.textContent = `現在の走行距離： ${v.toLocaleString()} km`;
+              console.log("[saveMileage] 表示更新完了:", hintEl.textContent);
+            } else {
+              console.error(
+                "[saveMileage] 要素が見つかりません: #nowMileageHint"
+              );
+            }
             // 優先車両のmileageを更新
             const primaryVehicle = VEHICLES.find((v) => v.isPrimary);
             if (primaryVehicle) {
               primaryVehicle.mileage = v;
+              console.log("[saveMileage] 優先車両更新:", primaryVehicle);
             }
+            console.log("[saveMileage] loadAll()呼び出し中...");
             await loadAll();
+            console.log("[saveMileage] 処理完了");
           } else {
             toast("保存に失敗: " + (j.message || ""));
+            console.error("[saveMileage] 保存失敗:", j);
           }
-        } catch {
+        } catch (err) {
           toast("通信エラー");
+          console.error("[saveMileage] エラー:", err);
         } finally {
           showOverlay(false);
         }
