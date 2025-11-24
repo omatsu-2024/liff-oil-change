@@ -472,11 +472,14 @@
       .intro-card {
         background: #fff;
         border-radius: 16px;
-        width: min(780px, 95vw);
-        margin: 0 16px;
+        width: min(540px, 92vw);
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
         box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
         position: relative;
         z-index: 10001; /* モーダル背景より前面に */
+        overflow: hidden;
       }
       .intro-header {
         padding: 16px 18px;
@@ -486,12 +489,16 @@
         display: flex;
         align-items: center;
         gap: 8px;
+        flex-shrink: 0;
+        background: #fff;
       }
       .intro-body {
         padding: 18px;
         display: grid;
         gap: 16px;
         justify-items: center;
+        overflow-y: auto;
+        flex: 1;
       }
       .intro-note {
         max-width: 680px;
@@ -506,6 +513,7 @@
         gap: 16px;
         justify-content: center;
         width: 100%;
+        flex-wrap: wrap;
       }
       .intro-img {
         width: 64px;
@@ -520,6 +528,8 @@
         align-items: center;
         padding: 12px 18px;
         border-top: 1px solid var(--border);
+        flex-shrink: 0;
+        background: #fff;
       }
       .intro-noagain {
         display: flex;
@@ -528,6 +538,83 @@
         color: #111;
         font-weight: 700;
         justify-content: center;
+      }
+
+      /* レスポンシブ対応 - モバイル最適化 */
+      @media (max-width: 640px) {
+        .intro-card {
+          width: 94vw;
+          max-height: 92vh;
+          border-radius: 12px;
+        }
+        .intro-header {
+          padding: 14px 16px;
+          font-size: 18px;
+        }
+        .intro-body {
+          padding: 14px;
+          gap: 12px;
+        }
+        .intro-note {
+          font-size: 14px;
+          line-height: 1.7;
+        }
+        .intro-row {
+          gap: 12px;
+        }
+        .intro-img {
+          width: 56px;
+          height: 56px;
+        }
+        .intro-actions {
+          padding: 10px 14px;
+          flex-direction: column-reverse;
+          gap: 8px;
+          align-items: stretch;
+        }
+        .intro-actions .muted {
+          font-size: 12px;
+          text-align: center;
+        }
+        .intro-actions button {
+          width: 100% !important;
+        }
+        .modal-card {
+          width: 94vw;
+          max-height: 92vh;
+        }
+        .modal-header {
+          padding: 14px 16px;
+        }
+        .modal-title {
+          font-size: 16px;
+        }
+        .modal-body {
+          max-height: 65vh;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .intro-card {
+          width: 96vw;
+          max-height: 94vh;
+        }
+        .intro-header {
+          font-size: 17px;
+          padding: 12px 14px;
+        }
+        .intro-body {
+          padding: 12px;
+        }
+        .intro-note {
+          font-size: 13px;
+        }
+        .reserve-btn .copy {
+          font-size: 10px;
+        }
+        .reserve-btn .main {
+          font-size: 14px;
+        }
       }
     </style>
   </head>
