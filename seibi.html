@@ -762,6 +762,34 @@
           <div class="modal-title">📄 整備履歴</div>
           <button class="modal-close" id="closeHistoryBtn">閉じる</button>
         </div>
+        <div
+          style="
+            padding: 12px 20px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          "
+        >
+          <label
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              font-size: 14px;
+              font-weight: 600;
+              color: #4b5563;
+              cursor: pointer;
+            "
+          >
+            <input
+              type="checkbox"
+              id="showAllVehiclesToggle"
+              style="width: 16px; height: 16px; cursor: pointer"
+            />
+            <span>すべての車両を表示</span>
+          </label>
+        </div>
         <div class="modal-body"><div id="modalHistoryList"></div></div>
         <div class="modal-footer" id="modalFooter">
           <button class="btn ghost" id="prevBtn" style="width: auto">
@@ -802,8 +830,10 @@
       let VEHICLES = [],
         HEADER_PLATE = "-";
       let HISTORY = [];
+      let FILTERED_HISTORY = []; // フィルター済み整備履歴
       const HIST_PAGE_SIZE = 10;
       let histPage = 0;
+      let showAllVehicles = false; // 全車両表示フラグ
 
       /* ========= Helpers ========= */
       const $ = (s, el = document) => el.querySelector(s);
@@ -1084,17 +1114,46 @@
         historyModal.classList.remove("show");
         historyModal.setAttribute("aria-hidden", "true");
       }
+      function filterHistory() {
+        if (showAllVehicles) {
+          // すべての車両の整備履歴を表示
+          FILTERED_HISTORY = HISTORY;
+        } else {
+          // 選択中の車両の整備履歴のみ表示
+          const primary = VEHICLES.find((v) => v.isPrimary);
+          if (primary) {
+            FILTERED_HISTORY = HISTORY.filter(
+              (h) => String(h.vehicleId) === String(primary.vehicleId)
+            );
+          } else {
+            FILTERED_HISTORY = HISTORY;
+          }
+        }
+      }
+
       function renderHistoryModal() {
-        const total = Math.max(1, Math.ceil(HISTORY.length / HIST_PAGE_SIZE));
+        filterHistory(); // フィルターを適用
+        const total = Math.max(
+          1,
+          Math.ceil(FILTERED_HISTORY.length / HIST_PAGE_SIZE)
+        );
         histPage = Math.min(Math.max(histPage, 0), total - 1);
-        const slice = HISTORY.slice(
+        const slice = FILTERED_HISTORY.slice(
           histPage * HIST_PAGE_SIZE,
           (histPage + 1) * HIST_PAGE_SIZE
         );
+
+        if (slice.length === 0) {
+          modalList.innerHTML =
+            '<div style="text-align: center; padding: 40px; color: #9ca3af;">整備履歴がありません</div>';
+          $("#modalFooter").style.display = "none";
+          return;
+        }
+
         modalList.innerHTML = slice
           .map((h) => {
-            const vName =
-              VEHICLES.find((v) => v.row === h.row)?.modelName || "-";
+            // GASから返却されたvehicleNameを使用
+            const vName = h.vehicleName || "-";
             return `
         <div class="hist">
           <div class="hist-date">${fmtDate(h.date)}</div>
@@ -1133,6 +1192,16 @@
         histPage++;
         renderHistoryModal();
       });
+
+      // 「すべての車両を表示」トグルボタン
+      const showAllVehiclesToggle = $("#showAllVehiclesToggle");
+      if (showAllVehiclesToggle) {
+        showAllVehiclesToggle.addEventListener("change", function () {
+          showAllVehicles = this.checked;
+          histPage = 0; // ページをリセット
+          renderHistoryModal();
+        });
+      }
 
       /* ========= Vehicles Modal ========= */
       const carModal = $("#carModal"),
