@@ -240,7 +240,7 @@
         background: transparent;
       }
 
-      /* Modal */
+      /* Modal - 修正版 */
       .modal {
         position: fixed;
         inset: 0;
@@ -248,19 +248,10 @@
         place-items: center;
         padding: 16px;
         z-index: 9999;
+        background: rgba(0, 0, 0, 0.4); /* 統一した背景 */
       }
       .modal.show {
         display: grid;
-      }
-      .modal-backdrop {
-        position: absolute;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.45);
-      }
-      .backdrop {
-        position: absolute;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.25);
       }
       .modal-card {
         position: relative;
@@ -272,7 +263,7 @@
         display: flex;
         flex-direction: column;
         max-height: 88vh;
-        bottom: 12px;
+        z-index: 10000; /* 最前面に */
       }
       .modal-header {
         display: flex;
@@ -309,9 +300,6 @@
         border-top: 1px solid var(--border);
         background: #fff;
         border-radius: 0 0 16px 16px;
-      }
-      .modal-card.shrink {
-        bottom: auto;
       }
       .modal-card.shrink .modal-body {
         max-height: 48vh;
@@ -487,6 +475,8 @@
         width: min(780px, 95vw);
         margin: 0 16px;
         box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+        position: relative;
+        z-index: 10001; /* モーダル背景より前面に */
       }
       .intro-header {
         padding: 16px 18px;
@@ -551,7 +541,6 @@
 
     <!-- 初回ガイドモーダル -->
     <div id="introModal" class="modal" aria-hidden="true">
-      <div class="backdrop"></div>
       <div class="intro-card">
         <div class="intro-header">🛈 ご利用ガイド</div>
         <div class="intro-body">
@@ -667,9 +656,6 @@
             placeholder="yyyy-mm-dd"
           />
         </div>
-        <div class="date-hint">
-          カレンダーアイコン または 入力欄をタップして日付を選択してください
-        </div>
 
         <div style="margin-top: 12px; display: grid; gap: 8px">
           <select
@@ -771,7 +757,6 @@
 
     <!-- 履歴モーダル -->
     <div id="historyModal" class="modal" aria-hidden="true">
-      <div class="modal-backdrop"></div>
       <div class="modal-card">
         <div class="modal-header">
           <div class="modal-title">📄 整備履歴</div>
@@ -801,7 +786,6 @@
 
     <!-- 車両モーダル -->
     <div id="carModal" class="modal" aria-hidden="true">
-      <div class="modal-backdrop"></div>
       <div class="modal-card">
         <div class="modal-header">
           <div class="modal-title">🚗 車両情報</div>
@@ -827,7 +811,7 @@
         const n = document.createElement("div");
         n.textContent = m;
         n.style.cssText =
-          "position:fixed;left:50%;top:16px;transform:translateX(-50%);background:rgba(16,185,129,.95);color:#fff;padding:10px 14px;border-radius:999px;font-weight:700;z-index:9999";
+          "position:fixed;left:50%;top:16px;transform:translateX(-50%);background:rgba(16,185,129,.95);color:#fff;padding:10px 14px;border-radius:999px;font-weight:700;z-index:10002";
         document.body.appendChild(n);
         setTimeout(() => n.remove(), 2000);
       };
@@ -1092,9 +1076,10 @@
         historyModal.setAttribute("aria-hidden", "false");
       });
       $("#closeHistoryBtn").addEventListener("click", closeHistory);
-      historyModal
-        .querySelector(".modal-backdrop")
-        .addEventListener("click", closeHistory);
+      // モーダル背景クリックで閉じる
+      historyModal.addEventListener("click", function (e) {
+        if (e.target === historyModal) closeHistory();
+      });
       function closeHistory() {
         historyModal.classList.remove("show");
         historyModal.setAttribute("aria-hidden", "true");
@@ -1131,13 +1116,13 @@
           card = historyModal.querySelector(".modal-card");
         if (total === 1) {
           footer.style.display = "none";
-          card.classList.add("shrink");
+          if (card) card.classList.add("shrink");
         } else {
           footer.style.display = "flex";
           prevBtn.disabled = histPage === 0;
           nextBtn.disabled = histPage + 1 >= total;
           pageInfo.textContent = `${histPage + 1} / ${total}`;
-          card.classList.remove("shrink");
+          if (card) card.classList.remove("shrink");
         }
       }
       prevBtn.addEventListener("click", () => {
@@ -1275,9 +1260,10 @@
         carModal.setAttribute("aria-hidden", "false");
       });
       $("#closeCarBtn").addEventListener("click", closeCar);
-      carModal
-        .querySelector(".modal-backdrop")
-        .addEventListener("click", closeCar);
+      // モーダル背景クリックで閉じる
+      carModal.addEventListener("click", function (e) {
+        if (e.target === carModal) closeCar();
+      });
       function closeCar() {
         carModal.classList.remove("show");
         carModal.setAttribute("aria-hidden", "true");
@@ -1370,21 +1356,27 @@
       }
 
       /* ========= 初回ガイドモーダル ========= */
+      const introModal = $("#introModal");
       $("#introClose").onclick = () => {
-        const m = $("#introModal");
-        m.classList.remove("show");
-        m.setAttribute("aria-hidden", "true");
+        introModal.classList.remove("show");
+        introModal.setAttribute("aria-hidden", "true");
       };
       $("#introReserve").onclick = () => {
-        const m = $("#introModal");
-        m.classList.remove("show");
-        m.setAttribute("aria-hidden", "true");
+        introModal.classList.remove("show");
+        introModal.setAttribute("aria-hidden", "true");
         openBooking();
       };
       $("#introNoAgain").addEventListener("change", (e) => {
         const k = "intro_dismissed_v1";
         if (e.target.checked) localStorage.setItem(k, "1");
         else localStorage.removeItem(k);
+      });
+      // モーダル背景クリックで閉じる
+      introModal.addEventListener("click", function (e) {
+        if (e.target === introModal) {
+          introModal.classList.remove("show");
+          introModal.setAttribute("aria-hidden", "true");
+        }
       });
 
       /* ========= Reserve ========= */
