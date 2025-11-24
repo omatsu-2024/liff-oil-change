@@ -1283,6 +1283,16 @@
                   })`;
                   $("#recTarget").textContent = `対象車両：${headModel}`;
 
+                  // 走行距離を更新（車両切り替え時）
+                  const nowKm = selected?.mileage ?? 0;
+                  $("#mileageInput").value = nowKm ? String(nowKm) : "";
+                  const mileageDisplayEl = document.querySelector(
+                    ".mileage-section small"
+                  );
+                  if (mileageDisplayEl) {
+                    mileageDisplayEl.textContent = `現在の走行距離 : ${nowKm.toLocaleString()} km`;
+                  }
+
                   // 推奨/次回カードを即時計算して反映
                   const recs = buildRecsFromVehicle({
                     category: selected?.category,
