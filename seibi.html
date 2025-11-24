@@ -246,7 +246,7 @@
         inset: 0;
         display: none;
         place-items: center;
-        padding: 16px;
+        padding: 20px;
         z-index: 9999;
         background: rgba(0, 0, 0, 0.4); /* 統一した背景 */
       }
@@ -542,8 +542,11 @@
 
       /* レスポンシブ対応 - モバイル最適化 */
       @media (max-width: 640px) {
+        .modal {
+          padding: 24px 20px;
+        }
         .intro-card {
-          width: 94vw;
+          width: 90vw;
           max-height: 82vh;
           border-radius: 12px;
         }
@@ -602,8 +605,11 @@
       }
 
       @media (max-width: 480px) {
+        .modal {
+          padding: 20px 16px;
+        }
         .intro-card {
-          width: 96vw;
+          width: 88vw;
           max-height: 85vh;
         }
         .intro-header {
