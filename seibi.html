@@ -1365,6 +1365,15 @@
           });
           if (j.status === "success") {
             toast("保存しました");
+            // 即座に表示を更新（ローカル状態）
+            $(
+              "#nowMileageHint"
+            ).textContent = `現在の走行距離： ${v.toLocaleString()} km`;
+            // 優先車両のmileageを更新
+            const primaryVehicle = VEHICLES.find((v) => v.isPrimary);
+            if (primaryVehicle) {
+              primaryVehicle.mileage = v;
+            }
             await loadAll();
           } else {
             toast("保存に失敗: " + (j.message || ""));
