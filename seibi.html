@@ -3,7 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>整備履歴 マイページ</title>
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>整備履歴 マイページ v2.1</title>
 
     <script
       src="https://static.line-scdn.net/liff/edge/2/sdk.js"
@@ -458,14 +464,25 @@
         cursor: pointer;
         box-shadow: 0 10px 24px rgba(79, 70, 229, 0.35);
         font-size: 16px;
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
       }
       .reserve-btn .copy {
         font-size: 13px;
         opacity: 0.95;
         letter-spacing: 0.04em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
       }
       .reserve-btn .main {
         font-size: 18px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
       }
 
       /* 初回ガイド */
@@ -473,7 +490,7 @@
         background: #fff;
         border-radius: 16px;
         width: min(540px, 92vw);
-        max-height: 85vh;
+        max-height: 80vh;
         display: flex;
         flex-direction: column;
         box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
@@ -503,9 +520,11 @@
       .intro-note {
         max-width: 680px;
         line-height: 1.9;
-        word-break: keep-all;
+        word-break: normal;
+        overflow-wrap: break-word;
         text-align: left;
         color: #0f172a;
+        width: 100%;
       }
       .intro-row {
         display: flex;
@@ -543,11 +562,11 @@
       /* レスポンシブ対応 - モバイル最適化 */
       @media (max-width: 640px) {
         .modal {
-          padding: 24px 20px;
+          padding: 16px;
         }
         .intro-card {
           width: 90vw;
-          max-height: 82vh;
+          max-height: 75vh;
           border-radius: 12px;
         }
         .intro-header {
@@ -561,6 +580,9 @@
         .intro-note {
           font-size: 12px;
           line-height: 1.5;
+          max-width: 100%;
+          word-break: normal;
+          overflow-wrap: break-word;
         }
         .intro-row {
           gap: 8px;
@@ -586,8 +608,14 @@
           padding: 10px !important;
         }
         .reserve-btn {
-          padding: 12px;
+          padding: 12px 8px;
           gap: 2px;
+        }
+        .reserve-btn .copy {
+          font-size: 10px;
+        }
+        .reserve-btn .main {
+          font-size: 14px;
         }
         .modal-card {
           width: 94vw;
@@ -606,11 +634,11 @@
 
       @media (max-width: 480px) {
         .modal {
-          padding: 20px 16px;
+          padding: 12px;
         }
         .intro-card {
           width: 88vw;
-          max-height: 85vh;
+          max-height: 78vh;
         }
         .intro-header {
           font-size: 15px;
@@ -623,6 +651,9 @@
         .intro-note {
           font-size: 11px;
           line-height: 1.4;
+          max-width: 100%;
+          word-break: normal;
+          overflow-wrap: break-word;
         }
         .intro-actions {
           padding: 6px 8px;
@@ -636,11 +667,60 @@
           font-size: 13px !important;
         }
         .reserve-btn {
-          padding: 10px;
+          padding: 10px 6px;
           gap: 2px;
         }
         .reserve-btn .copy {
-          font-size: 8px;
+          font-size: 9px;
+          letter-spacing: 0.02em;
+        }
+        .reserve-btn .main {
+          font-size: 13px;
+        }
+      }
+
+      /* iPhone SE専用調整 (375px x 667px) */
+      @media (max-width: 375px) and (max-height: 667px) {
+        .modal {
+          padding: 10px;
+        }
+        .intro-card {
+          width: 90vw;
+          max-height: 72vh;
+        }
+        .intro-header {
+          font-size: 14px;
+          padding: 8px;
+        }
+        .intro-body {
+          padding: 8px;
+          gap: 5px;
+        }
+        .intro-note {
+          font-size: 10.5px;
+          line-height: 1.4;
+        }
+        .intro-img {
+          width: 44px;
+          height: 44px;
+        }
+        .intro-actions {
+          padding: 6px;
+        }
+        .intro-actions .muted {
+          font-size: 8.5px;
+          line-height: 1.2;
+        }
+        .intro-actions button {
+          padding: 7px !important;
+          font-size: 12px !important;
+        }
+        .reserve-btn {
+          padding: 9px 5px;
+          gap: 1px;
+        }
+        .reserve-btn .copy {
+          font-size: 8.5px;
         }
         .reserve-btn .main {
           font-size: 12px;
